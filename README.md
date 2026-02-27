@@ -1,37 +1,48 @@
-# Mbox-to-Text
+# League Scheduler Web App
 
-`mbox_to_txt.py` is a simple Python script that takes an mbox file and converts it into a text file.
+This browser app lets you configure and generate weekly league schedules with editable results.
 
-It was created to process a Gmail sent box into a text file that could be used as a corpus for other tools. As such, it
-does some filtering on the mail:
+## Inputs supported
+- Amount of teams
+- Name of each team
+- Amount of game weeks
+- Weekly time range for one-hour matches
+- Number of courts available for each hour
+- Team-specific blocked times (for example: Team A cannot play at `18:00`)
 
-  * All mail not sent by the specified author is ignored.
-  * All mail that is to the specified author is ignored.
-  * All mail that is not text/plain is ignored (most messages include text/plain, however).
-  * If a message cannot be converted to ASCII, it is ignored.
-  * An attempt to remove quoted replies, embedded links, and other probably-not-typed-by-the-author text is made.
+## Scheduling rules
+- Creates weekly schedules across the number of weeks entered.
+- Uses fair rotation for odd-team doubleheaders:
+  - Exactly one team gets a doubleheader each week.
+  - Doubleheaders are randomized among teams with the lowest doubleheader count.
+  - Doubleheader games are always scheduled in back-to-back hourly slots.
+- Respects all team time restrictions.
+- Enforces court capacity per hour.
 
-Additionally, flowed e-mails are processed per RFC 3637.
+## Editable schedule
+After generation, every game row is editable:
+- Week
+- Lock Week
+- Time
+- Court
+- Home team
+- Away team
 
-## Usage
+Use **Validate Edits** to check conflicts and rule violations before export.
 
-    python mbox_to_txt.py Sent.mbox "<sydius@gmail.com>" > corpus.txt
+## Lock Week mode
+- Check **Lock Week** on any row in a week to lock that full week.
+- Click **Regenerate Unlocked Weeks** to preserve locked weeks and rebuild only the rest.
+- Locked weeks are validated before regeneration.
 
-## Limitations
+## Run locally
+From `/Users/joshschwartz/Documents/New project`:
 
-This script was made to process the e-mail sent by Gmail, as such it will probably need modification to properly filter
-mail sent by other clients. This should be relatively straight-forward by modifying the collection of regular
-expressions at the top of the script.
+```bash
+python3 -m http.server 8000
+```
 
-Because of its purpose in creating a corpus of analysis, it errs on the side of removing information. It very likely
-removes some amount of text that was sent by the author erroneously. It also does not do a perfect job of removing text
-not sent by the author, so the output should be inspected and the script modified accordingly.
+Open [http://localhost:8000/index.html](http://localhost:8000/index.html)
 
-## Retrieving Gmail Sent Mail
-
-To retrieve your sent mail from Gmail in the format read by this script, you can visit:
-
-http://google.com/takeout
-
-Once there, follow the instructions to export your Gmail "sent" label. You will, after some time, receive an archive
-containing the `Sent.mbox` file.
+## Export
+Use **Download CSV** to export the validated schedule.

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>League Scheduler Web App</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <h1>League Scheduler</h1>
+        <p>Generate weekly one-hour match schedules with court capacity, team time restrictions, and editable results.</p>
+      </header>
+
+      <section class="panel">
+        <h2>Season Settings</h2>
+        <div class="grid two">
+          <label>
+            Amount of Teams
+            <input id="team-count" type="number" min="2" value="6" />
+          </label>
+          <label>
+            Amount of Game Weeks
+            <input id="week-count" type="number" min="1" value="8" />
+          </label>
+          <label>
+            Weekly Time Range Start
+            <input id="time-start" type="time" value="18:00" />
+          </label>
+          <label>
+            Weekly Time Range End
+            <input id="time-end" type="time" value="22:00" />
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Court Capacity by Hour</h2>
+        <div id="court-hours" class="hour-list"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Teams and Time Restrictions</h2>
+        <div id="teams-wrap" class="teams-wrap"></div>
+      </section>
+
+      <section class="panel actions">
+        <button id="generate" class="primary" type="button">Generate Schedule</button>
+        <button id="regenerate-unlocked" type="button">Regenerate Unlocked Weeks</button>
+        <button id="validate" type="button">Validate Edits</button>
+        <button id="add-game" type="button">Add Game Row</button>
+        <button id="download" type="button" disabled>Download CSV</button>
+      </section>
+
+      <section class="panel">
+        <h2>Editable Weekly Schedule</h2>
+        <div id="error" class="error" aria-live="polite"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Week</th>
+                <th>Lock Week</th>
+                <th>Time</th>
+                <th>Court</th>
+                <th>Home</th>
+                <th>Away</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="schedule-body">
+              <tr>
+                <td colspan="7" class="empty">No schedule generated yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
