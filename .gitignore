@@ -1,2 +1,9 @@
 .idea
 *.mbox
+__pycache__/
+*.pyc
+.env
+.venv/
+
+# Local database
+salesmessage_agent/salesmessage_agent.db

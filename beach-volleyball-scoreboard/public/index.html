@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Beach Volleyball Scoreboard</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <header class="header">
+        <div>
+          <p class="eyebrow">Beach Volleyball</p>
+          <h1>Court Scoreboard</h1>
+        </div>
+        <div class="status" id="status">Live</div>
+      </header>
+
+      <section class="scoreboard" aria-label="Live score">
+        <article class="team team-left">
+          <h2>Side A</h2>
+          <p id="left-score" class="score">0</p>
+        </article>
+        <article class="team team-right">
+          <h2>Side B</h2>
+          <p id="right-score" class="score">0</p>
+        </article>
+      </section>
+
+      <section class="controls" id="controls">
+        <h3>Test Controls</h3>
+        <p>Single press adds, double press subtracts, hold resets both scores.</p>
+
+        <div class="control-grid">
+          <button data-side="left" data-event="tap">Side A +1</button>
+          <button data-side="left" data-event="double">Side A -1</button>
+          <button data-side="left" data-event="hold">Side A Hold Reset</button>
+          <button data-side="right" data-event="tap">Side B +1</button>
+          <button data-side="right" data-event="double">Side B -1</button>
+          <button data-side="right" data-event="hold">Side B Hold Reset</button>
+          <button class="reset" id="manual-reset">Manual Reset</button>
+        </div>
+
+        <p class="tip">TV-only view: add <code>?display=1</code> to the URL.</p>
+      </section>
+    </main>
+
+    <script src="/client.js"></script>
+  </body>
+</html>

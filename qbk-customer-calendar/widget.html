@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QBK Events Calendar Widget</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260301-9" />
+  </head>
+  <body data-embed="1">
+    <main class="layout">
+      <section class="controls panel">
+        <label class="field">
+          Select Date
+          <input id="event-date" type="date" />
+        </label>
+        <div class="date-nav">
+          <button id="prev-day" class="nav-btn" type="button" aria-label="Previous day">&larr;</button>
+          <button id="next-day" class="nav-btn" type="button" aria-label="Next day">&rarr;</button>
+          <button id="today-day" class="nav-btn today-btn" type="button">Today</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="results-header">
+          <h2 id="day-view-title">Court Day View</h2>
+        </div>
+        <div class="day-grid-wrap">
+          <div class="day-grid" id="day-grid">
+            <div class="day-head time-head">Time</div>
+            <div class="day-head">Left Court</div>
+            <div class="day-head">Middle Court</div>
+            <div class="day-head">Right Court</div>
+
+            <div id="time-track" class="time-track"></div>
+            <div id="court-left" class="court-track"></div>
+            <div id="court-middle" class="court-track"></div>
+            <div id="court-right" class="court-track"></div>
+            <div id="vacancy-overlay" class="vacancy-overlay"></div>
+            <div id="events-overlay" class="events-overlay"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js?v=20260301-9"></script>
+  </body>
+</html>

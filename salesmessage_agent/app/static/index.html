@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Salesmessage Agent</title>
+  <style>
+    :root {
+      --bg: #f3efe6;
+      --ink: #1d2a33;
+      --panel: #fffdf8;
+      --line: #d6c8b2;
+      --accent: #0a7f62;
+      --accent-2: #0b5a8c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top right, #fff8e6 0%, var(--bg) 45%, #e7ecef 100%);
+      color: var(--ink);
+    }
+    .wrap {
+      max-width: 1050px;
+      margin: 30px auto;
+      padding: 0 16px;
+    }
+    h1 {
+      margin: 0 0 16px;
+      font-size: 36px;
+      letter-spacing: 0.2px;
+    }
+    .lead {
+      margin: 0 0 24px;
+      color: #41525d;
+    }
+    .grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+    .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    }
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      margin: 8px 0 4px;
+      color: #45545e;
+    }
+    input, textarea {
+      width: 100%;
+      border: 1px solid #c8d0d6;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 14px;
+      background: #fff;
+    }
+    textarea { min-height: 84px; resize: vertical; }
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 10px;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-sync { background: var(--accent); }
+    .btn-ask { background: var(--accent-2); }
+    .btn-search { background: #7b4d22; }
+    pre {
+      margin: 10px 0 0;
+      max-height: 280px;
+      overflow: auto;
+      background: #101418;
+      color: #dce8f0;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #2f4958;
+      min-height: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Salesmessage AI Agent</h1>
+    <p class="lead">Sync conversations, ask questions, and run search from one place.</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Sync Data</h2>
+        <label for="syncFilters">Filters (comma-separated)</label>
+        <input id="syncFilters" value="open,closed,unread" />
+        <div class="row">
+          <button class="btn-sync" id="syncBtn">Run Sync</button>
+        </div>
+        <div class="status" id="syncStatus"></div>
+        <pre id="syncOut">{}</pre>
+      </section>
+
+      <section class="card">
+        <h2>Ask Question</h2>
+        <label for="askQuestion">Question</label>
+        <textarea id="askQuestion">What are the top objections in the last 7 days?</textarea>
+        <label for="askConversationId">Conversation ID (optional)</label>
+        <input id="askConversationId" placeholder="e.g. 94452522" />
+        <div class="row">
+          <button class="btn-ask" id="askBtn">Ask</button>
+        </div>
+        <div class="status" id="askStatus"></div>
+        <pre id="askOut">{}</pre>
+      </section>
+
+      <section class="card">
+        <h2>Search Messages</h2>
+        <label for="searchQuery">Search query</label>
+        <input id="searchQuery" value="confirmed" />
+        <div class="row">
+          <button class="btn-search" id="searchBtn">Search</button>
+        </div>
+        <div class="status" id="searchStatus"></div>
+        <pre id="searchOut">{}</pre>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    async function postJson(url, payload) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const text = await res.text();
+      try { return { ok: res.ok, data: JSON.parse(text) }; }
+      catch { return { ok: res.ok, data: { raw: text } }; }
+    }
+
+    async function getJson(url) {
+      const res = await fetch(url);
+      const text = await res.text();
+      try { return { ok: res.ok, data: JSON.parse(text) }; }
+      catch { return { ok: res.ok, data: { raw: text } }; }
+    }
+
+    const syncBtn = document.getElementById("syncBtn");
+    const syncOut = document.getElementById("syncOut");
+    const syncStatus = document.getElementById("syncStatus");
+
+    syncBtn.addEventListener("click", async () => {
+      syncStatus.textContent = "Syncing...";
+      const filters = document.getElementById("syncFilters").value
+        .split(",").map(v => v.trim()).filter(Boolean);
+      const res = await postJson("/sync", { filters });
+      syncOut.textContent = JSON.stringify(res.data, null, 2);
+      syncStatus.textContent = res.ok ? "Sync complete." : "Sync failed.";
+    });
+
+    const askBtn = document.getElementById("askBtn");
+    const askOut = document.getElementById("askOut");
+    const askStatus = document.getElementById("askStatus");
+
+    askBtn.addEventListener("click", async () => {
+      askStatus.textContent = "Analyzing...";
+      const question = document.getElementById("askQuestion").value.trim();
+      const conv = document.getElementById("askConversationId").value.trim();
+      const payload = { question };
+      if (conv) payload.conversation_id = Number(conv);
+      const res = await postJson("/ask", payload);
+      askOut.textContent = JSON.stringify(res.data, null, 2);
+      askStatus.textContent = res.ok ? "Analysis ready." : "Ask failed.";
+    });
+
+    const searchBtn = document.getElementById("searchBtn");
+    const searchOut = document.getElementById("searchOut");
+    const searchStatus = document.getElementById("searchStatus");
+
+    searchBtn.addEventListener("click", async () => {
+      searchStatus.textContent = "Searching...";
+      const q = encodeURIComponent(document.getElementById("searchQuery").value.trim());
+      const res = await getJson(`/search?query=${q}&limit=20`);
+      searchOut.textContent = JSON.stringify(res.data, null, 2);
+      searchStatus.textContent = res.ok ? "Search complete." : "Search failed.";
+    });
+  </script>
+</body>
+</html>

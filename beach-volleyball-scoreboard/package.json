@@ -1,0 +1,10 @@
+{
+  "name": "beach-volleyball-scoreboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone beach volleyball scoring display with button event API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
