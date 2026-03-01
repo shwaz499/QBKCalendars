@@ -1,8 +1,64 @@
 services:
   - type: web
-    name: qbk-customer-calendar
+    name: qbk-daily-events-calendar
     runtime: python
     rootDir: qbk-customer-calendar
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DASH_API_CLIENT_ID
+        sync: false
+      - key: DASH_API_SECRET
+        sync: false
+
+  - type: web
+    name: qbk-weekly-adult-classes
+    runtime: python
+    rootDir: qbk-weekly-adult-calendar
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DASH_API_CLIENT_ID
+        sync: false
+      - key: DASH_API_SECRET
+        sync: false
+
+  - type: web
+    name: qbk-weekly-adult-dropins
+    runtime: python
+    rootDir: qbk-weekly-adult-dropins-calendar
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DASH_API_CLIENT_ID
+        sync: false
+      - key: DASH_API_SECRET
+        sync: false
+
+  - type: web
+    name: qbk-weekly-teen-dropins
+    runtime: python
+    rootDir: qbk-weekly-teen-dropins-calendar
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DASH_API_CLIENT_ID
+        sync: false
+      - key: DASH_API_SECRET
+        sync: false
+
+  - type: web
+    name: qbk-weekly-youth-programs
+    runtime: python
+    rootDir: qbk-weekly-youth-programs-calendar
     buildCommand: pip install -r requirements.txt
     startCommand: python server.py
     envVars:
