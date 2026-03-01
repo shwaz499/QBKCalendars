@@ -8,7 +8,7 @@ This browser app lets you configure and generate weekly league schedules with ed
 - Amount of game weeks
 - Weekly time range for one-hour matches
 - Number of courts available for each hour
-- Team-specific blocked times (for example: Team A cannot play at `18:00`)
+- Team-specific blocked times (for example: Team A cannot play at `6:00 PM`)
 
 ## Scheduling rules
 - Creates weekly schedules across the number of weeks entered.

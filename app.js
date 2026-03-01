@@ -24,12 +24,27 @@
   }
 
   function parseTimeToMinutes(t) {
-    const m = /^(\d{2}):(\d{2})$/.exec(String(t || ""));
-    if (!m) return null;
-    const hh = Number(m[1]);
-    const mm = Number(m[2]);
-    if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
-    return hh * 60 + mm;
+    const raw = String(t || "").trim().toUpperCase();
+    const ampm = /^(\d{1,2}):(\d{2})\s*([AP]M)$/.exec(raw);
+    if (ampm) {
+      const hour12 = Number(ampm[1]);
+      const minute = Number(ampm[2]);
+      const period = ampm[3];
+      if (hour12 < 1 || hour12 > 12 || minute < 0 || minute > 59) return null;
+      let hour24 = hour12 % 12;
+      if (period === "PM") hour24 += 12;
+      return hour24 * 60 + minute;
+    }
+
+    const legacy = /^(\d{2}):(\d{2})$/.exec(raw);
+    if (legacy) {
+      const hh = Number(legacy[1]);
+      const mm = Number(legacy[2]);
+      if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+      return hh * 60 + mm;
+    }
+
+    return null;
   }
 
   function minutesToTime(total) {
@@ -41,7 +56,7 @@
   function buildHourlyTimes(start, end) {
     const startMin = parseTimeToMinutes(start);
     const endMin = parseTimeToMinutes(end);
-    if (startMin === null || endMin === null) throw new Error("Invalid time range.");
+    if (startMin === null || endMin === null) throw new Error("Invalid time range. Use h:mm AM/PM (example: 6:00 PM).");
     if (endMin <= startMin) throw new Error("Time range end must be after start.");
     if ((endMin - startMin) < 60) throw new Error("Time range must cover at least one 1-hour slot.");
 
@@ -50,6 +65,16 @@
       times.push(minutesToTime(m));
     }
     return times;
+  }
+
+  function formatTimeLabel(time24) {
+    const minutes = parseTimeToMinutes(time24);
+    if (minutes === null) return String(time24);
+    const hour24 = Math.floor(minutes / 60);
+    const minute = minutes % 60;
+    const period = hour24 >= 12 ? "PM" : "AM";
+    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    return `${hour12}:${String(minute).padStart(2, "0")} ${period}`;
   }
 
   function shuffle(arr) {
@@ -373,7 +398,7 @@
     for (const t of times) {
       const input = els.courtHours.querySelector(`[data-court-time="${t}"]`);
       const n = Number(input?.value || 0);
-      if (!Number.isInteger(n) || n < 0) throw new Error(`Court count for ${t} must be 0 or more.`);
+      if (!Number.isInteger(n) || n < 0) throw new Error(`Court count for ${formatTimeLabel(t)} must be 0 or more.`);
       courtMap[t] = n;
     }
 
@@ -429,7 +454,7 @@
 
   function buildTimeSelect(selected, times, field) {
     const options = times
-      .map((t) => `<option value="${t}" ${t === selected ? "selected" : ""}>${t}</option>`)
+      .map((t) => `<option value="${t}" ${t === selected ? "selected" : ""}>${formatTimeLabel(t)}</option>`)
       .join("");
     return `<select data-field="${field}">${options}</select>`;
   }
@@ -476,7 +501,7 @@
       }
       const courtMax = Number(cfg.courtMap[row.time] || 0);
       if (!Number.isInteger(row.court) || row.court < 1 || row.court > courtMax) {
-        throw new Error(`Invalid court '${row.court}' for ${row.time} in week ${row.week}.`);
+        throw new Error(`Invalid court '${row.court}' for ${formatTimeLabel(row.time)} in week ${row.week}.`);
       }
       if (!cfg.teams.includes(row.home) || !cfg.teams.includes(row.away)) {
         throw new Error(`Unknown team in week ${row.week}.`);
@@ -488,7 +513,9 @@
       const blockedHome = cfg.teamUnavail.get(row.home) || new Set();
       const blockedAway = cfg.teamUnavail.get(row.away) || new Set();
       if (blockedHome.has(row.time) || blockedAway.has(row.time)) {
-        throw new Error(`Restriction violation: ${row.home} or ${row.away} blocked at ${row.time} (week ${row.week}).`);
+        throw new Error(
+          `Restriction violation: ${row.home} or ${row.away} blocked at ${formatTimeLabel(row.time)} (week ${row.week}).`
+        );
       }
 
       if (!byWeek.has(row.week)) byWeek.set(row.week, []);
@@ -503,14 +530,14 @@
       for (const game of list) {
         const ct = `${game.time}|${game.court}`;
         if (usedCourtTime.has(ct)) {
-          throw new Error(`Court conflict in week ${week}: court ${game.court} at ${game.time}.`);
+          throw new Error(`Court conflict in week ${week}: court ${game.court} at ${formatTimeLabel(game.time)}.`);
         }
         usedCourtTime.add(ct);
 
         for (const t of [game.home, game.away]) {
           const tt = `${t}|${game.time}`;
           if (teamTime.has(tt)) {
-            throw new Error(`Team time conflict in week ${week}: ${t} has multiple games at ${game.time}.`);
+            throw new Error(`Team time conflict in week ${week}: ${t} has multiple games at ${formatTimeLabel(game.time)}.`);
           }
           teamTime.add(tt);
           teamGames.set(t, (teamGames.get(t) || 0) + 1);
@@ -578,7 +605,7 @@
 
     const lines = ["week,time,court,home_team,away_team"];
     for (const r of sorted) {
-      lines.push([r.week, r.time, r.court, r.home, r.away].map(csvCell).join(","));
+      lines.push([r.week, formatTimeLabel(r.time), r.court, r.home, r.away].map(csvCell).join(","));
     }
 
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
@@ -608,7 +635,7 @@
       row.innerHTML = `
         <label>
           Hour Slot
-          <input type="text" value="${t}" readonly />
+          <input type="text" value="${formatTimeLabel(t)}" readonly />
         </label>
         <label>
           Number of Courts Available
@@ -659,7 +686,7 @@
         label.setAttribute("for", id);
         label.innerHTML = `
           <input id="${id}" data-block-time type="checkbox" value="${t}" ${blockedSet.has(t) ? "checked" : ""} />
-          ${t}
+          ${formatTimeLabel(t)}
         `;
         wrap.appendChild(label);
       }
