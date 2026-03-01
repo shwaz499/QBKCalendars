@@ -209,11 +209,69 @@
     };
   }
 
+  function isLeagueEvent(event) {
+    const categoryText = String(event.category || "").toLowerCase();
+    const titleText = String(event.title || "").toLowerCase();
+    return categoryText.includes("league")
+      || categoryText.includes("game")
+      || titleText.includes("league");
+  }
+
+  function isGenericLeagueTitle(title) {
+    const text = String(title || "").toLowerCase().trim();
+    return /\bleague[\s-]*match\b/.test(text) || text === "league";
+  }
+
+  function getEventWindowHours(event) {
+    const startHours = hourOrderFromDate(new Date(event.start));
+    const endHours = hourOrderFromDate(new Date(event.end));
+    const minDurationHours = SLOT_MINUTES / 60;
+    return {
+      start: startHours,
+      end: Math.max(startHours + minDurationHours, endHours),
+    };
+  }
+
+  function resolveLeagueMatchTitles(events) {
+    const leagueEvents = events.filter((event) => isLeagueEvent(event));
+    const namedLeagues = leagueEvents.filter((event) => !isGenericLeagueTitle(event.title));
+    if (!namedLeagues.length) return events;
+
+    for (const event of leagueEvents) {
+      if (!isGenericLeagueTitle(event.title)) continue;
+      const currentWindow = getEventWindowHours(event);
+      let bestMatch = null;
+      let bestDelta = Number.POSITIVE_INFINITY;
+
+      for (const candidate of namedLeagues) {
+        if (candidate === event) continue;
+        const candidateWindow = getEventWindowHours(candidate);
+        const overlaps = currentWindow.start < candidateWindow.end
+          && candidateWindow.start < currentWindow.end;
+        if (!overlaps) continue;
+
+        const delta = Math.abs(currentWindow.start - candidateWindow.start);
+        if (delta < bestDelta) {
+          bestDelta = delta;
+          bestMatch = candidate;
+        }
+      }
+
+      if (bestMatch) {
+        event.title = bestMatch.title;
+      } else {
+        event.title = namedLeagues[0].title;
+      }
+    }
+
+    return events;
+  }
+
   function getDayEvents(events, selectedDate) {
     const startOfDay = new Date(`${selectedDate}T00:00:00`);
     const endOfDay = new Date(`${selectedDate}T23:59:59.999`);
 
-    return events
+    const dayEvents = events
       .map(normalizeEvent)
       .filter(Boolean)
       .filter((event) => {
@@ -221,6 +279,8 @@
         return start >= startOfDay && start <= endOfDay;
       })
       .sort((a, b) => new Date(a.start) - new Date(b.start));
+
+    return resolveLeagueMatchTitles(dayEvents);
   }
 
   function hourOrderFromDate(rawDate) {
@@ -324,7 +384,10 @@
       }
     }
 
-    for (const groupedEvent of grouped.values()) {
+    const groupedEvents = Array.from(grouped.values())
+      .sort((a, b) => new Date(a.event.start) - new Date(b.event.start));
+    const renderedLeagueBlocks = [];
+    for (const groupedEvent of groupedEvents) {
       const event = groupedEvent.event;
       const startDate = new Date(event.start);
       const endDate = new Date(event.end);
@@ -348,6 +411,22 @@
       const endCol = courtIndexes.length ? courtIndexes[courtIndexes.length - 1] : 0;
       const leftPct = (startCol / COURTS.length) * 100;
       const widthPct = ((endCol - startCol + 1) / COURTS.length) * 100;
+      if (isLeagueEvent(event)) {
+        const overlapsExistingLeague = renderedLeagueBlocks.some((block) => {
+          const timeOverlap = startOffset < block.endOffset && block.startOffset < endOffset;
+          const courtOverlap = startCol <= block.endCol && block.startCol <= endCol;
+          return timeOverlap && courtOverlap;
+        });
+        if (overlapsExistingLeague) {
+          continue;
+        }
+        renderedLeagueBlocks.push({
+          startOffset,
+          endOffset,
+          startCol,
+          endCol,
+        });
+      }
       const startSlot = Math.max(0, Math.floor(startOffset));
       const endSlot = Math.min(SLOT_COUNT, Math.ceil(endOffset));
       for (let col = startCol; col <= endCol; col += 1) {
