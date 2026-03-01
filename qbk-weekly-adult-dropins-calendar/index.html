@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260301-dropins-4" />
+    <link rel="stylesheet" href="./styles.css?v=20260301-dropins-5" />
   </head>
   <body>
     <main class="layout">
@@ -31,6 +31,17 @@
           <button id="prev-week" class="nav-btn" type="button">Back Week</button>
           <button id="next-week" class="nav-btn" type="button">Next Week</button>
           <button id="today-week" class="nav-btn today-btn" type="button">Today</button>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-header">
+            <span class="filter-title">Filters</span>
+            <button id="clear-filters" class="nav-btn clear-filters-btn" type="button">Clear All</button>
+          </div>
+          <div class="filter-menu" id="filter-menu">
+            <button type="button" class="filter-chip is-active" data-filter-key="drop2sKing">2s King of the Court</button>
+            <button type="button" class="filter-chip is-active" data-filter-key="drop2sMatch">2s Match Play</button>
+            <button type="button" class="filter-chip is-active" data-filter-key="drop4s">4s</button>
+          </div>
         </div>
       </section>
 
@@ -64,6 +75,6 @@
       </section>
     </main>
 
-    <script src="./app.js?v=20260301-dropins-4"></script>
+    <script src="./app.js?v=20260301-dropins-5"></script>
   </body>
 </html>

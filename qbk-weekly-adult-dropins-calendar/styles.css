@@ -72,6 +72,58 @@ h1 {
   gap: 0.8rem;
 }
 
+.filter-bar {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.filter-title {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.clear-filters-btn {
+  font-size: 0.74rem;
+  padding: 0.22rem 0.5rem;
+  border-radius: 8px;
+}
+
+.filter-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.filter-chip {
+  appearance: none;
+  border: 1px solid #ceb4f3;
+  border-radius: 999px;
+  background: #efe4ff;
+  color: #4b2f78;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.3rem 0.62rem;
+  cursor: pointer;
+  transition: opacity 120ms ease, filter 120ms ease;
+}
+
+.filter-chip:hover {
+  filter: brightness(0.98);
+}
+
+.filter-chip.is-inactive {
+  opacity: 0.4;
+}
+
 .field {
   display: grid;
   gap: 0.35rem;

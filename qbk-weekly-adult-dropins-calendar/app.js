@@ -15,12 +15,20 @@
     "Saturday",
     "Sunday",
   ];
+  const FILTER_KEYS = ["drop2sKing", "drop2sMatch", "drop4s"];
+  const filterState = Object.fromEntries(FILTER_KEYS.map((key) => [key, true]));
+  const currentWeek = {
+    rawEvents: [],
+    weekStartISO: null,
+  };
 
   const els = {
     date: document.getElementById("week-date"),
     prevWeek: document.getElementById("prev-week"),
     nextWeek: document.getElementById("next-week"),
     todayWeek: document.getElementById("today-week"),
+    clearFilters: document.getElementById("clear-filters"),
+    filterMenu: document.getElementById("filter-menu"),
     weekGrid: document.getElementById("week-grid"),
     weekViewTitle: document.getElementById("week-view-title"),
     timeTrack: document.getElementById("time-track"),
@@ -28,6 +36,50 @@
     dayHeads: Array.from({ length: 7 }, (_, idx) => document.getElementById(`day-head-${idx}`)),
     eventsOverlay: document.getElementById("events-overlay"),
   };
+
+  function updateFilterChipState() {
+    if (!els.filterMenu) return;
+    const chips = els.filterMenu.querySelectorAll(".filter-chip[data-filter-key]");
+    chips.forEach((chip) => {
+      const key = chip.dataset.filterKey;
+      const selected = !!filterState[key];
+      chip.classList.toggle("is-active", selected);
+      chip.classList.toggle("is-inactive", !selected);
+      chip.setAttribute("aria-pressed", selected ? "true" : "false");
+    });
+  }
+
+  function clearAllFilters() {
+    FILTER_KEYS.forEach((key) => {
+      filterState[key] = false;
+    });
+    updateFilterChipState();
+    if (currentWeek.weekStartISO) {
+      renderEvents(currentWeek.rawEvents, currentWeek.weekStartISO);
+    }
+  }
+
+  function setupFilterControls() {
+    if (els.filterMenu) {
+      els.filterMenu.addEventListener("click", (event) => {
+        const target = event.target.closest(".filter-chip[data-filter-key]");
+        if (!target) return;
+        const key = target.dataset.filterKey;
+        if (!Object.prototype.hasOwnProperty.call(filterState, key)) return;
+        filterState[key] = !filterState[key];
+        updateFilterChipState();
+        if (currentWeek.weekStartISO) {
+          renderEvents(currentWeek.rawEvents, currentWeek.weekStartISO);
+        }
+      });
+    }
+
+    if (els.clearFilters) {
+      els.clearFilters.addEventListener("click", clearAllFilters);
+    }
+
+    updateFilterChipState();
+  }
 
   function getTodayISO() {
     const now = new Date();
@@ -183,16 +235,22 @@
     const isKingOfCourt = /king[\s-]*of[\s-]*the[\s-]*court/.test(lower);
 
     let title = null;
+    let filterCategory = null;
     if (is4sDropIn) {
       title = "4s Drop In";
+      filterCategory = "drop4s";
     } else if (is2s && isAdvanced && isKingOfCourt) {
       title = "Advanced 2s - King of the Court";
+      filterCategory = "drop2sKing";
     } else if (is2s && isIntermediate && isKingOfCourt) {
       title = "Intermediate 2s - King of the Court";
+      filterCategory = "drop2sKing";
     } else if (is2s && isAdvanced && isMatchPlay) {
       title = "Advanced 2s - Match Play";
+      filterCategory = "drop2sMatch";
     } else if (is2s && isIntermediate && isMatchPlay) {
       title = "Intermediate 2s - Match Play";
+      filterCategory = "drop2sMatch";
     } else {
       return null;
     }
@@ -216,7 +274,16 @@
       end,
       bookingUrl: String(bookingUrl),
       dayIndex,
+      filterCategory,
     };
+  }
+
+  function getFilteredEvents(rawEvents, weekStartISO) {
+    return rawEvents
+      .map((raw) => normalizeAdultEvent(raw, weekStartISO))
+      .filter(Boolean)
+      .filter((event) => !!filterState[event.filterCategory])
+      .sort((a, b) => new Date(a.start) - new Date(b.start));
   }
 
   function assignDayLanes(events) {
@@ -366,14 +433,13 @@
   }
 
   function renderEvents(rawEvents, weekStartISO) {
+    currentWeek.rawEvents = Array.isArray(rawEvents) ? rawEvents : [];
+    currentWeek.weekStartISO = weekStartISO;
     buildGridSkeleton();
     setDayHeaders(weekStartISO);
     els.weekViewTitle.textContent = formatWeekTitle(weekStartISO);
 
-    const events = rawEvents
-      .map((raw) => normalizeAdultEvent(raw, weekStartISO))
-      .filter(Boolean)
-      .sort((a, b) => new Date(a.start) - new Date(b.start));
+    const events = getFilteredEvents(rawEvents, weekStartISO);
     assignDayLanes(events);
     const dayLayout = applyDayColumnLayout(events);
 
@@ -491,6 +557,7 @@
   }
 
   function init() {
+    setupFilterControls();
     els.date.value = getTodayISO();
     els.date.addEventListener("change", function () { loadAndRender(); });
     els.prevWeek.addEventListener("click", function () { shiftWeekBy(-1); });

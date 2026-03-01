@@ -15,12 +15,29 @@
     "Saturday",
     "Sunday",
   ];
+  const FILTER_KEYS = [
+    "freeTrial",
+    "intro",
+    "levelI",
+    "levelII",
+    "levelIII",
+    "levelIV",
+    "sundaySkills",
+    "popUpClinics",
+  ];
+  const filterState = Object.fromEntries(FILTER_KEYS.map((key) => [key, true]));
+  const currentWeek = {
+    rawEvents: [],
+    weekStartISO: null,
+  };
 
   const els = {
     date: document.getElementById("week-date"),
     prevWeek: document.getElementById("prev-week"),
     nextWeek: document.getElementById("next-week"),
     todayWeek: document.getElementById("today-week"),
+    clearFilters: document.getElementById("clear-filters"),
+    filterMenu: document.getElementById("filter-menu"),
     weekGrid: document.getElementById("week-grid"),
     weekViewTitle: document.getElementById("week-view-title"),
     timeTrack: document.getElementById("time-track"),
@@ -59,6 +76,50 @@
   function schedulePostEmbedHeight() {
     if (resizeTimer) window.clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(postEmbedHeight, 40);
+  }
+
+  function updateFilterChipState() {
+    if (!els.filterMenu) return;
+    const chips = els.filterMenu.querySelectorAll(".filter-chip[data-filter-key]");
+    chips.forEach((chip) => {
+      const key = chip.dataset.filterKey;
+      const selected = !!filterState[key];
+      chip.classList.toggle("is-active", selected);
+      chip.classList.toggle("is-inactive", !selected);
+      chip.setAttribute("aria-pressed", selected ? "true" : "false");
+    });
+  }
+
+  function clearAllFilters() {
+    FILTER_KEYS.forEach((key) => {
+      filterState[key] = false;
+    });
+    updateFilterChipState();
+    if (currentWeek.weekStartISO) {
+      renderEvents(currentWeek.rawEvents, currentWeek.weekStartISO);
+    }
+  }
+
+  function setupFilterControls() {
+    if (els.filterMenu) {
+      els.filterMenu.addEventListener("click", (event) => {
+        const target = event.target.closest(".filter-chip[data-filter-key]");
+        if (!target) return;
+        const key = target.dataset.filterKey;
+        if (!Object.prototype.hasOwnProperty.call(filterState, key)) return;
+        filterState[key] = !filterState[key];
+        updateFilterChipState();
+        if (currentWeek.weekStartISO) {
+          renderEvents(currentWeek.rawEvents, currentWeek.weekStartISO);
+        }
+      });
+    }
+
+    if (els.clearFilters) {
+      els.clearFilters.addEventListener("click", clearAllFilters);
+    }
+
+    updateFilterChipState();
   }
 
   function getTodayISO() {
@@ -217,15 +278,50 @@
     );
     const include = isSundaySkills || isFreeTrialClass || isAdultClass || isAdultCampOrClinic || isKnownAdultProgram;
     if (!include) return null;
+    const filterCategories = new Set();
 
     let title = sourceTitle.replace(/\badult\b/gi, "").replace(/\s{2,}/g, " ").trim();
     if (isSundaySkills) {
       title = "Sunday Skills";
+      filterCategories.add("sundaySkills");
     }
     if (isFreeTrialClass) {
       title = "Free Trial Class";
+      filterCategories.add("freeTrial");
     }
     title = title.replace(/\bclass\b/gi, "").replace(/\s{2,}/g, " ").trim();
+
+    if (isAdultClass && !isSundaySkills && !isFreeTrialClass) {
+      const levelPattern = /level\s*([iv0-9]+(?:\s*\/\s*[iv0-9]+)*)/gi;
+      let hasLevelMatch = false;
+      let match;
+      while ((match = levelPattern.exec(lower)) !== null) {
+        const parts = String(match[1] || "")
+          .split("/")
+          .map((part) => part.trim().toUpperCase())
+          .filter(Boolean);
+        for (const part of parts) {
+          hasLevelMatch = true;
+          if (part === "I" || part === "1") filterCategories.add("levelI");
+          if (part === "II" || part === "2") filterCategories.add("levelII");
+          if (part === "III" || part === "3") filterCategories.add("levelIII");
+          if (part === "IV" || part === "4") filterCategories.add("levelIV");
+        }
+      }
+      if (/\bintro\b/.test(lower)) {
+        filterCategories.add("intro");
+      }
+      if (!hasLevelMatch && !filterCategories.has("intro")) {
+        filterCategories.add("popUpClinics");
+      }
+    }
+
+    if (isAdultCampOrClinic || isKnownAdultProgram) {
+      filterCategories.add("popUpClinics");
+    }
+    if (!filterCategories.size) {
+      filterCategories.add("popUpClinics");
+    }
 
     const start = raw.start_time || raw.start;
     const end = raw.end_time || raw.end;
@@ -246,7 +342,19 @@
       end,
       bookingUrl: String(bookingUrl),
       dayIndex,
+      filterCategories: Array.from(filterCategories),
     };
+  }
+
+  function getFilteredEvents(rawEvents, weekStartISO) {
+    return rawEvents
+      .map((raw) => normalizeAdultEvent(raw, weekStartISO))
+      .filter(Boolean)
+      .filter((event) => {
+        const categories = Array.isArray(event.filterCategories) ? event.filterCategories : [];
+        return categories.some((category) => !!filterState[category]);
+      })
+      .sort((a, b) => new Date(a.start) - new Date(b.start));
   }
 
   function assignDayLanes(events) {
@@ -396,14 +504,13 @@
   }
 
   function renderEvents(rawEvents, weekStartISO) {
+    currentWeek.rawEvents = Array.isArray(rawEvents) ? rawEvents : [];
+    currentWeek.weekStartISO = weekStartISO;
     buildGridSkeleton();
     setDayHeaders(weekStartISO);
     els.weekViewTitle.textContent = formatWeekTitle(weekStartISO);
 
-    const events = rawEvents
-      .map((raw) => normalizeAdultEvent(raw, weekStartISO))
-      .filter(Boolean)
-      .sort((a, b) => new Date(a.start) - new Date(b.start));
+    const events = getFilteredEvents(rawEvents, weekStartISO);
     assignDayLanes(events);
     const dayLayout = applyDayColumnLayout(events);
 
@@ -517,6 +624,7 @@
   }
 
   function init() {
+    setupFilterControls();
     els.date.value = getTodayISO();
     els.date.addEventListener("change", function () { loadAndRender(); });
     els.prevWeek.addEventListener("click", function () { shiftWeekBy(-1); });
