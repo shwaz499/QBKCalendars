@@ -22,6 +22,7 @@
   const FILTER_KEYS = [
     "adultClasses",
     "availableRentals",
+    "leagues",
     "privateEventsRentals",
     "youthClasses",
     "adultDropIns",
@@ -398,7 +399,9 @@
         card.dataset.filterCategory = "youthClasses";
       } else if (isAdultDropIn) {
         card.dataset.filterCategory = "adultDropIns";
-      } else if (isPrivateEventOrRental || isLeagueOrGame) {
+      } else if (isLeagueOrGame) {
+        card.dataset.filterCategory = "leagues";
+      } else if (isPrivateEventOrRental) {
         card.dataset.filterCategory = "privateEventsRentals";
       } else if (isAdultClass || isFreeTrialClass || event.clickable) {
         card.dataset.filterCategory = "adultClasses";

@@ -163,6 +163,12 @@ h1 {
   color: #ffffff;
 }
 
+.filter-leagues {
+  background: #fff5c9;
+  border-color: #e5d27a;
+  color: #5d4b00;
+}
+
 .filter-private-events {
   background: #eef2f7;
   border-color: #c8d2de;
