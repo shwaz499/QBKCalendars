@@ -28,6 +28,38 @@
     dayHeads: Array.from({ length: 7 }, (_, idx) => document.getElementById(`day-head-${idx}`)),
     eventsOverlay: document.getElementById("events-overlay"),
   };
+  let resizeTimer = null;
+
+  function computePageHeight() {
+    const body = document.body;
+    const html = document.documentElement;
+    return Math.ceil(
+      Math.max(
+        body ? body.scrollHeight : 0,
+        body ? body.offsetHeight : 0,
+        html ? html.clientHeight : 0,
+        html ? html.scrollHeight : 0,
+        html ? html.offsetHeight : 0,
+      ),
+    );
+  }
+
+  function postEmbedHeight() {
+    if (!window.parent || window.parent === window) return;
+    window.parent.postMessage(
+      {
+        type: "qbk:embed-height",
+        view: "adult-classes-week",
+        height: computePageHeight(),
+      },
+      "*",
+    );
+  }
+
+  function schedulePostEmbedHeight() {
+    if (resizeTimer) window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(postEmbedHeight, 40);
+  }
 
   function getTodayISO() {
     const now = new Date();
@@ -426,8 +458,10 @@
       if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(() => {
           fitAllVisibleCards();
+          schedulePostEmbedHeight();
         });
       }
+      schedulePostEmbedHeight();
     });
   }
 
@@ -493,7 +527,11 @@
     });
     window.addEventListener("resize", function () {
       fitAllVisibleCards();
+      schedulePostEmbedHeight();
     });
+    const observer = new MutationObserver(schedulePostEmbedHeight);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    schedulePostEmbedHeight();
     loadAndRender();
   }
 
