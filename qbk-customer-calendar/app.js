@@ -576,10 +576,6 @@
   function renderDayView(events, selectedDate) {
     lastDayEvents = events;
     lastSelectedDate = selectedDate;
-    if (forceMobileMode) {
-      renderDayViewMobile(events, selectedDate);
-      return;
-    }
 
     els.dayViewTitle.textContent = `Court Day View for ${formatShortDate(selectedDate)}`;
     const trackHeight = SLOT_COUNT * SLOT_HEIGHT;

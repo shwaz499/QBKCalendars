@@ -65,11 +65,131 @@ body.force-mobile-mode {
 }
 
 body.force-mobile-mode .day-grid-wrap {
-  display: none;
+  display: block;
+  overflow-x: hidden;
 }
 
 body.force-mobile-mode .mobile-day-view {
-  display: block;
+  display: none;
+}
+
+body.force-mobile-mode .layout {
+  padding: 0;
+}
+
+body.force-mobile-mode .panel {
+  padding: 0.5rem;
+  border-radius: 10px;
+}
+
+body.force-mobile-mode .controls {
+  gap: 0.45rem;
+  overflow-x: clip;
+}
+
+body.force-mobile-mode .field {
+  font-size: 0.74rem;
+  gap: 0.18rem;
+  min-width: 0;
+  padding-right: 0.2rem;
+}
+
+body.force-mobile-mode #event-date {
+  width: calc(100% - 0.2rem);
+  margin-right: 0.2rem;
+  font-size: 0.78rem;
+}
+
+body.force-mobile-mode .date-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.36rem;
+}
+
+body.force-mobile-mode .nav-btn {
+  padding: 0.32rem 0.58rem;
+  font-size: 0.76rem;
+  border-radius: 8px;
+}
+
+body.force-mobile-mode .mobile-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.force-mobile-mode .filter-menu {
+  display: none;
+}
+
+body.force-mobile-mode .filter-bar.mobile-filters-open .filter-menu {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+body.force-mobile-mode .filter-menu-actions {
+  width: 100%;
+  justify-content: flex-end;
+  margin-left: 0;
+}
+
+body.force-mobile-mode .clear-filters-btn {
+  margin-left: 0;
+}
+
+body.force-mobile-mode .filter-chip {
+  font-size: 0.7rem;
+  padding: 0.22rem 0.5rem;
+}
+
+body.force-mobile-mode h2 {
+  font-size: clamp(0.74rem, 3.4vw, 0.9rem);
+  white-space: nowrap;
+}
+
+body.force-mobile-mode .day-grid {
+  min-width: 0;
+  width: 100%;
+  --time-col-width: 44px;
+  grid-template-columns: var(--time-col-width) repeat(3, minmax(0, 1fr));
+}
+
+body.force-mobile-mode .day-head {
+  padding: 0.24rem 0.1rem;
+  font-size: 0.58rem;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.force-mobile-mode .time-label {
+  font-size: 0.54rem;
+}
+
+body.force-mobile-mode .day-event {
+  border-radius: 7px;
+  padding: 0.17rem 0.14rem;
+  gap: 0.06rem;
+}
+
+body.force-mobile-mode .day-event-title {
+  font-size: 0.54rem;
+  line-height: 1.03;
+}
+
+body.force-mobile-mode .day-event-time {
+  font-size: 0.5rem;
+  line-height: 1.03;
+}
+
+body.force-mobile-mode .rent-slot {
+  font-size: 0.5rem;
+  line-height: 1.02;
+  text-align: center;
+  white-space: normal;
+  padding-inline: 2px;
 }
 
 .panel {
