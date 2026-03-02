@@ -14,7 +14,7 @@
   const CLIENT_EVENTS_CACHE_MS = 120000;
   const MOBILE_LAYOUT_QUERY = "(max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse)";
   const SLOT_MINUTES = 30;
-  const SLOT_HEIGHT = 28;
+  const DEFAULT_SLOT_HEIGHT = 28;
   const DAY_START_MIN = 6 * 60;
   const SLOT_COUNT = 38; // 6:00 AM -> 1:00 AM in 30-minute slots
   const DAY_END_MIN = DAY_START_MIN + (SLOT_COUNT * SLOT_MINUTES);
@@ -228,11 +228,28 @@
     });
   }
 
-  function formatTimeRange(startISO, endISO) {
+  function formatClockTime(date, compact, withSuffix = true) {
+    const hour24 = date.getHours();
+    const minute = date.getMinutes();
+    const suffix = hour24 >= 12 ? "PM" : "AM";
+    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    if (compact && minute === 0) {
+      return withSuffix ? `${hour12} ${suffix}` : `${hour12}`;
+    }
+    const mm = String(minute).padStart(2, "0");
+    return withSuffix ? `${hour12}:${mm} ${suffix}` : `${hour12}:${mm}`;
+  }
+
+  function formatTimeRange(startISO, endISO, options = {}) {
+    const { compact = false } = options;
     const start = new Date(startISO);
     const end = new Date(endISO);
-    const opts = { hour: "numeric", minute: "2-digit" };
-    return `${start.toLocaleTimeString([], opts)} - ${end.toLocaleTimeString([], opts)}`;
+    const startSuffix = start.getHours() >= 12 ? "PM" : "AM";
+    const endSuffix = end.getHours() >= 12 ? "PM" : "AM";
+    if (compact && startSuffix === endSuffix) {
+      return `${formatClockTime(start, compact, false)} - ${formatClockTime(end, compact, true)}`;
+    }
+    return `${formatClockTime(start, compact)} - ${formatClockTime(end, compact)}`;
   }
 
   function normalizeEvent(raw) {
@@ -419,14 +436,27 @@
     return `${hour12}:00 ${suffix}`;
   }
 
-  function formatSlotLabel(hourValue) {
+  function formatSlotLabel(hourValue, compact = false) {
     const baseHour = Math.floor(hourValue);
     const minutes = Math.round((hourValue - baseHour) * 60);
     const hour24 = baseHour % 24;
     const suffix = hour24 >= 12 ? "PM" : "AM";
     const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    if (compact && minutes === 0) {
+      return `${hour12} ${suffix}`;
+    }
     const mm = minutes === 30 ? "30" : "00";
     return `${hour12}:${mm} ${suffix}`;
+  }
+
+  function getSlotHeightPx() {
+    const source = els.dayGrid || document.body;
+    const raw = window.getComputedStyle(source).getPropertyValue("--slot-height").trim();
+    const parsed = Number.parseFloat(raw);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+    return DEFAULT_SLOT_HEIGHT;
   }
 
   function courtsForLocation(location) {
@@ -534,7 +564,7 @@
         title.textContent = "Court Rental Available";
         const time = document.createElement("span");
         time.className = "mobile-item-time";
-        time.textContent = formatTimeRange(item.startISO, item.endISO);
+        time.textContent = formatTimeRange(item.startISO, item.endISO, { compact: true });
         rent.appendChild(title);
         rent.appendChild(time);
         els.mobileEventsList.appendChild(rent);
@@ -556,7 +586,7 @@
       title.textContent = event.title;
       const time = document.createElement("span");
       time.className = "mobile-item-time";
-      time.textContent = formatTimeRange(event.start, event.end);
+      time.textContent = formatTimeRange(event.start, event.end, { compact: true });
       card.appendChild(title);
       card.appendChild(time);
       els.mobileEventsList.appendChild(card);
@@ -578,7 +608,9 @@
     lastSelectedDate = selectedDate;
 
     els.dayViewTitle.textContent = `Court Day View for ${formatShortDate(selectedDate)}`;
-    const trackHeight = SLOT_COUNT * SLOT_HEIGHT;
+    const slotHeight = getSlotHeightPx();
+    const useCompactTimes = isMobileLayout();
+    const trackHeight = SLOT_COUNT * slotHeight;
     const firstHead = els.dayGrid.querySelector(".day-head");
     const headHeight = firstHead ? firstHead.getBoundingClientRect().height : 32;
     els.dayGrid.style.setProperty("--head-height", `${headHeight}px`);
@@ -606,7 +638,7 @@
 
       const label = document.createElement("span");
       label.className = "time-label";
-      label.textContent = i % 2 === 0 ? formatSlotLabel(order) : "";
+      label.textContent = i % 2 === 0 ? formatSlotLabel(order, useCompactTimes) : "";
       slot.appendChild(label);
       els.timeTrack.appendChild(slot);
 
@@ -643,8 +675,8 @@
 
       const startOffset = ((startOrder * 60) - DAY_START_MIN) / SLOT_MINUTES;
       const endOffset = ((endOrder * 60) - DAY_START_MIN) / SLOT_MINUTES;
-      const top = startOffset * SLOT_HEIGHT;
-      const height = Math.max(22, (endOffset - startOffset) * SLOT_HEIGHT - 4);
+      const top = startOffset * slotHeight;
+      const height = Math.max(22, (endOffset - startOffset) * slotHeight - 4);
 
       const courtIndexes = Array.from(groupedEvent.courts)
         .map((courtKey) => COURTS.findIndex((court) => court.key === courtKey))
@@ -699,7 +731,7 @@
 
       const time = document.createElement("span");
       time.className = "day-event-time";
-      time.textContent = formatTimeRange(event.start, event.end);
+      time.textContent = formatTimeRange(event.start, event.end, { compact: useCompactTimes });
 
       card.appendChild(title);
       card.appendChild(time);
@@ -739,8 +771,8 @@
 
         const leftPct = (col / COURTS.length) * 100;
         const widthPct = (1 / COURTS.length) * 100;
-        const top = start * SLOT_HEIGHT;
-        const height = (runLength * SLOT_HEIGHT) - 2;
+        const top = start * slotHeight;
+        const height = (runLength * slotHeight) - 2;
 
         const rent = document.createElement("a");
         rent.className = "rent-slot";
