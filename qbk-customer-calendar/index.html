@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260301-17" />
+    <link rel="stylesheet" href="./styles.css?v=20260302-4" />
   </head>
   <body>
     <main class="layout">
@@ -35,7 +35,15 @@
         <div class="filter-bar">
           <div class="filter-header">
             <span class="filter-title">Filters</span>
-            <button id="clear-filters" class="nav-btn clear-filters-btn" type="button">Clear All</button>
+            <button
+              id="mobile-filter-toggle"
+              class="nav-btn mobile-filter-toggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="filter-menu"
+            >
+              Filters ▾
+            </button>
           </div>
           <div class="filter-menu" id="filter-menu">
             <button type="button" class="filter-chip filter-adult-classes is-active" data-filter-key="adultClasses">Adult Classes</button>
@@ -45,6 +53,9 @@
             <button type="button" class="filter-chip filter-leagues is-active" data-filter-key="leagues">Leagues</button>
             <button type="button" class="filter-chip filter-private-events is-active" data-filter-key="privateEventsRentals">Private Events & Rentals</button>
             <button type="button" class="filter-chip filter-available-rentals is-active" data-filter-key="availableRentals">Available Rentals</button>
+            <div class="filter-menu-actions">
+              <button id="clear-filters" class="nav-btn clear-filters-btn" type="button">Clear All</button>
+            </div>
           </div>
         </div>
       </section>
@@ -68,9 +79,17 @@
             <div id="events-overlay" class="events-overlay"></div>
           </div>
         </div>
+        <div class="mobile-day-view" id="mobile-day-view">
+          <div class="mobile-court-tabs" id="mobile-court-tabs">
+            <button class="mobile-court-tab is-active" type="button" data-court-key="left">Left Court</button>
+            <button class="mobile-court-tab" type="button" data-court-key="middle">Middle Court</button>
+            <button class="mobile-court-tab" type="button" data-court-key="right">Right Court</button>
+          </div>
+          <div class="mobile-events-list" id="mobile-events-list"></div>
+        </div>
       </section>
     </main>
 
-    <script src="./app.js?v=20260301-17"></script>
+    <script src="./app.js?v=20260302-5"></script>
   </body>
 </html>

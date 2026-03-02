@@ -11,6 +11,7 @@
   --slot-height: 28px;
   --visible-slot-count: 38;
   --visible-track-height: calc(var(--slot-height) * var(--visible-slot-count));
+  --time-col-width: 92px;
 }
 
 * {
@@ -109,6 +110,10 @@ h1 {
   gap: 0.3rem;
 }
 
+.mobile-filter-toggle {
+  display: none;
+}
+
 .filter-title {
   color: var(--muted);
   font-size: 0.9rem;
@@ -124,8 +129,17 @@ h1 {
 
 .filter-menu {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 0.45rem;
+}
+
+.filter-menu-actions {
+  width: auto;
+  display: flex;
+  justify-content: flex-end;
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 
 .filter-chip {
@@ -140,6 +154,7 @@ h1 {
   padding: 0.32rem 0.62rem;
   cursor: pointer;
   transition: opacity 120ms ease, filter 120ms ease;
+  white-space: nowrap;
 }
 
 .filter-chip:hover {
@@ -236,6 +251,8 @@ h1 {
 
 input {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 0.6rem 0.7rem;
@@ -382,10 +399,152 @@ h2 {
   overflow: auto;
 }
 
+.mobile-day-view {
+  display: none;
+  margin-top: 0.85rem;
+}
+
+.mobile-court-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.mobile-court-tab {
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f7fafc;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.48rem 0.4rem;
+  cursor: pointer;
+}
+
+.mobile-court-tab.is-active {
+  background: #ecf6ff;
+  border-color: #97bfe8;
+  color: #174a79;
+}
+
+.mobile-events-list {
+  margin-top: 0.65rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.mobile-item {
+  display: grid;
+  gap: 0.25rem;
+  border: 1px solid #b6d7c8;
+  background: #effbf5;
+  border-radius: 12px;
+  text-decoration: none;
+  padding: 0.62rem 0.7rem;
+}
+
+.mobile-item-title {
+  color: #0a5138;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mobile-item-time {
+  color: #2d6d58;
+  font-size: 0.82rem;
+  line-height: 1.2;
+}
+
+.mobile-rent-slot {
+  border: 1px solid #5b97da;
+  background: #73afe8;
+}
+
+.mobile-rent-slot .mobile-item-title,
+.mobile-rent-slot .mobile-item-time {
+  color: #ffffff;
+}
+
+.mobile-item.day-event-static {
+  background: #eef2f7;
+  border-color: #c8d2de;
+}
+
+.mobile-item.day-event-static .mobile-item-title {
+  color: #2f3e4f;
+}
+
+.mobile-item.day-event-static .mobile-item-time {
+  color: #4a5f77;
+}
+
+.mobile-item.day-event-league {
+  background: #fff5c9;
+  border-color: #e5d27a;
+}
+
+.mobile-item.day-event-league .mobile-item-title {
+  color: #5d4b00;
+}
+
+.mobile-item.day-event-league .mobile-item-time {
+  color: #7a670d;
+}
+
+.mobile-item.day-event-dropin {
+  background: #efe4ff;
+  border-color: #ceb4f3;
+}
+
+.mobile-item.day-event-dropin .mobile-item-title {
+  color: #4b2f78;
+}
+
+.mobile-item.day-event-dropin .mobile-item-time {
+  color: #63458e;
+}
+
+.mobile-item.day-event-teen {
+  background: #fde2e2;
+  border-color: #f4b4b4;
+}
+
+.mobile-item.day-event-teen .mobile-item-title {
+  color: #8b1d1d;
+}
+
+.mobile-item.day-event-teen .mobile-item-time {
+  color: #a12e2e;
+}
+
+.mobile-item.day-event-junior {
+  background: #ffe8c9;
+  border-color: #efbe7a;
+}
+
+.mobile-item.day-event-junior .mobile-item-title {
+  color: #6e3f00;
+}
+
+.mobile-item.day-event-junior .mobile-item-time {
+  color: #87551a;
+}
+
+.mobile-empty {
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0.75rem;
+}
+
 .day-grid {
   min-width: 860px;
   display: grid;
-  grid-template-columns: 92px repeat(3, minmax(220px, 1fr));
+  grid-template-columns: var(--time-col-width) repeat(3, minmax(220px, 1fr));
   grid-template-rows: auto var(--visible-track-height);
   gap: 0;
   border: 1px solid var(--line);
@@ -461,7 +620,7 @@ h2 {
 
 .events-overlay {
   position: absolute;
-  left: 92px;
+  left: var(--time-col-width);
   right: 0;
   top: var(--head-height, 32px);
   z-index: 2;
@@ -473,7 +632,7 @@ h2 {
 
 .vacancy-overlay {
   position: absolute;
-  left: 92px;
+  left: var(--time-col-width);
   right: 0;
   top: var(--head-height, 32px);
   z-index: 1;
@@ -602,6 +761,129 @@ h2 {
 
 .day-event-junior .day-event-time {
   color: #87551a;
+}
+
+@media (max-width: 900px) {
+  .controls {
+    gap: 0.55rem;
+    overflow-x: clip;
+  }
+
+  .field {
+    font-size: 0.8rem;
+    gap: 0.24rem;
+    min-width: 0;
+    padding-right: 0.38rem;
+  }
+
+  input {
+    padding: 0.44rem 0.56rem;
+    border-radius: 9px;
+    font-size: 0.86rem;
+  }
+
+  #event-date {
+    width: calc(100% - 0.38rem);
+    margin-right: 0.38rem;
+  }
+
+  .date-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.36rem;
+  }
+
+  .nav-btn {
+    padding: 0.32rem 0.58rem;
+    font-size: 0.76rem;
+    border-radius: 8px;
+  }
+
+  .mobile-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .filter-menu {
+    display: none;
+  }
+
+  .filter-bar.mobile-filters-open .filter-menu {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .filter-menu-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
+  }
+
+  .clear-filters-btn {
+    margin-left: 0;
+  }
+
+  .filter-chip {
+    font-size: 0.7rem;
+    padding: 0.22rem 0.5rem;
+  }
+
+  h2 {
+    font-size: clamp(0.74rem, 3.4vw, 0.9rem);
+    white-space: nowrap;
+  }
+
+  .day-grid-wrap {
+    display: block;
+    overflow-x: hidden;
+  }
+
+  .mobile-day-view {
+    display: none;
+  }
+
+  .day-grid {
+    min-width: 0;
+    width: 100%;
+    --time-col-width: 56px;
+    grid-template-columns: var(--time-col-width) repeat(3, minmax(0, 1fr));
+  }
+
+  .day-head {
+    padding: 0.34rem 0.2rem;
+    font-size: 0.68rem;
+    line-height: 1.15;
+  }
+
+  .time-label {
+    font-size: 0.62rem;
+  }
+
+  .day-event {
+    border-radius: 8px;
+    padding: 0.24rem 0.25rem;
+    gap: 0.1rem;
+  }
+
+  .day-event-title {
+    font-size: 0.63rem;
+    line-height: 1.12;
+  }
+
+  .day-event-time {
+    font-size: 0.58rem;
+    line-height: 1.12;
+  }
+
+  .rent-slot {
+    font-size: 0.56rem;
+    line-height: 1.1;
+    text-align: center;
+    white-space: normal;
+    padding-inline: 2px;
+  }
 }
 
 @media (max-width: 680px) {

@@ -37,6 +37,7 @@ API_BASE = os.getenv("DASH_API_BASE", "https://api.dashplatform.com").rstrip("/"
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 EVENTS_PAGE_SIZE = 1000
 LOOKUP_PAGE_SIZE = 500
+EVENTS_MAX_PAGES = int(os.getenv("QBK_EVENTS_MAX_PAGES", "40"))
 
 
 def parse_iso8601(raw: str | None) -> datetime | None:
@@ -73,6 +74,32 @@ class DashClient:
         self._page_hint_by_date: dict[str, tuple[float, int]] = {}
         self._events_inflight: dict[str, threading.Event] = {}
         self._events_inflight_lock = threading.Lock()
+
+    def _get_page_hint(self, selected_date: date, now: float) -> int | None:
+        selected_key = selected_date.isoformat()
+        exact = self._page_hint_by_date.get(selected_key)
+        if exact and now - exact[0] < self._page_hint_ttl:
+            return max(1, int(exact[1]))
+
+        best_delta = None
+        best_page = None
+        for raw_key, (ts, page) in self._page_hint_by_date.items():
+            if now - ts >= self._page_hint_ttl:
+                continue
+            try:
+                hint_date = datetime.strptime(raw_key, "%Y-%m-%d").date()
+            except ValueError:
+                continue
+            delta = abs((hint_date - selected_date).days)
+            if delta > 3:
+                continue
+            if best_delta is None or delta < best_delta:
+                best_delta = delta
+                best_page = int(page)
+
+        if best_page is None:
+            return None
+        return max(1, best_page)
 
     def _build_http_client(self) -> httpx.Client:
         verify: bool | str = True
@@ -338,7 +365,6 @@ class DashClient:
     def _compute_events_for_date(self, selected_date: date) -> tuple[list[dict], int | None]:
         day_start = datetime.combine(selected_date, dtime.min)
         day_end = day_start + timedelta(days=1)
-        selected_key = selected_date.isoformat()
         now = time.time()
 
         # Pull core lookup maps in parallel to reduce cold-start request latency.
@@ -353,19 +379,27 @@ class DashClient:
             leagues = fut_leagues.result()
 
         parsed_events = []
-        page = 1
-        hint = self._page_hint_by_date.get(selected_key)
-        if hint and now - hint[0] < self._page_hint_ttl:
-            page = max(1, hint[1])
+        page_rows_cache: dict[int, list[dict]] = {}
 
-        first_match_page = None
-        while page <= 40:
+        def fetch_events_page(page_number: int) -> list[dict]:
+            if page_number in page_rows_cache:
+                return page_rows_cache[page_number]
             response = self._request_json(
                 "GET",
                 "/api/v1/events",
-                params={"page[size]": EVENTS_PAGE_SIZE, "page[number]": page},
+                params={"page[size]": EVENTS_PAGE_SIZE, "page[number]": page_number},
             )
             rows = response.get("data", [])
+            page_rows_cache[page_number] = rows
+            return rows
+
+        page = self._get_page_hint(selected_date, now)
+        if page is None:
+            page = 1
+
+        first_match_page = None
+        while page <= EVENTS_MAX_PAGES:
+            rows = fetch_events_page(page)
             if not rows:
                 break
 
@@ -519,7 +553,9 @@ class DashClient:
             now = time.time()
             self._events_by_date_cache[selected_key] = (now, list(events))
             if first_match_page is not None:
-                self._page_hint_by_date[selected_key] = (now, first_match_page)
+                for offset in range(-2, 3):
+                    hint_date = selected_date + timedelta(days=offset)
+                    self._page_hint_by_date[hint_date.isoformat()] = (now, first_match_page)
             return events
         finally:
             with self._events_inflight_lock:

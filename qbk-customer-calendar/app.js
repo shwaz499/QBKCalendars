@@ -7,6 +7,7 @@
 
   const LIVE_FEED_BASE = "/api/events";
   const RENT_URL = "https://www.catchcorner.com/qbksports";
+  const CLIENT_EVENTS_CACHE_MS = 120000;
   const SLOT_MINUTES = 30;
   const SLOT_HEIGHT = 28;
   const DAY_START_MIN = 6 * 60;
@@ -35,6 +36,7 @@
     nextDay: document.getElementById("next-day"),
     todayDay: document.getElementById("today-day"),
     clearFilters: document.getElementById("clear-filters"),
+    mobileFilterToggle: document.getElementById("mobile-filter-toggle"),
     filterMenu: document.getElementById("filter-menu"),
     dayGrid: document.getElementById("day-grid"),
     dayViewTitle: document.getElementById("day-view-title"),
@@ -44,7 +46,18 @@
     courtRight: document.getElementById("court-right"),
     vacancyOverlay: document.getElementById("vacancy-overlay"),
     eventsOverlay: document.getElementById("events-overlay"),
+    mobileDayView: document.getElementById("mobile-day-view"),
+    mobileCourtTabs: document.getElementById("mobile-court-tabs"),
+    mobileEventsList: document.getElementById("mobile-events-list"),
   };
+  const filterBarEl = document.querySelector(".filter-bar");
+  let mobileCourtKey = "left";
+  let lastDayEvents = [];
+  let lastSelectedDate = "";
+  let lastIsMobile = null;
+  let mobileFiltersOpen = false;
+  const clientEventsCache = new Map();
+  const clientEventsInflight = new Map();
 
   function applyEventFilters() {
     const items = document.querySelectorAll("[data-filter-category]");
@@ -95,6 +108,109 @@
     }
 
     updateFilterChipState();
+  }
+
+  function syncMobileFilterDropdown() {
+    if (!filterBarEl || !els.mobileFilterToggle) return;
+    const mobile = isMobileLayout();
+    if (!mobile) {
+      filterBarEl.classList.add("mobile-filters-open");
+      els.mobileFilterToggle.setAttribute("aria-expanded", "true");
+      els.mobileFilterToggle.textContent = "Filters ▴";
+      return;
+    }
+    filterBarEl.classList.toggle("mobile-filters-open", mobileFiltersOpen);
+    els.mobileFilterToggle.setAttribute("aria-expanded", mobileFiltersOpen ? "true" : "false");
+    els.mobileFilterToggle.textContent = mobileFiltersOpen ? "Filters ▴" : "Filters ▾";
+  }
+
+  function isMobileLayout() {
+    return window.matchMedia("(max-width: 900px)").matches;
+  }
+
+  function getEventCourts(event) {
+    return event.courtKey
+      ? (event.courtKey === "all" ? COURTS.map((court) => court.key) : [event.courtKey])
+      : courtsForLocation(event.subResource || event.location);
+  }
+
+  function getEventClassification(event) {
+    const categoryText = String(event.category || "").toLowerCase();
+    const titleText = String(event.title || "").toLowerCase();
+    const isAdultClass = titleText.includes("adult") && titleText.includes("class");
+    const isFreeTrialClass = titleText.includes("free trial class");
+    const isTeenDropIn = titleText === "teen drop in"
+      || (/\bteens?\b/.test(titleText) && /drop[\s-]*in/.test(titleText));
+    const isTeenGlowParty = /glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party/.test(titleText);
+    const isLeagueOrGame = categoryText.includes("league") || categoryText.includes("game");
+    const isYouthClass = titleText.includes("junior classes")
+      || titleText.includes("cubs")
+      || titleText.includes("seals")
+      || titleText.includes("beach lions");
+    const isAdultDropIn = !isTeenDropIn
+      && !isTeenGlowParty
+      && (categoryText.includes("drop-in") || categoryText.includes("drop in"));
+    const isPrivateEventOrRental = titleText.includes("private event")
+      || titleText.includes("private rental")
+      || (!event.clickable && (categoryText.includes("rental") || categoryText.includes("block")));
+
+    let filterCategory = "privateEventsRentals";
+    if (isTeenDropIn || isTeenGlowParty) {
+      filterCategory = "teenDropIns";
+    } else if (isYouthClass) {
+      filterCategory = "youthClasses";
+    } else if (isAdultDropIn) {
+      filterCategory = "adultDropIns";
+    } else if (isLeagueOrGame) {
+      filterCategory = "leagues";
+    } else if (isPrivateEventOrRental) {
+      filterCategory = "privateEventsRentals";
+    } else if (isAdultClass || isFreeTrialClass || event.clickable) {
+      filterCategory = "adultClasses";
+    }
+
+    const classes = [];
+    if (isLeagueOrGame) classes.push("day-event-league");
+    if (!isAdultClass && !isFreeTrialClass && !isTeenDropIn && !isTeenGlowParty && isAdultDropIn) {
+      classes.push("day-event-dropin");
+    }
+    if (isTeenDropIn || isTeenGlowParty) classes.push("day-event-teen");
+    if (titleText.includes("junior classes")) classes.push("day-event-junior");
+    if (!event.clickable) classes.push("day-event-static");
+
+    return { classes, filterCategory };
+  }
+
+  function applyClassification(node, event) {
+    const classification = getEventClassification(event);
+    classification.classes.forEach((cls) => node.classList.add(cls));
+    node.dataset.filterCategory = classification.filterCategory;
+  }
+
+  function updateMobileCourtTabs() {
+    if (!els.mobileCourtTabs) return;
+    const tabs = els.mobileCourtTabs.querySelectorAll(".mobile-court-tab[data-court-key]");
+    tabs.forEach((tab) => {
+      const active = tab.dataset.courtKey === mobileCourtKey;
+      tab.classList.toggle("is-active", active);
+      tab.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+
+  function buildGroupedEvents(events) {
+    const grouped = new Map();
+    for (const event of events) {
+      const eventCourts = getEventCourts(event);
+      const key = [event.title, event.start, event.end, event.bookingUrl || "", event.clickable ? "1" : "0"].join("|");
+      const existing = grouped.get(key);
+      if (existing) {
+        for (const courtKey of eventCourts) existing.courts.add(courtKey);
+      } else {
+        grouped.set(key, { event, courts: new Set(eventCourts) });
+      }
+    }
+    return Array.from(grouped.values())
+      .sort((a, b) => new Date(a.event.start) - new Date(b.event.start));
   }
 
   function formatShortDate(dateString) {
@@ -318,7 +434,144 @@
     return ["left"];
   }
 
+  function renderDayViewMobile(events, selectedDate) {
+    els.dayViewTitle.textContent = `Court Day View for ${formatShortDate(selectedDate)}`;
+    if (!els.mobileEventsList) return;
+
+    updateMobileCourtTabs();
+    els.mobileEventsList.innerHTML = "";
+
+    const groupedEvents = buildGroupedEvents(events);
+    const courtIndex = COURTS.findIndex((court) => court.key === mobileCourtKey);
+    const occupied = Array.from({ length: SLOT_COUNT }, () => false);
+    const timelineItems = [];
+    const renderedLeagueRanges = [];
+
+    for (const groupedEvent of groupedEvents) {
+      const event = groupedEvent.event;
+      if (!groupedEvent.courts.has(mobileCourtKey)) continue;
+
+      const startDate = new Date(event.start);
+      const endDate = new Date(event.end);
+      const startOrderRaw = hourOrderFromDate(startDate);
+      const endOrderRaw = hourOrderFromDate(endDate);
+      const startOrder = Math.max(DAY_START_MIN / 60, Math.min(DAY_END_MIN / 60, startOrderRaw));
+      const minEndOrder = startOrder + (SLOT_MINUTES / 60);
+      const endOrder = Math.max(minEndOrder, Math.min(DAY_END_MIN / 60, endOrderRaw));
+      if (endOrder <= DAY_START_MIN / 60 || startOrder >= DAY_END_MIN / 60) continue;
+
+      const startOffset = ((startOrder * 60) - DAY_START_MIN) / SLOT_MINUTES;
+      const endOffset = ((endOrder * 60) - DAY_START_MIN) / SLOT_MINUTES;
+      if (isLeagueEvent(event)) {
+        const overlapsLeague = renderedLeagueRanges.some((range) => startOffset < range.end && range.start < endOffset);
+        if (overlapsLeague) continue;
+        renderedLeagueRanges.push({ start: startOffset, end: endOffset });
+      }
+
+      const startSlot = Math.max(0, Math.floor(startOffset));
+      const endSlot = Math.min(SLOT_COUNT, Math.ceil(endOffset));
+      for (let slot = startSlot; slot < endSlot; slot += 1) {
+        occupied[slot] = true;
+      }
+
+      timelineItems.push({
+        type: "event",
+        event,
+        startOrder,
+      });
+    }
+
+    const rentStartSlot = Math.max(0, Math.floor((RENT_START_MIN - DAY_START_MIN) / SLOT_MINUTES));
+    const rentEndSlot = Math.min(SLOT_COUNT, Math.ceil((RENT_END_MIN - DAY_START_MIN) / SLOT_MINUTES));
+    let slot = 0;
+    while (slot < SLOT_COUNT) {
+      const outsideRent = slot < rentStartSlot || slot >= rentEndSlot;
+      if (occupied[slot] || outsideRent) {
+        slot += 1;
+        continue;
+      }
+      const start = slot;
+      while (slot < SLOT_COUNT && slot >= rentStartSlot && slot < rentEndSlot && !occupied[slot]) {
+        slot += 1;
+      }
+      const end = slot;
+      const runLength = end - start;
+      if (runLength < 2) continue;
+
+      const startMin = DAY_START_MIN + (start * SLOT_MINUTES);
+      const endMin = DAY_START_MIN + (end * SLOT_MINUTES);
+      const baseDate = new Date(`${selectedDate}T00:00:00`);
+      const rentStart = new Date(baseDate);
+      rentStart.setHours(0, startMin, 0, 0);
+      const rentEnd = new Date(baseDate);
+      rentEnd.setHours(0, endMin, 0, 0);
+
+      timelineItems.push({
+        type: "rent",
+        startOrder: startMin / 60,
+        startISO: rentStart.toISOString(),
+        endISO: rentEnd.toISOString(),
+      });
+    }
+
+    timelineItems.sort((a, b) => a.startOrder - b.startOrder);
+    for (const item of timelineItems) {
+      if (item.type === "rent") {
+        const rent = document.createElement("a");
+        rent.className = "mobile-item mobile-rent-slot";
+        rent.href = RENT_URL;
+        rent.target = "_blank";
+        rent.rel = "noopener noreferrer";
+        rent.dataset.filterCategory = "availableRentals";
+
+        const title = document.createElement("span");
+        title.className = "mobile-item-title";
+        title.textContent = "Court Rental Available";
+        const time = document.createElement("span");
+        time.className = "mobile-item-time";
+        time.textContent = formatTimeRange(item.startISO, item.endISO);
+        rent.appendChild(title);
+        rent.appendChild(time);
+        els.mobileEventsList.appendChild(rent);
+        continue;
+      }
+
+      const event = item.event;
+      const card = document.createElement(event.clickable ? "a" : "div");
+      card.className = "mobile-item";
+      applyClassification(card, event);
+      if (event.clickable) {
+        card.href = event.bookingUrl;
+        card.target = "_blank";
+        card.rel = "noopener noreferrer";
+      }
+
+      const title = document.createElement("span");
+      title.className = "mobile-item-title";
+      title.textContent = event.title;
+      const time = document.createElement("span");
+      time.className = "mobile-item-time";
+      time.textContent = formatTimeRange(event.start, event.end);
+      card.appendChild(title);
+      card.appendChild(time);
+      els.mobileEventsList.appendChild(card);
+    }
+
+    if (!els.mobileEventsList.children.length) {
+      const empty = document.createElement("div");
+      empty.className = "mobile-empty";
+      const courtLabel = COURTS[courtIndex]?.label || "Selected Court";
+      empty.textContent = `No events for ${courtLabel}.`;
+      els.mobileEventsList.appendChild(empty);
+    }
+
+    applyEventFilters();
+  }
+
   function renderDayView(events, selectedDate) {
+    lastDayEvents = events;
+    lastSelectedDate = selectedDate;
+
     els.dayViewTitle.textContent = `Court Day View for ${formatShortDate(selectedDate)}`;
     const trackHeight = SLOT_COUNT * SLOT_HEIGHT;
     const firstHead = els.dayGrid.querySelector(".day-head");
@@ -369,23 +622,8 @@
       }
     }
 
-    const grouped = new Map();
+    const groupedEvents = buildGroupedEvents(events);
     const occupied = COURTS.map(() => Array.from({ length: SLOT_COUNT }, () => false));
-    for (const event of events) {
-      const eventCourts = event.courtKey
-        ? (event.courtKey === "all" ? COURTS.map((court) => court.key) : [event.courtKey])
-        : courtsForLocation(event.subResource || event.location);
-      const key = [event.title, event.start, event.end, event.bookingUrl || "", event.clickable ? "1" : "0"].join("|");
-      const existing = grouped.get(key);
-      if (existing) {
-        for (const courtKey of eventCourts) existing.courts.add(courtKey);
-      } else {
-        grouped.set(key, { event, courts: new Set(eventCourts) });
-      }
-    }
-
-    const groupedEvents = Array.from(grouped.values())
-      .sort((a, b) => new Date(a.event.start) - new Date(b.event.start));
     const renderedLeagueBlocks = [];
     for (const groupedEvent of groupedEvents) {
       const event = groupedEvent.event;
@@ -437,56 +675,7 @@
 
       const card = document.createElement(event.clickable ? "a" : "div");
       card.className = "day-event";
-      const categoryText = String(event.category || "").toLowerCase();
-      const titleText = String(event.title || "").toLowerCase();
-      const isAdultClass = titleText.includes("adult") && titleText.includes("class");
-      const isFreeTrialClass = titleText.includes("free trial class");
-      const isTeenDropIn = titleText === "teen drop in"
-        || (/\bteens?\b/.test(titleText) && /drop[\s-]*in/.test(titleText));
-      const isTeenGlowParty = /glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party/.test(titleText);
-      const isLeagueOrGame = categoryText.includes("league") || categoryText.includes("game");
-      const isYouthClass = titleText.includes("junior classes")
-        || titleText.includes("cubs")
-        || titleText.includes("seals")
-        || titleText.includes("beach lions");
-      const isAdultDropIn = !isTeenDropIn
-        && !isTeenGlowParty
-        && (categoryText.includes("drop-in") || categoryText.includes("drop in"));
-      const isPrivateEventOrRental = titleText.includes("private event")
-        || titleText.includes("private rental")
-        || (!event.clickable && (categoryText.includes("rental") || categoryText.includes("block")));
-      if (categoryText.includes("league") || categoryText.includes("game")) {
-        card.classList.add("day-event-league");
-      }
-      if (
-        !isAdultClass
-        && !isFreeTrialClass
-        && !isTeenDropIn
-        && (categoryText.includes("drop-in") || categoryText.includes("drop in"))
-      ) {
-        card.classList.add("day-event-dropin");
-      }
-      if (isTeenDropIn || isTeenGlowParty) {
-        card.classList.add("day-event-teen");
-      }
-      if (titleText.includes("junior classes")) {
-        card.classList.add("day-event-junior");
-      }
-      if (isTeenDropIn || isTeenGlowParty) {
-        card.dataset.filterCategory = "teenDropIns";
-      } else if (isYouthClass) {
-        card.dataset.filterCategory = "youthClasses";
-      } else if (isAdultDropIn) {
-        card.dataset.filterCategory = "adultDropIns";
-      } else if (isLeagueOrGame) {
-        card.dataset.filterCategory = "leagues";
-      } else if (isPrivateEventOrRental) {
-        card.dataset.filterCategory = "privateEventsRentals";
-      } else if (isAdultClass || isFreeTrialClass || event.clickable) {
-        card.dataset.filterCategory = "adultClasses";
-      } else {
-        card.dataset.filterCategory = "privateEventsRentals";
-      }
+      applyClassification(card, event);
       if (event.clickable) {
         card.href = event.bookingUrl;
         card.target = "_blank";
@@ -557,7 +746,7 @@
         rent.style.width = `calc(${widthPct}% - 10px)`;
         rent.style.top = `${top + 1}px`;
         rent.style.height = `${height}px`;
-        rent.textContent = "Rent Court";
+        rent.textContent = "Court Rental Available";
         rent.dataset.filterCategory = "availableRentals";
         els.vacancyOverlay.appendChild(rent);
       }
@@ -567,7 +756,18 @@
   }
 
   function fetchEventsFrom(url) {
-    return fetch(url, { cache: "no-store" }).then((response) => {
+    const now = Date.now();
+    const cached = clientEventsCache.get(url);
+    if (cached && now - cached.ts < CLIENT_EVENTS_CACHE_MS) {
+      return Promise.resolve(cached.data);
+    }
+
+    const inflight = clientEventsInflight.get(url);
+    if (inflight) {
+      return inflight;
+    }
+
+    const request = fetch(url).then((response) => {
       if (!response.ok) {
         return response.text().then((body) => {
           throw new Error(`Feed request failed (${response.status}): ${body.slice(0, 120)}`);
@@ -578,12 +778,33 @@
       if (!Array.isArray(data)) {
         throw new Error("Event feed must be a JSON array.");
       }
+      clientEventsCache.set(url, { ts: Date.now(), data });
       return data;
+    }).finally(() => {
+      clientEventsInflight.delete(url);
     });
+    clientEventsInflight.set(url, request);
+    return request;
   }
 
   function getLiveFeedUrl(selectedDate) {
     return `${LIVE_FEED_BASE}?date=${encodeURIComponent(selectedDate)}`;
+  }
+
+  function shiftISODate(isoDate, days) {
+    const base = new Date(`${isoDate}T00:00:00`);
+    base.setDate(base.getDate() + days);
+    const yyyy = base.getFullYear();
+    const mm = String(base.getMonth() + 1).padStart(2, "0");
+    const dd = String(base.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function prefetchAdjacentDates(selectedDate) {
+    const prev = shiftISODate(selectedDate, -1);
+    const next = shiftISODate(selectedDate, 1);
+    fetchEventsFrom(getLiveFeedUrl(prev)).catch(() => {});
+    fetchEventsFrom(getLiveFeedUrl(next)).catch(() => {});
   }
 
   function loadAndRender() {
@@ -594,6 +815,7 @@
       .then((raw) => {
         const events = getDayEvents(raw, selectedDate);
         renderDayView(events, selectedDate);
+        setTimeout(() => prefetchAdjacentDates(selectedDate), 0);
       })
       .catch((error) => {
         renderDayView([], selectedDate);
@@ -621,6 +843,7 @@
 
   function init() {
     setupFilterControls();
+    syncMobileFilterDropdown();
     els.date.value = getTodayISO();
     els.date.addEventListener("change", function () { loadAndRender(); });
     if (els.prevDay) {
@@ -635,6 +858,36 @@
         loadAndRender();
       });
     }
+    if (els.mobileFilterToggle) {
+      els.mobileFilterToggle.addEventListener("click", function () {
+        mobileFiltersOpen = !mobileFiltersOpen;
+        syncMobileFilterDropdown();
+      });
+    }
+    if (els.mobileCourtTabs) {
+      els.mobileCourtTabs.addEventListener("click", (event) => {
+        const target = event.target.closest(".mobile-court-tab[data-court-key]");
+        if (!target) return;
+        mobileCourtKey = target.dataset.courtKey || "left";
+        updateMobileCourtTabs();
+        if (lastSelectedDate) {
+          renderDayView(lastDayEvents, lastSelectedDate);
+        }
+      });
+    }
+    lastIsMobile = isMobileLayout();
+    window.addEventListener("resize", () => {
+      const currentIsMobile = isMobileLayout();
+      if (currentIsMobile === lastIsMobile) return;
+      lastIsMobile = currentIsMobile;
+      if (!currentIsMobile) {
+        mobileFiltersOpen = true;
+      }
+      syncMobileFilterDropdown();
+      if (lastSelectedDate) {
+        renderDayView(lastDayEvents, lastSelectedDate);
+      }
+    });
     loadAndRender();
   }
 
