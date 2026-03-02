@@ -611,6 +611,8 @@
     const slotHeight = getSlotHeightPx();
     const useCompactTimes = isMobileLayout();
     const trackHeight = SLOT_COUNT * slotHeight;
+    els.dayGrid.style.setProperty("--visible-slot-count", String(SLOT_COUNT));
+    els.dayGrid.style.setProperty("--visible-track-height", `${trackHeight}px`);
     const firstHead = els.dayGrid.querySelector(".day-head");
     const headHeight = firstHead ? firstHead.getBoundingClientRect().height : 32;
     els.dayGrid.style.setProperty("--head-height", `${headHeight}px`);

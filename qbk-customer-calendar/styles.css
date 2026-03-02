@@ -938,6 +938,10 @@ h2 {
     justify-content: center;
   }
 
+  .filter-header {
+    display: none;
+  }
+
   .filter-menu {
     display: none;
   }
@@ -960,6 +964,10 @@ h2 {
   .filter-chip {
     font-size: 0.7rem;
     padding: 0.22rem 0.5rem;
+  }
+
+  .today-btn {
+    margin-left: auto;
   }
 
   h2 {
@@ -1044,6 +1052,10 @@ h2 {
     width: calc(100% - 0.2rem);
     margin-right: 0.2rem;
     font-size: 0.78rem;
+  }
+
+  body.embed-mode .filter-header {
+    display: none;
   }
 
   body.embed-mode .day-grid {
