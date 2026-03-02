@@ -1,8 +1,12 @@
 (() => {
   const params = new URLSearchParams(window.location.search);
   const embedMode = params.get("embed") === "1" || document.body.dataset.embed === "1";
+  const forceMobileMode = params.get("mobile") === "1" || document.body.dataset.forceMobile === "1";
   if (embedMode) {
     document.body.classList.add("embed-mode");
+  }
+  if (forceMobileMode) {
+    document.body.classList.add("force-mobile-mode");
   }
 
   const LIVE_FEED_BASE = "/api/events";
@@ -126,7 +130,7 @@
   }
 
   function isMobileLayout() {
-    return window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+    return forceMobileMode || window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
   }
 
   function getEventCourts(event) {
@@ -572,6 +576,10 @@
   function renderDayView(events, selectedDate) {
     lastDayEvents = events;
     lastSelectedDate = selectedDate;
+    if (forceMobileMode) {
+      renderDayViewMobile(events, selectedDate);
+      return;
+    }
 
     els.dayViewTitle.textContent = `Court Day View for ${formatShortDate(selectedDate)}`;
     const trackHeight = SLOT_COUNT * SLOT_HEIGHT;

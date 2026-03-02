@@ -60,6 +60,18 @@ body.embed-mode .day-grid {
   min-width: 760px;
 }
 
+body.force-mobile-mode {
+  --slot-height: 24px;
+}
+
+body.force-mobile-mode .day-grid-wrap {
+  display: none;
+}
+
+body.force-mobile-mode .mobile-day-view {
+  display: block;
+}
+
 .panel {
   border: 1px solid var(--line);
   border-radius: 16px;
