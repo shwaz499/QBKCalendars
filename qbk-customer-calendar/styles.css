@@ -763,7 +763,7 @@ h2 {
   color: #87551a;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse) {
   .controls {
     gap: 0.55rem;
     overflow-x: clip;
