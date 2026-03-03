@@ -10,7 +10,7 @@ import sys
 import threading
 import time
 import urllib.parse
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, time as dtime, timedelta
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -38,6 +38,11 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 EVENTS_PAGE_SIZE = 1000
 LOOKUP_PAGE_SIZE = 500
 EVENTS_MAX_PAGES = int(os.getenv("QBK_EVENTS_MAX_PAGES", "40"))
+LOOKUP_CACHE_TTL = int(os.getenv("QBK_LOOKUP_CACHE_TTL", "21600"))
+API_JSON_CACHE_CONTROL = os.getenv(
+    "QBK_API_CACHE_CONTROL",
+    "public, max-age=30, stale-while-revalidate=120",
+)
 
 
 def parse_iso8601(raw: str | None) -> datetime | None:
@@ -52,6 +57,8 @@ def parse_iso8601(raw: str | None) -> datetime | None:
 def strip_html(text: str | None) -> str:
     if not text:
         return ""
+    if "<" not in text:
+        return re.sub(r"\s+", " ", text).strip()
     without_tags = re.sub(r"<[^>]+>", " ", text)
     condensed = re.sub(r"\s+", " ", without_tags).strip()
     return condensed
@@ -63,6 +70,7 @@ class DashClient:
         self._http = self._build_http_client()
         self._token = None
         self._token_expires_at = 0.0
+        self._token_lock = threading.Lock()
         self._event_types_cache = (0.0, {})
         self._resources_cache = (0.0, {})
         self._resource_areas_cache = (0.0, {})
@@ -74,6 +82,15 @@ class DashClient:
         self._page_hint_by_date: dict[str, tuple[float, int]] = {}
         self._events_inflight: dict[str, threading.Event] = {}
         self._events_inflight_lock = threading.Lock()
+        self._prefetch_adjacent_days = max(0, int(os.getenv("QBK_PREFETCH_ADJ_DAYS", "1")))
+        self._prefetch_pool = ThreadPoolExecutor(max_workers=2)
+        self._enable_startup_prewarm = os.getenv("QBK_PREWARM_ON_STARTUP", "1").lower() not in {
+            "0",
+            "false",
+            "no",
+        }
+        if self._enable_startup_prewarm:
+            threading.Thread(target=self._warmup_metadata, daemon=True).start()
 
     def _get_page_hint(self, selected_date: date, now: float) -> int | None:
         selected_key = selected_date.isoformat()
@@ -176,52 +193,68 @@ class DashClient:
         if self._token and now < self._token_expires_at - 60:
             return self._token
 
-        response = self._request_json(
-            method="POST",
-            path="/v1/auth/token",
-            body={
-                "grant_type": "client_credentials",
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-            },
-            use_auth=False,
-        )
+        with self._token_lock:
+            now = time.time()
+            if self._token and now < self._token_expires_at - 60:
+                return self._token
 
-        token = response.get("access_token") or response.get("token")
-        if not token:
-            raise RuntimeError("Dash API auth returned no access token.")
+            response = self._request_json(
+                method="POST",
+                path="/v1/auth/token",
+                body={
+                    "grant_type": "client_credentials",
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                },
+                use_auth=False,
+            )
 
-        expires_in = int(response.get("expires_in", 900))
-        self._token = token
-        self._token_expires_at = now + expires_in
-        return token
+            token = response.get("access_token") or response.get("token")
+            if not token:
+                raise RuntimeError("Dash API auth returned no access token.")
+
+            expires_in = int(response.get("expires_in", 900))
+            self._token = token
+            self._token_expires_at = now + expires_in
+            return token
+
+    def _warmup_metadata(self) -> None:
+        try:
+            self._get_token()
+            self._cached_lookup("event_types")
+            self._cached_lookup("resources")
+            self._cached_lookup("resource_areas")
+            self._cached_lookup("leagues")
+        except Exception:
+            # Best-effort warmup only.
+            return
 
     def _cached_lookup(self, key: str) -> dict[str, str]:
         now = time.time()
         if key == "event_types":
             ts, lookup = self._event_types_cache
-            if now - ts < 900 and lookup:
+            if now - ts < LOOKUP_CACHE_TTL and lookup:
                 return lookup
             lookup = self._fetch_lookup("/api/v1/event-types")
             self._event_types_cache = (now, lookup)
             return lookup
         if key == "leagues":
             ts, lookup = self._leagues_cache
-            if now - ts < 900 and lookup:
+            if now - ts < LOOKUP_CACHE_TTL and lookup:
                 return lookup
             lookup = self._fetch_lookup("/api/v1/leagues")
             self._leagues_cache = (now, lookup)
             return lookup
         if key == "resource_areas":
             ts, lookup = self._resource_areas_cache
-            if now - ts < 900 and lookup:
+            if now - ts < LOOKUP_CACHE_TTL and lookup:
                 return lookup
             lookup = self._fetch_lookup("/api/v1/resource-areas")
             self._resource_areas_cache = (now, lookup)
             return lookup
 
         ts, lookup = self._resources_cache
-        if now - ts < 900 and lookup:
+        if now - ts < LOOKUP_CACHE_TTL and lookup:
             return lookup
         lookup = self._fetch_lookup("/api/v1/resources")
         self._resources_cache = (now, lookup)
@@ -352,7 +385,8 @@ class DashClient:
         max_workers = min(8, len(ids_to_fetch))
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
             futures = {pool.submit(self._get_team_name, team_id): team_id for team_id in ids_to_fetch}
-            for future, team_id in futures.items():
+            for future in as_completed(futures):
+                team_id = futures[future]
                 try:
                     value = future.result()
                 except Exception:
@@ -362,48 +396,83 @@ class DashClient:
 
         return names
 
+    def _schedule_prefetch_date(self, target_date: date) -> None:
+        selected_key = target_date.isoformat()
+        now = time.time()
+        cached = self._events_by_date_cache.get(selected_key)
+        if cached and now - cached[0] < self._events_cache_ttl:
+            return
+
+        def _worker() -> None:
+            try:
+                self.get_events_for_date(target_date, schedule_prefetch=False)
+            except Exception:
+                # Best-effort warmup only.
+                return
+
+        try:
+            self._prefetch_pool.submit(_worker)
+        except Exception:
+            return
+
+    def _schedule_adjacent_prefetch(self, selected_date: date, include_selected: bool = False) -> None:
+        if self._prefetch_adjacent_days <= 0:
+            return
+        for offset in range(-self._prefetch_adjacent_days, self._prefetch_adjacent_days + 1):
+            if offset == 0 and not include_selected:
+                continue
+            self._schedule_prefetch_date(selected_date + timedelta(days=offset))
+
     def _compute_events_for_date(self, selected_date: date) -> tuple[list[dict], int | None]:
         day_start = datetime.combine(selected_date, dtime.min)
         day_end = day_start + timedelta(days=1)
-        now = time.time()
+        selected_key = selected_date.isoformat()
 
-        # Pull core lookup maps in parallel to reduce cold-start request latency.
-        with ThreadPoolExecutor(max_workers=4) as pool:
-            fut_event_types = pool.submit(self._cached_lookup, "event_types")
-            fut_resources = pool.submit(self._cached_lookup, "resources")
-            fut_resource_areas = pool.submit(self._cached_lookup, "resource_areas")
-            fut_leagues = pool.submit(self._cached_lookup, "leagues")
-            event_types = fut_event_types.result()
-            resources = fut_resources.result()
-            resource_areas = fut_resource_areas.result()
-            leagues = fut_leagues.result()
-
+        event_types: dict[str, str] = {}
+        resources: dict[str, str] = {}
+        resource_areas: dict[str, str] = {}
+        leagues: dict[str, str] = {}
         parsed_events = []
-        page_rows_cache: dict[int, list[dict]] = {}
-
-        def fetch_events_page(page_number: int) -> list[dict]:
-            if page_number in page_rows_cache:
-                return page_rows_cache[page_number]
+        included_team_names: dict[str, str] = {}
+        page = 1
+        while page <= EVENTS_MAX_PAGES:
             response = self._request_json(
                 "GET",
                 "/api/v1/events",
-                params={"page[size]": EVENTS_PAGE_SIZE, "page[number]": page_number},
+                params={
+                    "page[size]": EVENTS_PAGE_SIZE,
+                    "page[number]": page,
+                    "filter[start_date]": selected_key,
+                    "include": "homeTeam,visitingTeam,resource,resourceArea,eventType,league",
+                },
             )
             rows = response.get("data", [])
-            page_rows_cache[page_number] = rows
-            return rows
-
-        page = self._get_page_hint(selected_date, now)
-        if page is None:
-            page = 1
-
-        first_match_page = None
-        while page <= EVENTS_MAX_PAGES:
-            rows = fetch_events_page(page)
+            included = response.get("included", [])
+            for included_item in included:
+                included_id = included_item.get("id")
+                if included_id is None:
+                    continue
+                attrs = included_item.get("attributes", {})
+                item_type = str(included_item.get("type") or "")
+                label = attrs.get("name") or attrs.get("title") or attrs.get("description")
+                if not label:
+                    continue
+                item_key = str(included_id)
+                value = str(label)
+                if item_type == "teams":
+                    included_team_names[item_key] = value
+                    self._team_name_cache[item_key] = value
+                elif item_type == "event-types":
+                    event_types[item_key] = value
+                elif item_type == "resources":
+                    resources[item_key] = value
+                elif item_type == "resource-areas":
+                    resource_areas[item_key] = value
+                elif item_type == "leagues":
+                    leagues[item_key] = value
             if not rows:
                 break
 
-            hit_future = False
             for row in rows:
                 attrs = row.get("attributes", {})
                 start_dt = parse_iso8601(attrs.get("start"))
@@ -411,15 +480,9 @@ class DashClient:
                 if not start_dt or not end_dt:
                     continue
 
-                # API appears sorted by start ascending, so we can stop after passing this day.
-                if start_dt >= day_end:
-                    hit_future = True
-                    break
-                if start_dt < day_start:
+                # Keep a strict window check as a safety guard.
+                if start_dt < day_start or start_dt >= day_end:
                     continue
-
-                if first_match_page is None:
-                    first_match_page = page
 
                 event_type_id = str(attrs.get("event_type_id")) if attrs.get("event_type_id") is not None else ""
                 league_id = str(attrs.get("league_id")) if attrs.get("league_id") is not None else ""
@@ -432,21 +495,17 @@ class DashClient:
                 )
                 team_id = str(team_id) if team_id is not None else None
                 vteam_id = attrs.get("vteam_id")
-
-                category = event_types.get(event_type_id)
-                league_name = leagues.get(league_id)
                 description = strip_html(
                     attrs.get("description") or attrs.get("desc") or attrs.get("best_description")
                 )
-                event_kind = self._event_kind(event_type_id, category, league_name, description, vteam_id)
                 parsed_events.append(
                     {
                         "id": str(row.get("id")),
-                        "event_kind": event_kind,
+                        "event_type_id": event_type_id,
+                        "league_id": league_id,
+                        "vteam_id": vteam_id,
                         "team_id": team_id,
-                        "league_name": league_name,
                         "description": description,
-                        "category": category,
                         "resource_id": resource_id,
                         "resource_area_id": resource_area_id,
                         "start_time": start_dt,
@@ -454,25 +513,95 @@ class DashClient:
                     }
                 )
 
-            if hit_future:
+            if len(rows) < EVENTS_PAGE_SIZE:
                 break
             page += 1
 
-        bookable_team_ids = {
-            str(item["team_id"])
+        needed_event_type_ids = {
+            str(item["event_type_id"])
             for item in parsed_events
-            if item["event_kind"] == "bookable" and item["team_id"]
+            if item["event_type_id"] and str(item["event_type_id"]) not in event_types
         }
-        team_names = self._prefetch_team_names(bookable_team_ids)
+        needed_league_ids = {
+            str(item["league_id"])
+            for item in parsed_events
+            if item["league_id"] and str(item["league_id"]) not in leagues
+        }
+        needed_resource_ids = {
+            str(item["resource_id"])
+            for item in parsed_events
+            if item["resource_id"] and str(item["resource_id"]) not in resources
+        }
+        needed_resource_area_ids = {
+            str(item["resource_area_id"])
+            for item in parsed_events
+            if item["resource_area_id"] and str(item["resource_area_id"]) not in resource_areas
+        }
+
+        if needed_event_type_ids:
+            fallback = self._cached_lookup("event_types")
+            for row_id in needed_event_type_ids:
+                value = fallback.get(row_id)
+                if value:
+                    event_types[row_id] = value
+        if needed_league_ids:
+            fallback = self._cached_lookup("leagues")
+            for row_id in needed_league_ids:
+                value = fallback.get(row_id)
+                if value:
+                    leagues[row_id] = value
+        if needed_resource_ids:
+            fallback = self._cached_lookup("resources")
+            for row_id in needed_resource_ids:
+                value = fallback.get(row_id)
+                if value:
+                    resources[row_id] = value
+        if needed_resource_area_ids:
+            fallback = self._cached_lookup("resource_areas")
+            for row_id in needed_resource_area_ids:
+                value = fallback.get(row_id)
+                if value:
+                    resource_areas[row_id] = value
+
+        bookable_team_ids: set[str] = set()
+        for item in parsed_events:
+            team_id = item["team_id"]
+            if not team_id:
+                continue
+            event_type_id = str(item["event_type_id"])
+            league_id = str(item["league_id"])
+            category = event_types.get(event_type_id)
+            league_name = leagues.get(league_id)
+            event_kind = self._event_kind(
+                event_type_id,
+                category,
+                league_name,
+                item["description"],
+                item["vteam_id"],
+            )
+            if event_kind == "bookable":
+                bookable_team_ids.add(str(team_id))
+        team_names = {team_id: name for team_id, name in included_team_names.items() if team_id in bookable_team_ids}
+        missing_team_ids = bookable_team_ids - set(team_names.keys())
+        if missing_team_ids:
+            team_names.update(self._prefetch_team_names(missing_team_ids))
 
         events = []
         for item in parsed_events:
-            event_kind = str(item["event_kind"])
+            event_type_id = str(item["event_type_id"])
+            league_id = str(item["league_id"])
+            category = event_types.get(event_type_id)
+            league_name = leagues.get(league_id)
+            event_kind = self._event_kind(
+                event_type_id,
+                category,
+                league_name,
+                item["description"],
+                item["vteam_id"],
+            )
             team_id = str(item["team_id"]) if item["team_id"] else None
             team_name = team_names.get(team_id) if team_id else None
-            league_name = item["league_name"]
             description = str(item["description"])
-            category = item["category"]
 
             if event_kind == "league":
                 title = league_name or "League Match"
@@ -525,9 +654,9 @@ class DashClient:
             )
 
         events.sort(key=lambda e: e["start_time"])
-        return events, first_match_page
+        return events, 1 if events else None
 
-    def get_events_for_date(self, selected_date: date) -> list[dict]:
+    def get_events_for_date(self, selected_date: date, *, schedule_prefetch: bool = True) -> list[dict]:
         selected_key = selected_date.isoformat()
         now = time.time()
         cached = self._events_by_date_cache.get(selected_key)
@@ -549,13 +678,11 @@ class DashClient:
                 return list(cached[1])
 
         try:
-            events, first_match_page = self._compute_events_for_date(selected_date)
+            events, _ = self._compute_events_for_date(selected_date)
             now = time.time()
             self._events_by_date_cache[selected_key] = (now, list(events))
-            if first_match_page is not None:
-                for offset in range(-2, 3):
-                    hint_date = selected_date + timedelta(days=offset)
-                    self._page_hint_by_date[hint_date.isoformat()] = (now, first_match_page)
+            if schedule_prefetch:
+                self._schedule_adjacent_prefetch(selected_date)
             return events
         finally:
             with self._events_inflight_lock:
@@ -568,9 +695,13 @@ class DashClient:
         week_days = [week_start + timedelta(days=i) for i in range(7)]
 
         with ThreadPoolExecutor(max_workers=7) as pool:
-            futures = {pool.submit(self.get_events_for_date, day): day for day in week_days}
+            futures = {
+                pool.submit(self.get_events_for_date, day, schedule_prefetch=False): day
+                for day in week_days
+            }
             day_events: dict[date, list[dict]] = {}
-            for future, day in futures.items():
+            for future in as_completed(futures):
+                day = futures[future]
                 day_events[day] = future.result()
 
         events: list[dict] = []
@@ -718,10 +849,10 @@ class CalendarHandler(SimpleHTTPRequestHandler):
         return self._send_json(events)
 
     def _send_json(self, payload: dict | list, status: int = 200):
-        data = json.dumps(payload).encode("utf-8")
+        data = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", API_JSON_CACHE_CONTROL)
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
