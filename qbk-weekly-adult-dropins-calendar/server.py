@@ -332,6 +332,14 @@ class DashClient:
         day_end = day_start + timedelta(days=1)
         selected_key = selected_date.isoformat()
         now = time.time()
+        
+        def _to_int(value) -> int | None:
+            if value is None:
+                return None
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return None
 
         # Pull core lookup maps in parallel to reduce cold-start request latency.
         with ThreadPoolExecutor(max_workers=4) as pool:
@@ -351,13 +359,32 @@ class DashClient:
             page = max(1, hint[1])
 
         first_match_page = None
+        event_summaries: dict[str, dict] = {}
         while page <= 40:
             response = self._request_json(
                 "GET",
                 "/api/v1/events",
-                params={"page[size]": EVENTS_PAGE_SIZE, "page[number]": page},
+                params={
+                    "page[size]": EVENTS_PAGE_SIZE,
+                    "page[number]": page,
+                    "include": "summary",
+                },
             )
             rows = response.get("data", [])
+            included = response.get("included", [])
+            for included_item in included:
+                item_type = str(included_item.get("type") or "")
+                if item_type != "event-summaries":
+                    continue
+                item_id = included_item.get("id")
+                if item_id is None:
+                    continue
+                attrs = included_item.get("attributes", {})
+                event_summaries[str(item_id)] = {
+                    "registered_count": _to_int(attrs.get("registered_count")),
+                    "remaining_registration_slots": _to_int(attrs.get("remaining_registration_slots")),
+                    "registration_status": attrs.get("registration_status"),
+                }
             if not rows:
                 break
 
@@ -409,6 +436,7 @@ class DashClient:
                         "resource_area_id": resource_area_id,
                         "start_time": start_dt,
                         "end_time": end_dt,
+                        "register_capacity": _to_int(attrs.get("register_capacity")),
                     }
                 )
 
@@ -431,6 +459,11 @@ class DashClient:
             league_name = item["league_name"]
             description = str(item["description"])
             category = item["category"]
+            summary = event_summaries.get(str(item["id"]), {})
+            register_capacity = _to_int(item.get("register_capacity"))
+            registered_count = _to_int(summary.get("registered_count"))
+            remaining_registration_slots = _to_int(summary.get("remaining_registration_slots"))
+            registration_status = summary.get("registration_status")
 
             if event_kind == "league":
                 title = league_name or "League Match"
@@ -479,6 +512,10 @@ class DashClient:
                     "end_time": item["end_time"].isoformat(),
                     "booking_url": booking_url,
                     "clickable": clickable,
+                    "register_capacity": register_capacity,
+                    "registered_count": registered_count,
+                    "remaining_registration_slots": remaining_registration_slots,
+                    "registration_status": registration_status,
                 }
             )
 

@@ -427,11 +427,20 @@ class DashClient:
         day_start = datetime.combine(selected_date, dtime.min)
         day_end = day_start + timedelta(days=1)
         selected_key = selected_date.isoformat()
+        
+        def _to_int(value) -> int | None:
+            if value is None:
+                return None
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return None
 
         event_types: dict[str, str] = {}
         resources: dict[str, str] = {}
         resource_areas: dict[str, str] = {}
         leagues: dict[str, str] = {}
+        event_summaries: dict[str, dict] = {}
         parsed_events = []
         included_team_names: dict[str, str] = {}
         page = 1
@@ -443,7 +452,7 @@ class DashClient:
                     "page[size]": EVENTS_PAGE_SIZE,
                     "page[number]": page,
                     "filter[start_date]": selected_key,
-                    "include": "homeTeam,visitingTeam,resource,resourceArea,eventType,league",
+                    "include": "homeTeam,visitingTeam,resource,resourceArea,eventType,league,summary",
                 },
             )
             rows = response.get("data", [])
@@ -470,6 +479,12 @@ class DashClient:
                     resource_areas[item_key] = value
                 elif item_type == "leagues":
                     leagues[item_key] = value
+                elif item_type == "event-summaries":
+                    event_summaries[item_key] = {
+                        "registered_count": _to_int(attrs.get("registered_count")),
+                        "remaining_registration_slots": _to_int(attrs.get("remaining_registration_slots")),
+                        "registration_status": attrs.get("registration_status"),
+                    }
             if not rows:
                 break
 
@@ -510,6 +525,7 @@ class DashClient:
                         "resource_area_id": resource_area_id,
                         "start_time": start_dt,
                         "end_time": end_dt,
+                        "register_capacity": _to_int(attrs.get("register_capacity")),
                     }
                 )
 
@@ -602,6 +618,11 @@ class DashClient:
             team_id = str(item["team_id"]) if item["team_id"] else None
             team_name = team_names.get(team_id) if team_id else None
             description = str(item["description"])
+            summary = event_summaries.get(str(item["id"]), {})
+            register_capacity = _to_int(item.get("register_capacity"))
+            registered_count = _to_int(summary.get("registered_count"))
+            remaining_registration_slots = _to_int(summary.get("remaining_registration_slots"))
+            registration_status = summary.get("registration_status")
 
             if event_kind == "league":
                 title = league_name or "League Match"
@@ -650,6 +671,10 @@ class DashClient:
                     "end_time": item["end_time"].isoformat(),
                     "booking_url": booking_url,
                     "clickable": clickable,
+                    "register_capacity": register_capacity,
+                    "registered_count": registered_count,
+                    "remaining_registration_slots": remaining_registration_slots,
+                    "registration_status": registration_status,
                 }
             )
 

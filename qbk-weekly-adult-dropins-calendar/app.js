@@ -1,5 +1,16 @@
 (() => {
+  const params = new URLSearchParams(window.location.search);
+  const embedMode = params.get("embed") === "1" || document.body.dataset.embed === "1";
+  const forceMobileMode = params.get("mobile") === "1" || document.body.dataset.forceMobile === "1";
+  if (embedMode) {
+    document.body.classList.add("embed-mode");
+  }
+  if (forceMobileMode) {
+    document.body.classList.add("force-mobile-mode");
+  }
+
   const LIVE_FEED_BASE = "/api/events";
+  const MOBILE_LAYOUT_QUERY = "(max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse)";
   const SLOT_MINUTES = 30;
   const SLOT_HEIGHT = 28;
   const DAY_START_MIN = 6 * 60;
@@ -28,14 +39,18 @@
     nextWeek: document.getElementById("next-week"),
     todayWeek: document.getElementById("today-week"),
     clearFilters: document.getElementById("clear-filters"),
+    mobileFilterToggle: document.getElementById("mobile-filter-toggle"),
     filterMenu: document.getElementById("filter-menu"),
     weekGrid: document.getElementById("week-grid"),
-    weekViewTitle: document.getElementById("week-view-title"),
     timeTrack: document.getElementById("time-track"),
     dayTracks: Array.from({ length: 7 }, (_, idx) => document.getElementById(`day-track-${idx}`)),
     dayHeads: Array.from({ length: 7 }, (_, idx) => document.getElementById(`day-head-${idx}`)),
     eventsOverlay: document.getElementById("events-overlay"),
+    mobileWeekColumns: document.getElementById("mobile-week-columns"),
   };
+  const filterBarEl = document.querySelector(".filter-bar");
+  let lastIsMobile = null;
+  let mobileFiltersOpen = false;
 
   function updateFilterChipState() {
     if (!els.filterMenu) return;
@@ -87,6 +102,17 @@
     const mm = String(now.getMonth() + 1).padStart(2, "0");
     const dd = String(now.getDate()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function isMobileLayout() {
+    return forceMobileMode || window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+  }
+
+  function syncMobileFilterDropdown() {
+    if (!filterBarEl || !els.mobileFilterToggle) return;
+    filterBarEl.classList.toggle("mobile-filters-open", mobileFiltersOpen);
+    els.mobileFilterToggle.setAttribute("aria-expanded", mobileFiltersOpen ? "true" : "false");
+    els.mobileFilterToggle.textContent = mobileFiltersOpen ? "Filters ▴" : "Filters ▾";
   }
 
   function toISODate(dateObj) {
@@ -142,6 +168,27 @@
     return `${s.clock}\u00A0${s.suffix}\u00A0-\u00A0${e.clock}\u00A0${e.suffix}`;
   }
 
+  function formatTimeRangeCompact(startISO, endISO) {
+    const start = new Date(startISO);
+    const end = new Date(endISO);
+
+    function timeParts(d) {
+      const h24 = d.getHours();
+      const m = d.getMinutes();
+      const suffix = h24 >= 12 ? "PM" : "AM";
+      const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+      const clock = m === 0 ? `${h12}` : `${h12}:${String(m).padStart(2, "0")}`;
+      return { clock, suffix };
+    }
+
+    const s = timeParts(start);
+    const e = timeParts(end);
+    if (s.suffix === e.suffix) {
+      return `${s.clock}-${e.clock}${e.suffix}`;
+    }
+    return `${s.clock}${s.suffix}-${e.clock}${e.suffix}`;
+  }
+
   function formatWeekTitle(weekStartISO) {
     const start = new Date(`${weekStartISO}T00:00:00`);
     const end = new Date(start);
@@ -158,6 +205,28 @@
       year: "numeric",
     });
     return `Adult Drop-Ins Week View (${startText} - ${endText})`;
+  }
+
+  function toIntOrNull(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return Math.round(n);
+  }
+
+  function getCapacityText(raw) {
+    const capacity = toIntOrNull(raw.register_capacity ?? raw.registerCapacity);
+    let registered = toIntOrNull(raw.registered_count ?? raw.registeredCount);
+    const remaining = toIntOrNull(
+      raw.remaining_registration_slots ?? raw.remainingRegistrationSlots,
+    );
+
+    if ((registered === null || registered < 0) && capacity !== null && capacity >= 0 && remaining !== null) {
+      registered = Math.max(0, capacity - remaining);
+    }
+    if (capacity === null || capacity <= 0) return "";
+    if (registered === null || registered < 0) return "";
+    return `${registered}/${capacity} spots`;
   }
 
   function setDayHeaders(weekStartISO) {
@@ -275,6 +344,7 @@
       bookingUrl: String(bookingUrl),
       dayIndex,
       filterCategory,
+      capacityText: getCapacityText(raw),
     };
   }
 
@@ -336,6 +406,7 @@
   function fitCardText(card) {
     const title = card.querySelector(".week-event-title");
     const time = card.querySelector(".week-event-time");
+    const capacity = card.querySelector(".week-event-capacity");
     if (!title || !time) return;
 
     const cardTiers = ["", "week-event-fit-sm", "week-event-fit-xs", "week-event-fit-xxs", "week-event-fit-micro"];
@@ -363,11 +434,15 @@
       applyClassAt(card, cardTiers, cardIdx);
       applyClassAt(title, titleTiers, titleIdx);
       applyClassAt(time, timeTiers, timeIdx);
+      if (capacity) {
+        applyClassAt(capacity, timeTiers, timeIdx);
+      }
 
       const titleOverflow = isWidthOverflowing(title);
       const timeOverflow = isWidthOverflowing(time);
+      const capacityOverflow = capacity ? isWidthOverflowing(capacity) : false;
       const cardOverflow = isHeightOverflowing(card);
-      if (!titleOverflow && !timeOverflow && !cardOverflow) break;
+      if (!titleOverflow && !timeOverflow && !capacityOverflow && !cardOverflow) break;
 
       let changed = false;
       if (titleOverflow && titleIdx < titleTiers.length - 1) {
@@ -375,6 +450,10 @@
         changed = true;
       }
       if (timeOverflow && timeIdx < timeTiers.length - 1) {
+        timeIdx += 1;
+        changed = true;
+      }
+      if (capacityOverflow && timeIdx < timeTiers.length - 1) {
         timeIdx += 1;
         changed = true;
       }
@@ -432,15 +511,80 @@
     return { widthsPct, leftsPct };
   }
 
+  function renderMobileWeek(events, weekStartISO) {
+    if (!els.mobileWeekColumns) return;
+    const byDay = Array.from({ length: 7 }, () => []);
+    for (const event of events) {
+      byDay[event.dayIndex].push(event);
+    }
+    for (let i = 0; i < 7; i += 1) {
+      byDay[i].sort((a, b) => new Date(a.start) - new Date(b.start));
+    }
+
+    els.mobileWeekColumns.innerHTML = "";
+    for (let i = 0; i < 7; i += 1) {
+      const dayDate = new Date(`${weekStartISO}T00:00:00`);
+      dayDate.setDate(dayDate.getDate() + i);
+      const dayCol = document.createElement("div");
+      dayCol.className = "mobile-week-day-col";
+
+      const dayHead = document.createElement("div");
+      dayHead.className = "mobile-week-day-head";
+      dayHead.textContent = dayDate.toLocaleDateString(undefined, {
+        weekday: "short",
+        month: "numeric",
+        day: "numeric",
+      });
+      dayCol.appendChild(dayHead);
+
+      const dayList = document.createElement("div");
+      dayList.className = "mobile-week-day-list";
+      const dayEvents = byDay[i];
+      if (!dayEvents.length) {
+        const empty = document.createElement("div");
+        empty.className = "mobile-week-day-empty";
+        empty.textContent = "\u2014";
+        dayList.appendChild(empty);
+      } else {
+        for (const event of dayEvents) {
+          const card = document.createElement("a");
+          card.className = "mobile-week-event";
+          card.href = event.bookingUrl;
+          card.target = "_blank";
+          card.rel = "noopener noreferrer";
+
+          const title = document.createElement("span");
+          title.className = "mobile-week-event-title";
+          title.textContent = event.title;
+
+          const time = document.createElement("span");
+          time.className = "mobile-week-event-time";
+          time.textContent = formatTimeRangeCompact(event.start, event.end);
+
+          card.appendChild(title);
+          card.appendChild(time);
+          if (event.capacityText) {
+            const capacity = document.createElement("span");
+            capacity.className = "mobile-week-event-capacity";
+            capacity.textContent = event.capacityText;
+            card.appendChild(capacity);
+          }
+          dayList.appendChild(card);
+        }
+      }
+      dayCol.appendChild(dayList);
+      els.mobileWeekColumns.appendChild(dayCol);
+    }
+  }
+
   function renderEvents(rawEvents, weekStartISO) {
     currentWeek.rawEvents = Array.isArray(rawEvents) ? rawEvents : [];
     currentWeek.weekStartISO = weekStartISO;
     buildGridSkeleton();
     setDayHeaders(weekStartISO);
-    els.weekViewTitle.textContent = formatWeekTitle(weekStartISO);
-
     const events = getFilteredEvents(rawEvents, weekStartISO);
     assignDayLanes(events);
+    renderMobileWeek(events, weekStartISO);
     const dayLayout = applyDayColumnLayout(events);
 
     for (const event of events) {
@@ -491,6 +635,12 @@
 
       card.appendChild(title);
       card.appendChild(time);
+      if (event.capacityText) {
+        const capacity = document.createElement("span");
+        capacity.className = "week-event-capacity";
+        capacity.textContent = event.capacityText;
+        card.appendChild(capacity);
+      }
       els.eventsOverlay.appendChild(card);
       fitCardText(card);
     }
@@ -558,6 +708,7 @@
 
   function init() {
     setupFilterControls();
+    syncMobileFilterDropdown();
     els.date.value = getTodayISO();
     els.date.addEventListener("change", function () { loadAndRender(); });
     els.prevWeek.addEventListener("click", function () { shiftWeekBy(-1); });
@@ -566,7 +717,24 @@
       els.date.value = getTodayISO();
       loadAndRender();
     });
+    if (els.mobileFilterToggle) {
+      els.mobileFilterToggle.addEventListener("click", function () {
+        mobileFiltersOpen = !mobileFiltersOpen;
+        syncMobileFilterDropdown();
+      });
+    }
+    lastIsMobile = isMobileLayout();
     window.addEventListener("resize", function () {
+      const currentIsMobile = isMobileLayout();
+      if (currentIsMobile !== lastIsMobile) {
+        lastIsMobile = currentIsMobile;
+        syncMobileFilterDropdown();
+        if (currentWeek.weekStartISO) {
+          renderEvents(currentWeek.rawEvents, currentWeek.weekStartISO);
+          return;
+        }
+      }
+      syncMobileFilterDropdown();
       fitAllVisibleCards();
     });
     loadAndRender();
