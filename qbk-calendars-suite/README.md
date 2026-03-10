@@ -17,5 +17,7 @@ PORT=8015 python server.py
 - `/adult-dropins-week/`
 - `/teen-dropins-week/`
 - `/youth-week/`
+- `/adult-dropins-week/widget.html` (headerless desktop embed)
+- `/adult-dropins-week/widget-mobile.html` (headerless mobile embed)
 
 All routes use the shared DaySmart API endpoint at `/api/events`.
