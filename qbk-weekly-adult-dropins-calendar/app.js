@@ -2,6 +2,9 @@
   const params = new URLSearchParams(window.location.search);
   const embedMode = params.get("embed") === "1" || document.body.dataset.embed === "1";
   const forceMobileMode = params.get("mobile") === "1" || document.body.dataset.forceMobile === "1";
+  const hourlyParam = params.get("hourly");
+  const forceHourlyMode = hourlyParam === "1";
+  const forceHalfHourMode = hourlyParam === "0";
   if (embedMode) {
     document.body.classList.add("embed-mode");
   }
@@ -11,11 +14,12 @@
 
   const LIVE_FEED_BASE = "/api/events";
   const MOBILE_LAYOUT_QUERY = "(max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse)";
-  const SLOT_MINUTES = 30;
-  const SLOT_HEIGHT = 28;
   const DAY_START_MIN = 6 * 60;
-  const SLOT_COUNT = 38; // 6:00 AM -> 1:00 AM
-  const DAY_END_MIN = DAY_START_MIN + (SLOT_COUNT * SLOT_MINUTES);
+  let hourlyCompactMode = false;
+  let SLOT_MINUTES = 30;
+  let SLOT_HEIGHT = 28;
+  let SLOT_COUNT = 38; // 6:00 AM -> 1:00 AM
+  let DAY_END_MIN = DAY_START_MIN + (SLOT_COUNT * SLOT_MINUTES);
 
   const DAYS = [
     "Monday",
@@ -108,6 +112,19 @@
     return forceMobileMode || window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
   }
 
+  function applyTimeScaleMode() {
+    const nextHourlyCompactMode = forceHourlyMode || (!forceHalfHourMode && !isMobileLayout());
+    if (hourlyCompactMode === nextHourlyCompactMode) {
+      return false;
+    }
+    hourlyCompactMode = nextHourlyCompactMode;
+    SLOT_MINUTES = hourlyCompactMode ? 60 : 30;
+    SLOT_HEIGHT = hourlyCompactMode ? 22 : 28;
+    SLOT_COUNT = hourlyCompactMode ? 19 : 38;
+    DAY_END_MIN = DAY_START_MIN + (SLOT_COUNT * SLOT_MINUTES);
+    return true;
+  }
+
   function syncMobileFilterDropdown() {
     if (!filterBarEl || !els.mobileFilterToggle) return;
     filterBarEl.classList.toggle("mobile-filters-open", mobileFiltersOpen);
@@ -143,6 +160,7 @@
     const minutes = totalMinutes % 60;
     const suffix = hour24 >= 12 ? "PM" : "AM";
     const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    if (minutes === 0) return `${hour12} ${suffix}`;
     return `${hour12}:${String(minutes).padStart(2, "0")} ${suffix}`;
   }
 
@@ -245,6 +263,9 @@
 
   function buildGridSkeleton() {
     const trackHeight = SLOT_COUNT * SLOT_HEIGHT;
+    document.documentElement.style.setProperty("--visible-slot-count", String(SLOT_COUNT));
+    document.documentElement.style.setProperty("--slot-height", `${SLOT_HEIGHT}px`);
+    document.documentElement.style.setProperty("--visible-track-height", `${trackHeight}px`);
     const firstHead = els.weekGrid.querySelector(".week-head");
     const headHeight = firstHead ? firstHead.getBoundingClientRect().height : 32;
     els.weekGrid.style.setProperty("--head-height", `${headHeight}px`);
@@ -263,7 +284,7 @@
       timeSlot.className = "time-slot";
       const label = document.createElement("span");
       label.className = "time-label";
-      label.textContent = i % 2 === 0 ? formatSlotLabel(i) : "";
+      label.textContent = (hourlyCompactMode || i % 2 === 0) ? formatSlotLabel(i) : "";
       timeSlot.appendChild(label);
       els.timeTrack.appendChild(timeSlot);
 
@@ -578,6 +599,7 @@
   }
 
   function renderEvents(rawEvents, weekStartISO) {
+    applyTimeScaleMode();
     currentWeek.rawEvents = Array.isArray(rawEvents) ? rawEvents : [];
     currentWeek.weekStartISO = weekStartISO;
     buildGridSkeleton();
@@ -707,6 +729,7 @@
   }
 
   function init() {
+    applyTimeScaleMode();
     setupFilterControls();
     syncMobileFilterDropdown();
     els.date.value = getTodayISO();
@@ -726,7 +749,8 @@
     lastIsMobile = isMobileLayout();
     window.addEventListener("resize", function () {
       const currentIsMobile = isMobileLayout();
-      if (currentIsMobile !== lastIsMobile) {
+      const timeScaleChanged = applyTimeScaleMode();
+      if (currentIsMobile !== lastIsMobile || timeScaleChanged) {
         lastIsMobile = currentIsMobile;
         syncMobileFilterDropdown();
         if (currentWeek.weekStartISO) {
