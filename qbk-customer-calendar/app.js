@@ -20,6 +20,9 @@
   const DAY_END_MIN = DAY_START_MIN + (SLOT_COUNT * SLOT_MINUTES);
   const RENT_START_MIN = 9 * 60;
   const RENT_END_MIN = 24 * 60;
+  const RENT_PEAK_START_MIN = 17 * 60;
+  const RENT_TIER_OFF_PEAK = "offpeak";
+  const RENT_TIER_PEAK = "peak";
   const COURTS = [
     { key: "left", label: "Left Court" },
     { key: "middle", label: "Middle Court" },
@@ -429,6 +432,37 @@
     return totalMinutes / 60;
   }
 
+  function isWeekendDate(selectedDate) {
+    const date = new Date(`${selectedDate}T00:00:00`);
+    const day = date.getDay();
+    return day === 0 || day === 6;
+  }
+
+  function getRentalTierForSlot(slot, weekend) {
+    if (weekend) return RENT_TIER_PEAK;
+    const slotStartMin = DAY_START_MIN + (slot * SLOT_MINUTES);
+    return slotStartMin >= RENT_PEAK_START_MIN ? RENT_TIER_PEAK : RENT_TIER_OFF_PEAK;
+  }
+
+  function splitRentalRunByTier(startSlot, endSlot, weekend) {
+    if (weekend) {
+      return [{ start: startSlot, end: endSlot, tier: RENT_TIER_PEAK }];
+    }
+
+    const segments = [];
+    let cursor = startSlot;
+    while (cursor < endSlot) {
+      const tier = getRentalTierForSlot(cursor, weekend);
+      let next = cursor + 1;
+      while (next < endSlot && getRentalTierForSlot(next, weekend) === tier) {
+        next += 1;
+      }
+      segments.push({ start: cursor, end: next, tier });
+      cursor = next;
+    }
+    return segments;
+  }
+
   function formatHourLabel(hourOrder) {
     const hour24 = hourOrder % 24;
     const suffix = hour24 >= 12 ? "PM" : "AM";
@@ -478,6 +512,7 @@
 
     const groupedEvents = buildGroupedEvents(events);
     const courtIndex = COURTS.findIndex((court) => court.key === mobileCourtKey);
+    const weekend = isWeekendDate(selectedDate);
     const occupied = Array.from({ length: SLOT_COUNT }, () => false);
     const timelineItems = [];
     const renderedLeagueRanges = [];
@@ -532,28 +567,33 @@
       const end = slot;
       const runLength = end - start;
       if (runLength < 2) continue;
+      const tierRuns = splitRentalRunByTier(start, end, weekend);
+      for (const tierRun of tierRuns) {
+        const tierLength = tierRun.end - tierRun.start;
+        if (tierLength < 2) continue;
+        const startMin = DAY_START_MIN + (tierRun.start * SLOT_MINUTES);
+        const endMin = DAY_START_MIN + (tierRun.end * SLOT_MINUTES);
+        const baseDate = new Date(`${selectedDate}T00:00:00`);
+        const rentStart = new Date(baseDate);
+        rentStart.setHours(0, startMin, 0, 0);
+        const rentEnd = new Date(baseDate);
+        rentEnd.setHours(0, endMin, 0, 0);
 
-      const startMin = DAY_START_MIN + (start * SLOT_MINUTES);
-      const endMin = DAY_START_MIN + (end * SLOT_MINUTES);
-      const baseDate = new Date(`${selectedDate}T00:00:00`);
-      const rentStart = new Date(baseDate);
-      rentStart.setHours(0, startMin, 0, 0);
-      const rentEnd = new Date(baseDate);
-      rentEnd.setHours(0, endMin, 0, 0);
-
-      timelineItems.push({
-        type: "rent",
-        startOrder: startMin / 60,
-        startISO: rentStart.toISOString(),
-        endISO: rentEnd.toISOString(),
-      });
+        timelineItems.push({
+          type: "rent",
+          tier: tierRun.tier,
+          startOrder: startMin / 60,
+          startISO: rentStart.toISOString(),
+          endISO: rentEnd.toISOString(),
+        });
+      }
     }
 
     timelineItems.sort((a, b) => a.startOrder - b.startOrder);
     for (const item of timelineItems) {
       if (item.type === "rent") {
         const rent = document.createElement("a");
-        rent.className = "mobile-item mobile-rent-slot";
+        rent.className = `mobile-item mobile-rent-slot mobile-rent-slot--${item.tier || RENT_TIER_OFF_PEAK}`;
         rent.href = RENT_URL;
         rent.target = "_blank";
         rent.rel = "noopener noreferrer";
@@ -662,6 +702,7 @@
     }
 
     const groupedEvents = buildGroupedEvents(events);
+    const weekend = isWeekendDate(selectedDate);
     const occupied = COURTS.map(() => Array.from({ length: SLOT_COUNT }, () => false));
     const renderedLeagueBlocks = [];
     for (const groupedEvent of groupedEvents) {
@@ -770,24 +811,29 @@
         const end = slot;
         const runLength = end - start;
         if (runLength < 2) continue; // only show 1 hour+ windows
+        const tierRuns = splitRentalRunByTier(start, end, weekend);
+        for (const tierRun of tierRuns) {
+          const tierLength = tierRun.end - tierRun.start;
+          if (tierLength < 2) continue; // only show 1 hour+ windows
 
-        const leftPct = (col / COURTS.length) * 100;
-        const widthPct = (1 / COURTS.length) * 100;
-        const top = start * slotHeight;
-        const height = (runLength * slotHeight) - 2;
+          const leftPct = (col / COURTS.length) * 100;
+          const widthPct = (1 / COURTS.length) * 100;
+          const top = tierRun.start * slotHeight;
+          const height = (tierLength * slotHeight) - 2;
 
-        const rent = document.createElement("a");
-        rent.className = "rent-slot";
-        rent.href = RENT_URL;
-        rent.target = "_blank";
-        rent.rel = "noopener noreferrer";
-        rent.style.left = `calc(${leftPct}% + 5px)`;
-        rent.style.width = `calc(${widthPct}% - 10px)`;
-        rent.style.top = `${top + 1}px`;
-        rent.style.height = `${height}px`;
-        rent.textContent = "Court Rental Available";
-        rent.dataset.filterCategory = "availableRentals";
-        els.vacancyOverlay.appendChild(rent);
+          const rent = document.createElement("a");
+          rent.className = `rent-slot rent-slot--${tierRun.tier}`;
+          rent.href = RENT_URL;
+          rent.target = "_blank";
+          rent.rel = "noopener noreferrer";
+          rent.style.left = `calc(${leftPct}% + 5px)`;
+          rent.style.width = `calc(${widthPct}% - 10px)`;
+          rent.style.top = `${top + 1}px`;
+          rent.style.height = `${height}px`;
+          rent.textContent = "Court Rental Available";
+          rent.dataset.filterCategory = "availableRentals";
+          els.vacancyOverlay.appendChild(rent);
+        }
       }
     }
 
