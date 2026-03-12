@@ -1,0 +1,148 @@
+:root {
+  --bg: #f4f8f5;
+  --panel: #ffffff;
+  --ink: #132744;
+  --muted: #60758e;
+  --line: #d8e1ea;
+  --accent: #0e9f6e;
+  --teen-bg: #fde2e2;
+  --teen-border: #f4b4b4;
+  --teen-ink: #8b1d1d;
+  --teen-time: #a12e2e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, #daf4e7 0, transparent 36%),
+    radial-gradient(circle at bottom right, #e5eefb 0, transparent 40%),
+    var(--bg);
+}
+
+.widget-shell {
+  width: min(100%, 645px);
+  margin: 0 auto;
+  padding: 1.1rem;
+}
+
+.widget-card {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #f7fbff 0%, #ffffff 28%);
+  padding: 1.45rem;
+  box-shadow: 0 14px 34px rgba(16, 36, 60, 0.08);
+}
+
+.widget-head {
+  margin-bottom: 1rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.18rem;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 5.8vw, 2.35rem);
+  line-height: 1.02;
+}
+
+.subtitle {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 1.12rem;
+  line-height: 1.35;
+}
+
+.status {
+  color: var(--muted);
+  font-size: 1rem;
+  min-height: 1.4rem;
+}
+
+.event-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.event-item {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid var(--teen-border);
+  border-radius: 18px;
+  background: var(--teen-bg);
+  color: inherit;
+  text-decoration: none;
+  padding: 1.1rem 1.15rem;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.event-item:hover {
+  transform: translateY(-1px);
+  border-color: #eea3a3;
+  box-shadow: 0 10px 20px rgba(139, 29, 29, 0.08);
+}
+
+.event-title {
+  color: var(--teen-ink);
+  font-size: 1.42rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.event-date {
+  color: var(--teen-ink);
+  font-size: 1.06rem;
+  font-weight: 600;
+}
+
+.event-time {
+  color: var(--teen-time);
+  font-size: 1.06rem;
+  font-weight: 600;
+}
+
+.empty-state {
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  color: var(--muted);
+  padding: 1.15rem;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 520px) {
+  .widget-shell {
+    padding: 0.7rem;
+  }
+
+  .widget-card {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+
+  .event-item {
+    padding: 0.92rem 0.96rem;
+  }
+
+  .event-title {
+    font-size: 1.14rem;
+  }
+
+  .event-date,
+  .event-time {
+    font-size: 0.9rem;
+  }
+}

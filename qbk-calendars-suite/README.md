@@ -16,6 +16,7 @@ PORT=8015 python server.py
 - `/adult-classes-week/`
 - `/adult-dropins-week/`
 - `/teen-dropins-week/`
+- `/teen-upcoming/`
 - `/youth-week/`
 - `/adult-dropins-week/widget.html` (headerless desktop embed)
 - `/adult-dropins-week/widget-mobile.html` (headerless mobile embed)

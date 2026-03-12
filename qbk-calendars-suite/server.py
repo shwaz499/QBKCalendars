@@ -31,6 +31,7 @@ APP_ROUTE_DIRS = {
     "/adult-dropins-week": REPO_ROOT / "qbk-weekly-adult-dropins-calendar",
     "/teen-dropins-week": REPO_ROOT / "qbk-weekly-teen-dropins-calendar",
     "/youth-week": REPO_ROOT / "qbk-weekly-youth-programs-calendar",
+    "/teen-upcoming": REPO_ROOT / "qbk-teen-upcoming-widget",
 }
 BOOKING_ROOT = "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports"
 API_BASE = os.getenv("DASH_API_BASE", "https://api.dashplatform.com").rstrip("/")
@@ -769,6 +770,60 @@ class DashClient:
             "events": events,
         }
 
+    @staticmethod
+    def _normalize_upcoming_teen_event(event: dict) -> dict | None:
+        source_title = str(event.get("title") or "").strip()
+        lower_title = source_title.lower()
+        category_lower = str(event.get("category") or "").lower()
+        booking_url = event.get("booking_url")
+        if not booking_url or booking_url == "#":
+            return None
+
+        is_glow_party = bool(re.search(r"glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party", lower_title))
+        is_drop_in = "drop-in" in category_lower or "drop in" in category_lower or bool(
+            re.search(r"drop[\s-]*in", lower_title)
+        )
+        is_teen_like = bool(re.search(r"\bteens?\b", lower_title))
+
+        if not is_glow_party and (not is_drop_in or not is_teen_like):
+            return None
+
+        return {
+            "id": str(event.get("id") or ""),
+            "title": "Teen Glow In The Dark Party" if is_glow_party else "Teen Drop In",
+            "start_time": str(event.get("start_time") or ""),
+            "end_time": str(event.get("end_time") or ""),
+            "booking_url": str(booking_url),
+            "location": event.get("location"),
+            "sub_resource": event.get("sub_resource"),
+        }
+
+    def get_upcoming_teen_events(
+        self,
+        *,
+        limit: int = 5,
+        start_date: date | None = None,
+        lookahead_days: int = 21,
+    ) -> list[dict]:
+        target_limit = max(1, min(limit, 20))
+        current_date = start_date or date.today()
+        upcoming: list[dict] = []
+
+        for offset in range(max(1, lookahead_days)):
+            selected_date = current_date + timedelta(days=offset)
+            day_events = self.get_events_for_date(selected_date)
+            for event in day_events:
+                normalized = self._normalize_upcoming_teen_event(event)
+                if normalized is None:
+                    continue
+                upcoming.append(normalized)
+
+            if len(upcoming) >= target_limit:
+                break
+
+        upcoming.sort(key=lambda item: item.get("start_time", ""))
+        return upcoming[:target_limit]
+
 
 CLIENT = DashClient()
 
@@ -783,6 +838,8 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             return self._handle_events_week_api(parsed)
         if parsed.path == "/api/events":
             return self._handle_events_api(parsed)
+        if parsed.path == "/api/teen-upcoming":
+            return self._handle_teen_upcoming_api(parsed)
 
         if parsed.path in {"", "/"}:
             return self._redirect("/daily/")
@@ -866,6 +923,28 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             return self._send_json(
                 {
                     "error": "Could not load live events.",
+                    "details": str(exc),
+                },
+                status=502,
+            )
+
+        return self._send_json(events)
+
+    def _handle_teen_upcoming_api(self, parsed: urllib.parse.ParseResult):
+        query = urllib.parse.parse_qs(parsed.query)
+        raw_limit = (query.get("limit") or ["5"])[0]
+
+        try:
+            limit = int(raw_limit)
+        except ValueError:
+            return self._send_json({"error": "Invalid limit. Use an integer."}, status=400)
+
+        try:
+            events = CLIENT.get_upcoming_teen_events(limit=limit)
+        except Exception as exc:
+            return self._send_json(
+                {
+                    "error": "Could not load upcoming teen events.",
                     "details": str(exc),
                 },
                 status=502,
