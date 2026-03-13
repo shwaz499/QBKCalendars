@@ -71,9 +71,13 @@
       time.className = "event-time";
       time.textContent = formatTimeRange(event.start_time, event.end_time);
 
+      const meta = document.createElement("div");
+      meta.className = "event-meta";
+      meta.appendChild(date);
+      meta.appendChild(time);
+
       card.appendChild(title);
-      card.appendChild(date);
-      card.appendChild(time);
+      card.appendChild(meta);
 
       els.list.appendChild(card);
     }

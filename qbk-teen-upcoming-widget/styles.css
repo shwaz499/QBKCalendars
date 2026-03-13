@@ -27,27 +27,27 @@ body {
 }
 
 .widget-shell {
-  width: min(100%, 645px);
+  width: min(100%, 340px);
   margin: 0 auto;
-  padding: 1.1rem;
+  padding: 0.55rem;
 }
 
 .widget-card {
   border: 1px solid var(--line);
-  border-radius: 22px;
+  border-radius: 16px;
   background: linear-gradient(180deg, #f7fbff 0%, #ffffff 28%);
-  padding: 1.45rem;
+  padding: 0.78rem;
   box-shadow: 0 14px 34px rgba(16, 36, 60, 0.08);
 }
 
 .widget-head {
-  margin-bottom: 1rem;
+  margin-bottom: 0.55rem;
 }
 
 .eyebrow {
   margin: 0 0 0.18rem;
   color: var(--accent);
-  font-size: 0.9rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -55,37 +55,37 @@ body {
 
 h1 {
   margin: 0;
-  font-size: clamp(1.75rem, 5.8vw, 2.35rem);
+  font-size: clamp(1.08rem, 4.8vw, 1.3rem);
   line-height: 1.02;
 }
 
 .subtitle {
-  margin: 0.35rem 0 0;
+  margin: 0.24rem 0 0;
   color: var(--muted);
-  font-size: 1.12rem;
-  line-height: 1.35;
+  font-size: 0.74rem;
+  line-height: 1.25;
 }
 
 .status {
   color: var(--muted);
-  font-size: 1rem;
-  min-height: 1.4rem;
+  font-size: 0.74rem;
+  min-height: 0.85rem;
 }
 
 .event-list {
   display: grid;
-  gap: 0.9rem;
+  gap: 0.38rem;
 }
 
 .event-item {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.18rem;
   border: 1px solid var(--teen-border);
-  border-radius: 18px;
+  border-radius: 12px;
   background: var(--teen-bg);
   color: inherit;
   text-decoration: none;
-  padding: 1.1rem 1.15rem;
+  padding: 0.48rem 0.56rem;
   transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
 }
 
@@ -97,52 +97,61 @@ h1 {
 
 .event-title {
   color: var(--teen-ink);
-  font-size: 1.42rem;
+  font-size: 0.92rem;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.08;
+}
+
+.event-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
 .event-date {
   color: var(--teen-ink);
-  font-size: 1.06rem;
+  font-size: 0.72rem;
   font-weight: 600;
 }
 
 .event-time {
   color: var(--teen-time);
-  font-size: 1.06rem;
+  font-size: 0.72rem;
   font-weight: 600;
+  text-align: right;
 }
 
 .empty-state {
   border: 1px dashed var(--line);
-  border-radius: 18px;
+  border-radius: 12px;
   color: var(--muted);
-  padding: 1.15rem;
-  font-size: 1rem;
+  padding: 0.62rem;
+  font-size: 0.74rem;
   background: rgba(255, 255, 255, 0.7);
 }
 
 @media (max-width: 520px) {
   .widget-shell {
-    padding: 0.7rem;
+    padding: 0.45rem;
   }
 
   .widget-card {
-    padding: 1rem;
-    border-radius: 18px;
+    padding: 0.72rem;
+    border-radius: 14px;
   }
 
   .event-item {
-    padding: 0.92rem 0.96rem;
+    padding: 0.46rem 0.5rem;
   }
 
   .event-title {
-    font-size: 1.14rem;
+    font-size: 0.86rem;
   }
 
   .event-date,
   .event-time {
-    font-size: 0.9rem;
+    font-size: 0.68rem;
   }
 }
