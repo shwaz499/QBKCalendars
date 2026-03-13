@@ -2,7 +2,6 @@
   const API_URL = "/api/teen-upcoming?limit=5";
 
   const els = {
-    status: document.getElementById("status"),
     list: document.getElementById("event-list"),
   };
 
@@ -36,7 +35,6 @@
   }
 
   function renderEmpty(message) {
-    els.status.textContent = "";
     els.list.innerHTML = "";
     const empty = document.createElement("div");
     empty.className = "empty-state";
@@ -51,10 +49,12 @@
       return;
     }
 
-    els.status.textContent = "";
     for (const event of events) {
       const card = document.createElement("a");
       card.className = "event-item";
+      if (String(event.title || "").toLowerCase().includes("glow in the dark")) {
+        card.classList.add("event-item-glow");
+      }
       card.href = event.booking_url;
       card.target = "_blank";
       card.rel = "noopener noreferrer";
@@ -84,7 +84,6 @@
   }
 
   function loadUpcomingEvents() {
-    els.status.textContent = "Loading upcoming sessions...";
     return fetch(API_URL, { cache: "no-store" })
       .then((response) => {
         if (!response.ok) {

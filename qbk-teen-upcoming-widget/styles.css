@@ -1,14 +1,15 @@
 :root {
-  --bg: #f4f8f5;
-  --panel: #ffffff;
   --ink: #132744;
   --muted: #60758e;
   --line: #d8e1ea;
-  --accent: #0e9f6e;
   --teen-bg: #fde2e2;
   --teen-border: #f4b4b4;
   --teen-ink: #8b1d1d;
   --teen-time: #a12e2e;
+  --glow-bg: #d7ff7f;
+  --glow-border: #8fe52b;
+  --glow-ink: #1b4d00;
+  --glow-time: #2f6c00;
 }
 
 * {
@@ -17,7 +18,6 @@
 
 body {
   margin: 0;
-  min-height: 100vh;
   color: var(--ink);
   font-family: "Space Grotesk", "Segoe UI", sans-serif;
   background: transparent;
@@ -35,38 +35,6 @@ body {
   background: transparent;
   padding: 0;
   box-shadow: none;
-}
-
-.widget-head {
-  margin-bottom: 0.55rem;
-}
-
-.eyebrow {
-  margin: 0 0 0.18rem;
-  color: var(--accent);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-h1 {
-  margin: 0;
-  font-size: clamp(1.08rem, 4.8vw, 1.3rem);
-  line-height: 1.02;
-}
-
-.subtitle {
-  margin: 0.24rem 0 0;
-  color: var(--muted);
-  font-size: 0.74rem;
-  line-height: 1.25;
-}
-
-.status {
-  color: var(--muted);
-  font-size: 0.74rem;
-  min-height: 0.85rem;
 }
 
 .event-list {
@@ -92,11 +60,25 @@ h1 {
   box-shadow: 0 10px 20px rgba(139, 29, 29, 0.08);
 }
 
+.event-item-glow {
+  border-color: var(--glow-border);
+  background: var(--glow-bg);
+}
+
+.event-item-glow:hover {
+  border-color: #78cf15;
+  box-shadow: 0 10px 20px rgba(80, 160, 0, 0.12);
+}
+
 .event-title {
   color: var(--teen-ink);
   font-size: 0.92rem;
   font-weight: 700;
   line-height: 1.08;
+}
+
+.event-item-glow .event-title {
+  color: var(--glow-ink);
 }
 
 .event-meta {
@@ -113,11 +95,19 @@ h1 {
   font-weight: 600;
 }
 
+.event-item-glow .event-date {
+  color: var(--glow-ink);
+}
+
 .event-time {
   color: var(--teen-time);
   font-size: 0.72rem;
   font-weight: 600;
   text-align: right;
+}
+
+.event-item-glow .event-time {
+  color: var(--glow-time);
 }
 
 .empty-state {
