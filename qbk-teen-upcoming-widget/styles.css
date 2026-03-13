@@ -20,24 +20,21 @@ body {
   min-height: 100vh;
   color: var(--ink);
   font-family: "Space Grotesk", "Segoe UI", sans-serif;
-  background:
-    radial-gradient(circle at top left, #daf4e7 0, transparent 36%),
-    radial-gradient(circle at bottom right, #e5eefb 0, transparent 40%),
-    var(--bg);
+  background: transparent;
 }
 
 .widget-shell {
   width: min(100%, 340px);
   margin: 0 auto;
-  padding: 0.55rem;
+  padding: 0;
 }
 
 .widget-card {
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: linear-gradient(180deg, #f7fbff 0%, #ffffff 28%);
-  padding: 0.78rem;
-  box-shadow: 0 14px 34px rgba(16, 36, 60, 0.08);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
 }
 
 .widget-head {
@@ -134,12 +131,12 @@ h1 {
 
 @media (max-width: 520px) {
   .widget-shell {
-    padding: 0.45rem;
+    padding: 0;
   }
 
   .widget-card {
-    padding: 0.72rem;
-    border-radius: 14px;
+    padding: 0;
+    border-radius: 0;
   }
 
   .event-item {
