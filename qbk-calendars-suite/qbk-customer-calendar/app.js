@@ -20,7 +20,7 @@
   const DAY_END_MIN = DAY_START_MIN + (SLOT_COUNT * SLOT_MINUTES);
   const RENT_START_MIN = 9 * 60;
   const RENT_END_MIN = 24 * 60;
-  const RENT_PEAK_START_MIN = 17 * 60;
+  const RENT_PEAK_START_MIN = 16 * 60;
   const RENT_PEAK_END_MIN = 22 * 60;
   const RENT_TIER_OFF_PEAK = "offpeak";
   const RENT_TIER_PEAK = "peak";
