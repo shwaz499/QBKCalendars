@@ -28,6 +28,22 @@ body {
     var(--bg);
 }
 
+body.embed-mode {
+  min-height: 0;
+  background: transparent;
+}
+
+body.embed-mode .layout {
+  width: 100%;
+  margin: 0;
+  gap: 0;
+  padding: 0;
+}
+
+body.embed-mode .panel {
+  box-shadow: none;
+}
+
 .layout {
   width: min(1280px, 96vw);
   margin: 1.25rem auto 1.5rem;

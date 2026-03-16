@@ -1,4 +1,14 @@
 (() => {
+  const params = new URLSearchParams(window.location.search);
+  const embedMode = params.get("embed") === "1" || document.body.dataset.embed === "1";
+  const forceMobileMode = params.get("mobile") === "1" || document.body.dataset.forceMobile === "1";
+  if (embedMode) {
+    document.body.classList.add("embed-mode");
+  }
+  if (forceMobileMode) {
+    document.body.classList.add("force-mobile-mode");
+  }
+
   const LIVE_FEED_BASE = "/api/events";
   const MOBILE_LAYOUT_QUERY = "(max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse)";
   const SLOT_MINUTES = 30;
@@ -140,7 +150,7 @@
   }
 
   function isMobileLayout() {
-    return window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+    return forceMobileMode || window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
   }
 
   function syncMobileFilterDropdown() {
