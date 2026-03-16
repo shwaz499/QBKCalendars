@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QBK Youth Program Weekly Calendar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260301-youth-5" />
+  </head>
+  <body>
+    <main class="layout">
+      <section class="hero panel">
+        <p class="eyebrow">QBK Sports</p>
+        <h1>Youth Program Weekly Calendar</h1>
+        <p class="subtitle">
+          Browse all Seals, Cubs, and Beach Lions classes for the week and jump directly to online booking.
+        </p>
+      </section>
+
+      <section class="controls panel">
+        <label class="field">
+          Select Week
+          <input id="week-date" type="date" />
+        </label>
+        <div class="date-nav">
+          <button id="prev-week" class="nav-btn" type="button">Back Week</button>
+          <button id="next-week" class="nav-btn" type="button">Next Week</button>
+          <button id="today-week" class="nav-btn today-btn" type="button">Today</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="results-header">
+          <h2 id="week-view-title">Youth Program Week View</h2>
+        </div>
+        <div class="week-grid-wrap">
+          <div class="week-grid" id="week-grid">
+            <div class="week-head time-head">Time</div>
+            <div class="week-head" id="day-head-0">Monday</div>
+            <div class="week-head" id="day-head-1">Tuesday</div>
+            <div class="week-head" id="day-head-2">Wednesday</div>
+            <div class="week-head" id="day-head-3">Thursday</div>
+            <div class="week-head" id="day-head-4">Friday</div>
+            <div class="week-head" id="day-head-5">Saturday</div>
+            <div class="week-head" id="day-head-6">Sunday</div>
+
+            <div id="time-track" class="time-track"></div>
+            <div id="day-track-0" class="day-track"></div>
+            <div id="day-track-1" class="day-track"></div>
+            <div id="day-track-2" class="day-track"></div>
+            <div id="day-track-3" class="day-track"></div>
+            <div id="day-track-4" class="day-track"></div>
+            <div id="day-track-5" class="day-track"></div>
+            <div id="day-track-6" class="day-track"></div>
+
+            <div id="events-overlay" class="events-overlay"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js?v=20260301-youth-5"></script>
+  </body>
+</html>

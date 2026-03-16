@@ -10,7 +10,7 @@ import sys
 import threading
 import time
 import urllib.parse
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time as dtime, timedelta
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -24,38 +24,11 @@ except ModuleNotFoundError:
 
 
 PROJECT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = PROJECT_DIR.parent
-APP_DIR_NAMES = {
-    "/daily": "qbk-customer-calendar",
-    "/adult-classes-week": "qbk-weekly-adult-calendar",
-    "/adult-dropins-week": "qbk-weekly-adult-dropins-calendar",
-    "/teen-dropins-week": "qbk-weekly-teen-dropins-calendar",
-    "/youth-week": "qbk-weekly-youth-programs-calendar",
-    "/teen-upcoming": "qbk-teen-upcoming-widget",
-}
-
-
-def _resolve_app_dir(dirname: str) -> Path:
-    bundled = PROJECT_DIR / dirname
-    if bundled.exists():
-        return bundled
-    return REPO_ROOT / dirname
-
-
-APP_ROUTE_DIRS = {
-    route: _resolve_app_dir(dirname) for route, dirname in APP_DIR_NAMES.items()
-}
 BOOKING_ROOT = "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports"
 API_BASE = os.getenv("DASH_API_BASE", "https://api.dashplatform.com").rstrip("/")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 EVENTS_PAGE_SIZE = 1000
 LOOKUP_PAGE_SIZE = 500
-EVENTS_MAX_PAGES = int(os.getenv("QBK_EVENTS_MAX_PAGES", "40"))
-LOOKUP_CACHE_TTL = int(os.getenv("QBK_LOOKUP_CACHE_TTL", "21600"))
-API_JSON_CACHE_CONTROL = os.getenv(
-    "QBK_API_CACHE_CONTROL",
-    "public, max-age=30, stale-while-revalidate=120",
-)
 ADULT_CLINIC_TERMS = (
     "beachmode",
     "sandy hands",
@@ -80,8 +53,6 @@ def parse_iso8601(raw: str | None) -> datetime | None:
 def strip_html(text: str | None) -> str:
     if not text:
         return ""
-    if "<" not in text:
-        return re.sub(r"\s+", " ", text).strip()
     without_tags = re.sub(r"<[^>]+>", " ", text)
     condensed = re.sub(r"\s+", " ", without_tags).strip()
     return condensed
@@ -93,7 +64,6 @@ class DashClient:
         self._http = self._build_http_client()
         self._token = None
         self._token_expires_at = 0.0
-        self._token_lock = threading.Lock()
         self._event_types_cache = (0.0, {})
         self._resources_cache = (0.0, {})
         self._resource_areas_cache = (0.0, {})
@@ -105,41 +75,6 @@ class DashClient:
         self._page_hint_by_date: dict[str, tuple[float, int]] = {}
         self._events_inflight: dict[str, threading.Event] = {}
         self._events_inflight_lock = threading.Lock()
-        self._prefetch_adjacent_days = max(0, int(os.getenv("QBK_PREFETCH_ADJ_DAYS", "1")))
-        self._prefetch_pool = ThreadPoolExecutor(max_workers=2)
-        self._enable_startup_prewarm = os.getenv("QBK_PREWARM_ON_STARTUP", "1").lower() not in {
-            "0",
-            "false",
-            "no",
-        }
-        if self._enable_startup_prewarm:
-            threading.Thread(target=self._warmup_metadata, daemon=True).start()
-
-    def _get_page_hint(self, selected_date: date, now: float) -> int | None:
-        selected_key = selected_date.isoformat()
-        exact = self._page_hint_by_date.get(selected_key)
-        if exact and now - exact[0] < self._page_hint_ttl:
-            return max(1, int(exact[1]))
-
-        best_delta = None
-        best_page = None
-        for raw_key, (ts, page) in self._page_hint_by_date.items():
-            if now - ts >= self._page_hint_ttl:
-                continue
-            try:
-                hint_date = datetime.strptime(raw_key, "%Y-%m-%d").date()
-            except ValueError:
-                continue
-            delta = abs((hint_date - selected_date).days)
-            if delta > 3:
-                continue
-            if best_delta is None or delta < best_delta:
-                best_delta = delta
-                best_page = int(page)
-
-        if best_page is None:
-            return None
-        return max(1, best_page)
 
     def _build_http_client(self) -> httpx.Client:
         verify: bool | str = True
@@ -216,68 +151,52 @@ class DashClient:
         if self._token and now < self._token_expires_at - 60:
             return self._token
 
-        with self._token_lock:
-            now = time.time()
-            if self._token and now < self._token_expires_at - 60:
-                return self._token
+        response = self._request_json(
+            method="POST",
+            path="/v1/auth/token",
+            body={
+                "grant_type": "client_credentials",
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+            },
+            use_auth=False,
+        )
 
-            response = self._request_json(
-                method="POST",
-                path="/v1/auth/token",
-                body={
-                    "grant_type": "client_credentials",
-                    "client_id": self.client_id,
-                    "client_secret": self.client_secret,
-                },
-                use_auth=False,
-            )
+        token = response.get("access_token") or response.get("token")
+        if not token:
+            raise RuntimeError("Dash API auth returned no access token.")
 
-            token = response.get("access_token") or response.get("token")
-            if not token:
-                raise RuntimeError("Dash API auth returned no access token.")
-
-            expires_in = int(response.get("expires_in", 900))
-            self._token = token
-            self._token_expires_at = now + expires_in
-            return token
-
-    def _warmup_metadata(self) -> None:
-        try:
-            self._get_token()
-            self._cached_lookup("event_types")
-            self._cached_lookup("resources")
-            self._cached_lookup("resource_areas")
-            self._cached_lookup("leagues")
-        except Exception:
-            # Best-effort warmup only.
-            return
+        expires_in = int(response.get("expires_in", 900))
+        self._token = token
+        self._token_expires_at = now + expires_in
+        return token
 
     def _cached_lookup(self, key: str) -> dict[str, str]:
         now = time.time()
         if key == "event_types":
             ts, lookup = self._event_types_cache
-            if now - ts < LOOKUP_CACHE_TTL and lookup:
+            if now - ts < 900 and lookup:
                 return lookup
             lookup = self._fetch_lookup("/api/v1/event-types")
             self._event_types_cache = (now, lookup)
             return lookup
         if key == "leagues":
             ts, lookup = self._leagues_cache
-            if now - ts < LOOKUP_CACHE_TTL and lookup:
+            if now - ts < 900 and lookup:
                 return lookup
             lookup = self._fetch_lookup("/api/v1/leagues")
             self._leagues_cache = (now, lookup)
             return lookup
         if key == "resource_areas":
             ts, lookup = self._resource_areas_cache
-            if now - ts < LOOKUP_CACHE_TTL and lookup:
+            if now - ts < 900 and lookup:
                 return lookup
             lookup = self._fetch_lookup("/api/v1/resource-areas")
             self._resource_areas_cache = (now, lookup)
             return lookup
 
         ts, lookup = self._resources_cache
-        if now - ts < LOOKUP_CACHE_TTL and lookup:
+        if now - ts < 900 and lookup:
             return lookup
         lookup = self._fetch_lookup("/api/v1/resources")
         self._resources_cache = (now, lookup)
@@ -408,8 +327,7 @@ class DashClient:
         max_workers = min(8, len(ids_to_fetch))
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
             futures = {pool.submit(self._get_team_name, team_id): team_id for team_id in ids_to_fetch}
-            for future in as_completed(futures):
-                team_id = futures[future]
+            for future, team_id in futures.items():
                 try:
                     value = future.result()
                 except Exception:
@@ -419,98 +337,41 @@ class DashClient:
 
         return names
 
-    def _schedule_prefetch_date(self, target_date: date) -> None:
-        selected_key = target_date.isoformat()
-        now = time.time()
-        cached = self._events_by_date_cache.get(selected_key)
-        if cached and now - cached[0] < self._events_cache_ttl:
-            return
-
-        def _worker() -> None:
-            try:
-                self.get_events_for_date(target_date, schedule_prefetch=False)
-            except Exception:
-                # Best-effort warmup only.
-                return
-
-        try:
-            self._prefetch_pool.submit(_worker)
-        except Exception:
-            return
-
-    def _schedule_adjacent_prefetch(self, selected_date: date, include_selected: bool = False) -> None:
-        if self._prefetch_adjacent_days <= 0:
-            return
-        for offset in range(-self._prefetch_adjacent_days, self._prefetch_adjacent_days + 1):
-            if offset == 0 and not include_selected:
-                continue
-            self._schedule_prefetch_date(selected_date + timedelta(days=offset))
-
     def _compute_events_for_date(self, selected_date: date) -> tuple[list[dict], int | None]:
         day_start = datetime.combine(selected_date, dtime.min)
         day_end = day_start + timedelta(days=1)
         selected_key = selected_date.isoformat()
-        
-        def _to_int(value) -> int | None:
-            if value is None:
-                return None
-            try:
-                return int(value)
-            except (TypeError, ValueError):
-                return None
+        now = time.time()
 
-        event_types: dict[str, str] = {}
-        resources: dict[str, str] = {}
-        resource_areas: dict[str, str] = {}
-        leagues: dict[str, str] = {}
-        event_summaries: dict[str, dict] = {}
+        # Pull core lookup maps in parallel to reduce cold-start request latency.
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            fut_event_types = pool.submit(self._cached_lookup, "event_types")
+            fut_resources = pool.submit(self._cached_lookup, "resources")
+            fut_resource_areas = pool.submit(self._cached_lookup, "resource_areas")
+            fut_leagues = pool.submit(self._cached_lookup, "leagues")
+            event_types = fut_event_types.result()
+            resources = fut_resources.result()
+            resource_areas = fut_resource_areas.result()
+            leagues = fut_leagues.result()
+
         parsed_events = []
-        included_team_names: dict[str, str] = {}
         page = 1
-        while page <= EVENTS_MAX_PAGES:
+        hint = self._page_hint_by_date.get(selected_key)
+        if hint and now - hint[0] < self._page_hint_ttl:
+            page = max(1, hint[1])
+
+        first_match_page = None
+        while page <= 40:
             response = self._request_json(
                 "GET",
                 "/api/v1/events",
-                params={
-                    "page[size]": EVENTS_PAGE_SIZE,
-                    "page[number]": page,
-                    "filter[start_date]": selected_key,
-                    "include": "homeTeam,visitingTeam,resource,resourceArea,eventType,league,summary",
-                },
+                params={"page[size]": EVENTS_PAGE_SIZE, "page[number]": page},
             )
             rows = response.get("data", [])
-            included = response.get("included", [])
-            for included_item in included:
-                included_id = included_item.get("id")
-                if included_id is None:
-                    continue
-                attrs = included_item.get("attributes", {})
-                item_type = str(included_item.get("type") or "")
-                label = attrs.get("name") or attrs.get("title") or attrs.get("description")
-                if not label:
-                    continue
-                item_key = str(included_id)
-                value = str(label)
-                if item_type == "teams":
-                    included_team_names[item_key] = value
-                    self._team_name_cache[item_key] = value
-                elif item_type == "event-types":
-                    event_types[item_key] = value
-                elif item_type == "resources":
-                    resources[item_key] = value
-                elif item_type == "resource-areas":
-                    resource_areas[item_key] = value
-                elif item_type == "leagues":
-                    leagues[item_key] = value
-                elif item_type == "event-summaries":
-                    event_summaries[item_key] = {
-                        "registered_count": _to_int(attrs.get("registered_count")),
-                        "remaining_registration_slots": _to_int(attrs.get("remaining_registration_slots")),
-                        "registration_status": attrs.get("registration_status"),
-                    }
             if not rows:
                 break
 
+            hit_future = False
             for row in rows:
                 attrs = row.get("attributes", {})
                 start_dt = parse_iso8601(attrs.get("start"))
@@ -518,9 +379,15 @@ class DashClient:
                 if not start_dt or not end_dt:
                     continue
 
-                # Keep a strict window check as a safety guard.
-                if start_dt < day_start or start_dt >= day_end:
+                # API appears sorted by start ascending, so we can stop after passing this day.
+                if start_dt >= day_end:
+                    hit_future = True
+                    break
+                if start_dt < day_start:
                     continue
+
+                if first_match_page is None:
+                    first_match_page = page
 
                 event_type_id = str(attrs.get("event_type_id")) if attrs.get("event_type_id") is not None else ""
                 league_id = str(attrs.get("league_id")) if attrs.get("league_id") is not None else ""
@@ -533,119 +400,47 @@ class DashClient:
                 )
                 team_id = str(team_id) if team_id is not None else None
                 vteam_id = attrs.get("vteam_id")
+
+                category = event_types.get(event_type_id)
+                league_name = leagues.get(league_id)
                 description = strip_html(
                     attrs.get("description") or attrs.get("desc") or attrs.get("best_description")
                 )
+                event_kind = self._event_kind(event_type_id, category, league_name, description, vteam_id)
                 parsed_events.append(
                     {
                         "id": str(row.get("id")),
-                        "event_type_id": event_type_id,
-                        "league_id": league_id,
-                        "vteam_id": vteam_id,
+                        "event_kind": event_kind,
                         "team_id": team_id,
+                        "league_name": league_name,
                         "description": description,
+                        "category": category,
                         "resource_id": resource_id,
                         "resource_area_id": resource_area_id,
                         "start_time": start_dt,
                         "end_time": end_dt,
-                        "register_capacity": _to_int(attrs.get("register_capacity")),
                     }
                 )
 
-            if len(rows) < EVENTS_PAGE_SIZE:
+            if hit_future:
                 break
             page += 1
 
-        needed_event_type_ids = {
-            str(item["event_type_id"])
+        bookable_team_ids = {
+            str(item["team_id"])
             for item in parsed_events
-            if item["event_type_id"] and str(item["event_type_id"]) not in event_types
+            if item["event_kind"] == "bookable" and item["team_id"]
         }
-        needed_league_ids = {
-            str(item["league_id"])
-            for item in parsed_events
-            if item["league_id"] and str(item["league_id"]) not in leagues
-        }
-        needed_resource_ids = {
-            str(item["resource_id"])
-            for item in parsed_events
-            if item["resource_id"] and str(item["resource_id"]) not in resources
-        }
-        needed_resource_area_ids = {
-            str(item["resource_area_id"])
-            for item in parsed_events
-            if item["resource_area_id"] and str(item["resource_area_id"]) not in resource_areas
-        }
-
-        if needed_event_type_ids:
-            fallback = self._cached_lookup("event_types")
-            for row_id in needed_event_type_ids:
-                value = fallback.get(row_id)
-                if value:
-                    event_types[row_id] = value
-        if needed_league_ids:
-            fallback = self._cached_lookup("leagues")
-            for row_id in needed_league_ids:
-                value = fallback.get(row_id)
-                if value:
-                    leagues[row_id] = value
-        if needed_resource_ids:
-            fallback = self._cached_lookup("resources")
-            for row_id in needed_resource_ids:
-                value = fallback.get(row_id)
-                if value:
-                    resources[row_id] = value
-        if needed_resource_area_ids:
-            fallback = self._cached_lookup("resource_areas")
-            for row_id in needed_resource_area_ids:
-                value = fallback.get(row_id)
-                if value:
-                    resource_areas[row_id] = value
-
-        bookable_team_ids: set[str] = set()
-        for item in parsed_events:
-            team_id = item["team_id"]
-            if not team_id:
-                continue
-            event_type_id = str(item["event_type_id"])
-            league_id = str(item["league_id"])
-            category = event_types.get(event_type_id)
-            league_name = leagues.get(league_id)
-            event_kind = self._event_kind(
-                event_type_id,
-                category,
-                league_name,
-                item["description"],
-                item["vteam_id"],
-            )
-            if event_kind == "bookable":
-                bookable_team_ids.add(str(team_id))
-        team_names = {team_id: name for team_id, name in included_team_names.items() if team_id in bookable_team_ids}
-        missing_team_ids = bookable_team_ids - set(team_names.keys())
-        if missing_team_ids:
-            team_names.update(self._prefetch_team_names(missing_team_ids))
+        team_names = self._prefetch_team_names(bookable_team_ids)
 
         events = []
         for item in parsed_events:
-            event_type_id = str(item["event_type_id"])
-            league_id = str(item["league_id"])
-            category = event_types.get(event_type_id)
-            league_name = leagues.get(league_id)
-            event_kind = self._event_kind(
-                event_type_id,
-                category,
-                league_name,
-                item["description"],
-                item["vteam_id"],
-            )
+            event_kind = str(item["event_kind"])
             team_id = str(item["team_id"]) if item["team_id"] else None
             team_name = team_names.get(team_id) if team_id else None
+            league_name = item["league_name"]
             description = str(item["description"])
-            summary = event_summaries.get(str(item["id"]), {})
-            register_capacity = _to_int(item.get("register_capacity"))
-            registered_count = _to_int(summary.get("registered_count"))
-            remaining_registration_slots = _to_int(summary.get("remaining_registration_slots"))
-            registration_status = summary.get("registration_status")
+            category = item["category"]
 
             if event_kind == "league":
                 title = league_name or "League Match"
@@ -694,17 +489,13 @@ class DashClient:
                     "end_time": item["end_time"].isoformat(),
                     "booking_url": booking_url,
                     "clickable": clickable,
-                    "register_capacity": register_capacity,
-                    "registered_count": registered_count,
-                    "remaining_registration_slots": remaining_registration_slots,
-                    "registration_status": registration_status,
                 }
             )
 
         events.sort(key=lambda e: e["start_time"])
-        return events, 1 if events else None
+        return events, first_match_page
 
-    def get_events_for_date(self, selected_date: date, *, schedule_prefetch: bool = True) -> list[dict]:
+    def get_events_for_date(self, selected_date: date) -> list[dict]:
         selected_key = selected_date.isoformat()
         now = time.time()
         cached = self._events_by_date_cache.get(selected_key)
@@ -726,11 +517,11 @@ class DashClient:
                 return list(cached[1])
 
         try:
-            events, _ = self._compute_events_for_date(selected_date)
+            events, first_match_page = self._compute_events_for_date(selected_date)
             now = time.time()
             self._events_by_date_cache[selected_key] = (now, list(events))
-            if schedule_prefetch:
-                self._schedule_adjacent_prefetch(selected_date)
+            if first_match_page is not None:
+                self._page_hint_by_date[selected_key] = (now, first_match_page)
             return events
         finally:
             with self._events_inflight_lock:
@@ -743,13 +534,9 @@ class DashClient:
         week_days = [week_start + timedelta(days=i) for i in range(7)]
 
         with ThreadPoolExecutor(max_workers=7) as pool:
-            futures = {
-                pool.submit(self.get_events_for_date, day, schedule_prefetch=False): day
-                for day in week_days
-            }
+            futures = {pool.submit(self.get_events_for_date, day): day for day in week_days}
             day_events: dict[date, list[dict]] = {}
-            for future in as_completed(futures):
-                day = futures[future]
+            for future, day in futures.items():
                 day_events[day] = future.result()
 
         events: list[dict] = []
@@ -786,67 +573,13 @@ class DashClient:
             "events": events,
         }
 
-    @staticmethod
-    def _normalize_upcoming_teen_event(event: dict) -> dict | None:
-        source_title = str(event.get("title") or "").strip()
-        lower_title = source_title.lower()
-        category_lower = str(event.get("category") or "").lower()
-        booking_url = event.get("booking_url")
-        if not booking_url or booking_url == "#":
-            return None
-
-        is_glow_party = bool(re.search(r"glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party", lower_title))
-        is_drop_in = "drop-in" in category_lower or "drop in" in category_lower or bool(
-            re.search(r"drop[\s-]*in", lower_title)
-        )
-        is_teen_like = bool(re.search(r"\bteens?\b", lower_title))
-
-        if not is_glow_party and (not is_drop_in or not is_teen_like):
-            return None
-
-        return {
-            "id": str(event.get("id") or ""),
-            "title": "Teen Glow In The Dark Party" if is_glow_party else "Teen Drop In",
-            "start_time": str(event.get("start_time") or ""),
-            "end_time": str(event.get("end_time") or ""),
-            "booking_url": str(booking_url),
-            "location": event.get("location"),
-            "sub_resource": event.get("sub_resource"),
-        }
-
-    def get_upcoming_teen_events(
-        self,
-        *,
-        limit: int = 5,
-        start_date: date | None = None,
-        lookahead_days: int = 21,
-    ) -> list[dict]:
-        target_limit = max(1, min(limit, 20))
-        current_date = start_date or date.today()
-        upcoming: list[dict] = []
-
-        for offset in range(max(1, lookahead_days)):
-            selected_date = current_date + timedelta(days=offset)
-            day_events = self.get_events_for_date(selected_date)
-            for event in day_events:
-                normalized = self._normalize_upcoming_teen_event(event)
-                if normalized is None:
-                    continue
-                upcoming.append(normalized)
-
-            if len(upcoming) >= target_limit:
-                break
-
-        upcoming.sort(key=lambda item: item.get("start_time", ""))
-        return upcoming[:target_limit]
-
 
 CLIENT = DashClient()
 
 
 class CalendarHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=str(REPO_ROOT), **kwargs)
+        super().__init__(*args, directory=str(PROJECT_DIR), **kwargs)
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -854,47 +587,7 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             return self._handle_events_week_api(parsed)
         if parsed.path == "/api/events":
             return self._handle_events_api(parsed)
-        if parsed.path == "/api/teen-upcoming":
-            return self._handle_teen_upcoming_api(parsed)
-
-        if parsed.path in {"", "/"}:
-            return self._redirect("/daily/")
-        if parsed.path in APP_ROUTE_DIRS:
-            return self._redirect(f"{parsed.path}/")
-
-        static_path = self._resolve_static_path(parsed.path)
-        if static_path is not None:
-            if not static_path.is_file():
-                return self.send_error(404, "File not found")
-            self.path = "/" + static_path.relative_to(REPO_ROOT).as_posix()
-            return super().do_GET()
-
-        return self.send_error(404, "Not found")
-
-    def _resolve_static_path(self, raw_path: str) -> Path | None:
-        path = urllib.parse.unquote(raw_path)
-        for route, app_dir in APP_ROUTE_DIRS.items():
-            base = app_dir.resolve()
-            if path == route or path == f"{route}/":
-                return base / "index.html"
-            prefix = f"{route}/"
-            if path.startswith(prefix):
-                relative = path[len(prefix):]
-                candidate = (base / relative).resolve()
-                try:
-                    candidate.relative_to(base)
-                except ValueError:
-                    return None
-                if candidate.is_dir():
-                    return candidate / "index.html"
-                return candidate
-        return None
-
-    def _redirect(self, location: str):
-        self.send_response(302)
-        self.send_header("Location", location)
-        self.end_headers()
-        return None
+        return super().do_GET()
 
     def _handle_events_week_api(self, parsed: urllib.parse.ParseResult):
         query = urllib.parse.parse_qs(parsed.query)
@@ -946,42 +639,20 @@ class CalendarHandler(SimpleHTTPRequestHandler):
 
         return self._send_json(events)
 
-    def _handle_teen_upcoming_api(self, parsed: urllib.parse.ParseResult):
-        query = urllib.parse.parse_qs(parsed.query)
-        raw_limit = (query.get("limit") or ["5"])[0]
-
-        try:
-            limit = int(raw_limit)
-        except ValueError:
-            return self._send_json({"error": "Invalid limit. Use an integer."}, status=400)
-
-        try:
-            events = CLIENT.get_upcoming_teen_events(limit=limit)
-        except Exception as exc:
-            return self._send_json(
-                {
-                    "error": "Could not load upcoming teen events.",
-                    "details": str(exc),
-                },
-                status=502,
-            )
-
-        return self._send_json(events)
-
     def _send_json(self, payload: dict | list, status: int = 200):
-        data = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        data = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Cache-Control", API_JSON_CACHE_CONTROL)
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
 
 
 def main() -> int:
-    port = int(os.getenv("PORT", "8015"))
+    port = int(os.getenv("PORT", "8011"))
     server = ThreadingHTTPServer(("0.0.0.0", port), CalendarHandler)
-    print(f"QBK calendar suite running on http://localhost:{port}")
+    print(f"QBK calendar server running on http://localhost:{port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

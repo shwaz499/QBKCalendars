@@ -1,0 +1,144 @@
+:root {
+  --ink: #132744;
+  --muted: #60758e;
+  --line: #d8e1ea;
+  --teen-bg: #fde2e2;
+  --teen-border: #f4b4b4;
+  --teen-ink: #8b1d1d;
+  --teen-time: #a12e2e;
+  --glow-bg: #d7ff7f;
+  --glow-border: #8fe52b;
+  --glow-ink: #1b4d00;
+  --glow-time: #2f6c00;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  background: transparent;
+}
+
+.widget-shell {
+  width: min(100%, 340px);
+  margin: 0 auto;
+  padding: 0;
+}
+
+.widget-card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.event-list {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.event-item {
+  display: grid;
+  gap: 0.18rem;
+  border: 1px solid var(--teen-border);
+  border-radius: 12px;
+  background: var(--teen-bg);
+  color: inherit;
+  text-decoration: none;
+  padding: 0.48rem 0.56rem;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.event-item:hover {
+  transform: translateY(-1px);
+  border-color: #eea3a3;
+  box-shadow: 0 10px 20px rgba(139, 29, 29, 0.08);
+}
+
+.event-item-glow {
+  border-color: var(--glow-border);
+  background: var(--glow-bg);
+}
+
+.event-item-glow:hover {
+  border-color: #78cf15;
+  box-shadow: 0 10px 20px rgba(80, 160, 0, 0.12);
+}
+
+.event-title {
+  color: var(--teen-ink);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.08;
+}
+
+.event-item-glow .event-title {
+  color: var(--glow-ink);
+}
+
+.event-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.event-date {
+  color: var(--teen-ink);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.event-item-glow .event-date {
+  color: var(--glow-ink);
+}
+
+.event-time {
+  color: var(--teen-time);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.event-item-glow .event-time {
+  color: var(--glow-time);
+}
+
+.empty-state {
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+  padding: 0.62rem;
+  font-size: 0.74rem;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 520px) {
+  .widget-shell {
+    padding: 0;
+  }
+
+  .widget-card {
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .event-item {
+    padding: 0.46rem 0.5rem;
+  }
+
+  .event-title {
+    font-size: 0.86rem;
+  }
+
+  .event-date,
+  .event-time {
+    font-size: 0.68rem;
+  }
+}

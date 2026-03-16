@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QBK Weekly Adult Drop-Ins Mobile Widget</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260305-dropins-widget-1" />
+  </head>
+  <body data-embed="1" data-force-mobile="1">
+    <main class="layout">
+      <section class="controls panel">
+        <label class="field">
+          Select Week
+          <input id="week-date" type="date" />
+        </label>
+        <div class="date-nav">
+          <button id="prev-week" class="nav-btn" type="button" aria-label="Previous week">&larr;</button>
+          <button id="next-week" class="nav-btn" type="button" aria-label="Next week">&rarr;</button>
+          <button
+            id="mobile-filter-toggle"
+            class="nav-btn mobile-filter-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="filter-menu"
+          >
+            Filters ▾
+          </button>
+          <button id="today-week" class="nav-btn today-btn" type="button">Today</button>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-menu" id="filter-menu">
+            <button type="button" class="filter-chip is-active" data-filter-key="drop2sKing">2s King of the Court</button>
+            <button type="button" class="filter-chip is-active" data-filter-key="drop2sMatch">2s Match Play</button>
+            <button type="button" class="filter-chip is-active" data-filter-key="drop4s">4s</button>
+            <div class="filter-menu-actions">
+              <button id="clear-filters" class="nav-btn clear-filters-btn" type="button">Clear All</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel calendar-panel">
+        <div class="week-grid-wrap">
+          <div class="week-grid" id="week-grid">
+            <div class="week-head time-head">Time</div>
+            <div class="week-head" id="day-head-0">Monday</div>
+            <div class="week-head" id="day-head-1">Tuesday</div>
+            <div class="week-head" id="day-head-2">Wednesday</div>
+            <div class="week-head" id="day-head-3">Thursday</div>
+            <div class="week-head" id="day-head-4">Friday</div>
+            <div class="week-head" id="day-head-5">Saturday</div>
+            <div class="week-head" id="day-head-6">Sunday</div>
+
+            <div id="time-track" class="time-track"></div>
+            <div id="day-track-0" class="day-track"></div>
+            <div id="day-track-1" class="day-track"></div>
+            <div id="day-track-2" class="day-track"></div>
+            <div id="day-track-3" class="day-track"></div>
+            <div id="day-track-4" class="day-track"></div>
+            <div id="day-track-5" class="day-track"></div>
+            <div id="day-track-6" class="day-track"></div>
+
+            <div id="events-overlay" class="events-overlay"></div>
+          </div>
+        </div>
+        <div class="mobile-week-view" id="mobile-week-view">
+          <div class="mobile-week-columns" id="mobile-week-columns"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js?v=20260310-dropins-hourly-desktop-1"></script>
+  </body>
+</html>

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "e-1001",
+    "title": "Beginner Pickleball Clinic",
+    "category": "Clinic",
+    "location": "Court 3",
+    "start_time": "2026-02-28T10:00:00-05:00",
+    "end_time": "2026-02-28T11:00:00-05:00",
+    "spots_left": 8,
+    "booking_url": "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/activity-search"
+  },
+  {
+    "id": "e-1002",
+    "title": "Junior Volleyball Open Gym",
+    "category": "Open Gym",
+    "location": "Main Court",
+    "start_time": "2026-02-28T13:30:00-05:00",
+    "end_time": "2026-02-28T15:00:00-05:00",
+    "spots_left": 12,
+    "booking_url": "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/activity-search"
+  },
+  {
+    "id": "e-1003",
+    "title": "Adult Volleyball League Match",
+    "category": "League",
+    "location": "Court 1",
+    "start_time": "2026-02-28T19:00:00-05:00",
+    "end_time": "2026-02-28T20:30:00-05:00",
+    "spots_left": 0,
+    "booking_url": "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/activity-search"
+  },
+  {
+    "id": "e-1004",
+    "title": "Morning Strength Session",
+    "category": "Fitness",
+    "location": "Studio A",
+    "start_time": "2026-03-01T08:00:00-05:00",
+    "end_time": "2026-03-01T09:00:00-05:00",
+    "spots_left": 6,
+    "booking_url": "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/activity-search"
+  }
+]
