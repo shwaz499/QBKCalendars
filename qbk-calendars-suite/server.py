@@ -44,6 +44,16 @@ API_JSON_CACHE_CONTROL = os.getenv(
     "QBK_API_CACHE_CONTROL",
     "public, max-age=30, stale-while-revalidate=120",
 )
+ADULT_CLINIC_TERMS = (
+    "beachmode",
+    "sandy hands",
+    "beach bombers",
+    "beach bomberts",
+    "serve / serve receive",
+    "serve/serve receive",
+    "serve receive",
+    "shots shop",
+)
 
 
 def parse_iso8601(raw: str | None) -> datetime | None:
@@ -739,13 +749,7 @@ class DashClient:
                 is_adult_class = has_adult and "class" in title
                 is_adult_camp_or_clinic = has_adult and ("camp" in title or "clinic" in title)
                 is_known_adult_program = any(
-                    token in title
-                    for token in (
-                        "beachmode",
-                        "sandy hands",
-                        "beach bombers",
-                        "beach bomberts",
-                    )
+                    token in title for token in ADULT_CLINIC_TERMS
                 )
                 include = (
                     is_free_trial_class

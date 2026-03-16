@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260301-20" />
+    <link rel="stylesheet" href="./styles.css?v=20260316-adult-hours-2" />
   </head>
   <body>
     <main class="layout">
@@ -28,15 +28,20 @@
           <input id="week-date" type="date" />
         </label>
         <div class="date-nav">
-          <button id="prev-week" class="nav-btn" type="button">Back Week</button>
-          <button id="next-week" class="nav-btn" type="button">Next Week</button>
+          <button id="prev-week" class="nav-btn" type="button" aria-label="Previous week">&larr;</button>
+          <button id="next-week" class="nav-btn" type="button" aria-label="Next week">&rarr;</button>
+          <button
+            id="mobile-filter-toggle"
+            class="nav-btn mobile-filter-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="filter-menu"
+          >
+            Filters ▾
+          </button>
           <button id="today-week" class="nav-btn today-btn" type="button">Today</button>
         </div>
         <div class="filter-bar">
-          <div class="filter-header">
-            <span class="filter-title">Filters</span>
-            <button id="clear-filters" class="nav-btn clear-filters-btn" type="button">Clear All</button>
-          </div>
           <div class="filter-menu" id="filter-menu">
             <button type="button" class="filter-chip filter-free-trial is-active" data-filter-key="freeTrial">Free Trial</button>
             <button type="button" class="filter-chip filter-intro is-active" data-filter-key="intro">Intro</button>
@@ -46,14 +51,14 @@
             <button type="button" class="filter-chip filter-level-iv is-active" data-filter-key="levelIV">Level IV</button>
             <button type="button" class="filter-chip filter-sunday-skills is-active" data-filter-key="sundaySkills">Sunday Skills</button>
             <button type="button" class="filter-chip filter-pop-up-clinics is-active" data-filter-key="popUpClinics">Pop-Up Clinics</button>
+            <div class="filter-menu-actions">
+              <button id="clear-filters" class="nav-btn clear-filters-btn" type="button">Clear All</button>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="panel">
-        <div class="results-header">
-          <h2 id="week-view-title">Adult Classes Week View</h2>
-        </div>
+      <section class="panel calendar-panel">
         <div class="week-grid-wrap">
           <div class="week-grid" id="week-grid">
             <div class="week-head time-head">Time</div>
@@ -77,9 +82,12 @@
             <div id="events-overlay" class="events-overlay"></div>
           </div>
         </div>
+        <div class="mobile-week-view" id="mobile-week-view">
+          <div class="mobile-week-columns" id="mobile-week-columns"></div>
+        </div>
       </section>
     </main>
 
-    <script src="./app.js?v=20260301-20"></script>
+    <script src="./app.js?v=20260316-adult-hours-2"></script>
   </body>
 </html>

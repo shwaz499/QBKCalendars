@@ -1,9 +1,10 @@
 (() => {
   const LIVE_FEED_BASE = "/api/events";
+  const MOBILE_LAYOUT_QUERY = "(max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse)";
   const SLOT_MINUTES = 30;
   const SLOT_HEIGHT = 28;
-  const DAY_START_MIN = 6 * 60;
-  const SLOT_COUNT = 38; // 6:00 AM -> 1:00 AM
+  const DAY_START_MIN = 8 * 60;
+  const SLOT_COUNT = 28; // 8:00 AM -> 10:00 PM
   const DAY_END_MIN = DAY_START_MIN + (SLOT_COUNT * SLOT_MINUTES);
 
   const DAYS = [
@@ -26,6 +27,16 @@
     "popUpClinics",
   ];
   const filterState = Object.fromEntries(FILTER_KEYS.map((key) => [key, true]));
+  const ADULT_CLINIC_TERMS = [
+    "beachmode",
+    "sandy hands",
+    "beach bombers",
+    "beach bomberts",
+    "serve / serve receive",
+    "serve/serve receive",
+    "serve receive",
+    "shots shop",
+  ];
   const currentWeek = {
     rawEvents: [],
     weekStartISO: null,
@@ -37,6 +48,7 @@
     nextWeek: document.getElementById("next-week"),
     todayWeek: document.getElementById("today-week"),
     clearFilters: document.getElementById("clear-filters"),
+    mobileFilterToggle: document.getElementById("mobile-filter-toggle"),
     filterMenu: document.getElementById("filter-menu"),
     weekGrid: document.getElementById("week-grid"),
     weekViewTitle: document.getElementById("week-view-title"),
@@ -44,8 +56,13 @@
     dayTracks: Array.from({ length: 7 }, (_, idx) => document.getElementById(`day-track-${idx}`)),
     dayHeads: Array.from({ length: 7 }, (_, idx) => document.getElementById(`day-head-${idx}`)),
     eventsOverlay: document.getElementById("events-overlay"),
+    mobileWeekView: document.getElementById("mobile-week-view"),
+    mobileWeekColumns: document.getElementById("mobile-week-columns"),
   };
+  const filterBarEl = document.querySelector(".filter-bar");
   let resizeTimer = null;
+  let lastIsMobile = null;
+  let mobileFiltersOpen = false;
 
   function computePageHeight() {
     const body = document.body;
@@ -122,6 +139,17 @@
     updateFilterChipState();
   }
 
+  function isMobileLayout() {
+    return window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+  }
+
+  function syncMobileFilterDropdown() {
+    if (!filterBarEl || !els.mobileFilterToggle) return;
+    filterBarEl.classList.toggle("mobile-filters-open", mobileFiltersOpen);
+    els.mobileFilterToggle.setAttribute("aria-expanded", mobileFiltersOpen ? "true" : "false");
+    els.mobileFilterToggle.textContent = mobileFiltersOpen ? "Filters ▴" : "Filters ▾";
+  }
+
   function getTodayISO() {
     const now = new Date();
     const yyyy = now.getFullYear();
@@ -181,6 +209,27 @@
       return `${s.clock}\u00A0-\u00A0${e.clock}\u00A0${e.suffix}`;
     }
     return `${s.clock}\u00A0${s.suffix}\u00A0-\u00A0${e.clock}\u00A0${e.suffix}`;
+  }
+
+  function formatTimeRangeCompact(startISO, endISO) {
+    const start = new Date(startISO);
+    const end = new Date(endISO);
+
+    function timeParts(d) {
+      const h24 = d.getHours();
+      const m = d.getMinutes();
+      const suffix = h24 >= 12 ? "PM" : "AM";
+      const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+      const clock = m === 0 ? `${h12}` : `${h12}:${String(m).padStart(2, "0")}`;
+      return { clock, suffix };
+    }
+
+    const s = timeParts(start);
+    const e = timeParts(end);
+    if (s.suffix === e.suffix) {
+      return `${s.clock}-${e.clock}${e.suffix}`;
+    }
+    return `${s.clock}${s.suffix}-${e.clock}${e.suffix}`;
   }
 
   function formatWeekTitle(weekStartISO) {
@@ -270,12 +319,7 @@
     const isFreeTrialClass = /free[\s-]*trial[\s-]*class/.test(lower);
     const isAdultClass = hasAdult && lower.includes("class");
     const isAdultCampOrClinic = hasAdult && (lower.includes("camp") || lower.includes("clinic"));
-    const isKnownAdultProgram = (
-      lower.includes("beachmode")
-      || lower.includes("sandy hands")
-      || lower.includes("beach bombers")
-      || lower.includes("beach bomberts")
-    );
+    const isKnownAdultProgram = ADULT_CLINIC_TERMS.some((term) => lower.includes(term));
     const include = isSundaySkills || isFreeTrialClass || isAdultClass || isAdultCampOrClinic || isKnownAdultProgram;
     if (!include) return null;
     const filterCategories = new Set();
@@ -499,8 +543,70 @@
       running += width;
     }
 
-    els.weekGrid.style.gridTemplateColumns = `92px ${weights.map((w) => `${w}fr`).join(" ")}`;
+    const timeColPx = isMobileLayout() ? 44 : 92;
+    els.weekGrid.style.setProperty("--time-col-width", `${timeColPx}px`);
+    els.weekGrid.style.gridTemplateColumns = `${timeColPx}px ${weights.map((w) => `${w}fr`).join(" ")}`;
     return { widthsPct, leftsPct };
+  }
+
+  function renderMobileWeek(events, weekStartISO) {
+    if (!els.mobileWeekColumns) return;
+    const byDay = Array.from({ length: 7 }, () => []);
+    for (const event of events) {
+      byDay[event.dayIndex].push(event);
+    }
+    for (let i = 0; i < 7; i += 1) {
+      byDay[i].sort((a, b) => new Date(a.start) - new Date(b.start));
+    }
+
+    els.mobileWeekColumns.innerHTML = "";
+    for (let i = 0; i < 7; i += 1) {
+      const dayDate = new Date(`${weekStartISO}T00:00:00`);
+      dayDate.setDate(dayDate.getDate() + i);
+      const dayCol = document.createElement("div");
+      dayCol.className = "mobile-week-day-col";
+
+      const dayHead = document.createElement("div");
+      dayHead.className = "mobile-week-day-head";
+      dayHead.textContent = dayDate.toLocaleDateString(undefined, {
+        weekday: "short",
+        month: "numeric",
+        day: "numeric",
+      });
+      dayCol.appendChild(dayHead);
+
+      const dayList = document.createElement("div");
+      dayList.className = "mobile-week-day-list";
+      const dayEvents = byDay[i];
+      if (!dayEvents.length) {
+        const empty = document.createElement("div");
+        empty.className = "mobile-week-day-empty";
+        empty.textContent = "\u2014";
+        dayList.appendChild(empty);
+      } else {
+        for (const event of dayEvents) {
+          const card = document.createElement("a");
+          card.className = "mobile-week-event";
+          card.href = event.bookingUrl;
+          card.target = "_blank";
+          card.rel = "noopener noreferrer";
+
+          const title = document.createElement("span");
+          title.className = "mobile-week-event-title";
+          title.textContent = event.title;
+
+          const time = document.createElement("span");
+          time.className = "mobile-week-event-time";
+          time.textContent = formatTimeRangeCompact(event.start, event.end);
+
+          card.appendChild(title);
+          card.appendChild(time);
+          dayList.appendChild(card);
+        }
+      }
+      dayCol.appendChild(dayList);
+      els.mobileWeekColumns.appendChild(dayCol);
+    }
   }
 
   function renderEvents(rawEvents, weekStartISO) {
@@ -508,10 +614,13 @@
     currentWeek.weekStartISO = weekStartISO;
     buildGridSkeleton();
     setDayHeaders(weekStartISO);
-    els.weekViewTitle.textContent = formatWeekTitle(weekStartISO);
+    if (els.weekViewTitle) {
+      els.weekViewTitle.textContent = formatWeekTitle(weekStartISO);
+    }
 
     const events = getFilteredEvents(rawEvents, weekStartISO);
     assignDayLanes(events);
+    renderMobileWeek(events, weekStartISO);
     const dayLayout = applyDayColumnLayout(events);
 
     for (const event of events) {
@@ -625,6 +734,7 @@
 
   function init() {
     setupFilterControls();
+    syncMobileFilterDropdown();
     els.date.value = getTodayISO();
     els.date.addEventListener("change", function () { loadAndRender(); });
     els.prevWeek.addEventListener("click", function () { shiftWeekBy(-1); });
@@ -633,8 +743,23 @@
       els.date.value = getTodayISO();
       loadAndRender();
     });
+    if (els.mobileFilterToggle) {
+      els.mobileFilterToggle.addEventListener("click", function () {
+        mobileFiltersOpen = !mobileFiltersOpen;
+        syncMobileFilterDropdown();
+      });
+    }
+    lastIsMobile = isMobileLayout();
     window.addEventListener("resize", function () {
+      const currentIsMobile = isMobileLayout();
+      if (currentIsMobile !== lastIsMobile) {
+        lastIsMobile = currentIsMobile;
+      }
+      syncMobileFilterDropdown();
       fitAllVisibleCards();
+      if (currentIsMobile && currentWeek.weekStartISO) {
+        renderEvents(currentWeek.rawEvents, currentWeek.weekStartISO);
+      }
       schedulePostEmbedHeight();
     });
     const observer = new MutationObserver(schedulePostEmbedHeight);

@@ -8,8 +8,9 @@
   --accent-strong: #0a7c56;
   --focus: #f8a100;
   --slot-height: 28px;
-  --visible-slot-count: 38;
+  --visible-slot-count: 28;
   --visible-track-height: calc(var(--slot-height) * var(--visible-slot-count));
+  --time-col-width: 92px;
 }
 
 * {
@@ -69,37 +70,48 @@ h1 {
 
 .controls {
   display: grid;
-  gap: 0.8rem;
+  gap: 0.55rem;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  margin-bottom: -0.9rem;
+  padding-bottom: 0.7rem;
 }
 
 .filter-bar {
-  display: grid;
-  gap: 0.5rem;
+  display: block;
 }
 
-.filter-header {
-  display: flex;
+.mobile-filter-toggle {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.filter-title {
-  color: var(--muted);
-  font-size: 0.88rem;
-  font-weight: 700;
+  justify-content: center;
 }
 
 .clear-filters-btn {
-  font-size: 0.74rem;
-  padding: 0.22rem 0.5rem;
-  border-radius: 8px;
+  font-size: 0.6rem;
+  padding: 0.1rem 0.26rem;
+  border-radius: 6px;
+  line-height: 1.1;
 }
 
 .filter-menu {
-  display: flex;
-  flex-wrap: wrap;
+  display: none;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 0.45rem;
+  overflow-x: auto;
+}
+
+.filter-bar.mobile-filters-open .filter-menu {
+  display: flex;
+}
+
+.filter-menu-actions {
+  width: auto;
+  display: flex;
+  justify-content: flex-end;
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 
 .filter-chip {
@@ -188,14 +200,106 @@ h2 {
 }
 
 .week-grid-wrap {
-  margin-top: 0.85rem;
+  margin-top: 0;
   overflow: auto;
+}
+
+.mobile-week-view {
+  display: none;
+  margin-top: 0;
+  overflow: hidden;
+}
+
+.calendar-panel {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: 0;
+  padding-top: 0.7rem;
+}
+
+.mobile-week-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.mobile-week-day-col {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.5rem 0.52rem;
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mobile-week-day-head {
+  color: #4a647e;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mobile-week-day-list {
+  display: grid;
+  gap: 0.34rem;
+  align-content: start;
+  min-width: 0;
+}
+
+.mobile-week-day-empty {
+  border: 1px dashed #dbe5ef;
+  border-radius: 8px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.3rem 0.38rem;
+}
+
+.mobile-week-event {
+  display: grid;
+  gap: 0.14rem;
+  border: 1px solid #b6d7c8;
+  border-radius: 10px;
+  background: #effbf5;
+  text-decoration: none;
+  padding: 0.38rem 0.42rem;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.mobile-week-event-title {
+  color: #0a5138;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.16;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mobile-week-event-time {
+  color: #2d6d58;
+  font-size: 0.74rem;
+  line-height: 1.12;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
 }
 
 .week-grid {
   min-width: 1220px;
   display: grid;
-  grid-template-columns: 92px repeat(7, minmax(160px, 1fr));
+  grid-template-columns: var(--time-col-width) repeat(7, minmax(160px, 1fr));
   grid-template-rows: auto var(--visible-track-height);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -265,7 +369,7 @@ h2 {
 
 .events-overlay {
   position: absolute;
-  left: 92px;
+  left: var(--time-col-width);
   right: 0;
   top: var(--head-height, 32px);
   z-index: 2;
@@ -376,6 +480,57 @@ h2 {
 .week-event-time-fit-micro {
   font-size: 0.5rem;
   line-height: 1;
+}
+
+@media (max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse) {
+  .hero .subtitle {
+    font-size: 0.92rem;
+  }
+
+  .date-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.36rem;
+  }
+
+  .nav-btn {
+    font-size: 0.84rem;
+    padding: 0.4rem 0.72rem;
+  }
+
+  .today-btn {
+    margin-left: 0;
+  }
+
+  .filter-menu {
+    flex-wrap: wrap;
+  }
+
+  .filter-menu-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
+  }
+
+  .clear-filters-btn {
+    margin-left: 0;
+    font-size: 0.7rem;
+    padding: 0.18rem 0.44rem;
+  }
+
+  .filter-chip {
+    font-size: 0.74rem;
+    padding: 0.24rem 0.54rem;
+  }
+
+  .week-grid-wrap {
+    display: none;
+  }
+
+  .mobile-week-view {
+    display: block;
+  }
 }
 
 @media (max-width: 680px) {
