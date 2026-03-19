@@ -84,7 +84,7 @@
   }
 
   function loadUpcomingEvents() {
-    return fetch(API_URL, { cache: "no-store" })
+    return fetch(API_URL)
       .then((response) => {
         if (!response.ok) {
           return response.text().then((body) => {

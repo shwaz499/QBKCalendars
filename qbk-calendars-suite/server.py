@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, time as dtime, timedelta
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -66,6 +67,11 @@ ADULT_CLINIC_TERMS = (
     "serve receive",
     "shots shop",
 )
+LOCAL_TZ = ZoneInfo(os.getenv("QBK_LOCAL_TIMEZONE", "America/New_York"))
+TEEN_UPCOMING_CACHE_CONTROL = os.getenv(
+    "QBK_TEEN_UPCOMING_CACHE_CONTROL",
+    "public, max-age=21600, stale-while-revalidate=604800",
+)
 
 
 def parse_iso8601(raw: str | None) -> datetime | None:
@@ -107,6 +113,9 @@ class DashClient:
         self._events_inflight_lock = threading.Lock()
         self._prefetch_adjacent_days = max(0, int(os.getenv("QBK_PREFETCH_ADJ_DAYS", "1")))
         self._prefetch_pool = ThreadPoolExecutor(max_workers=2)
+        self._teen_upcoming_cache_lock = threading.Lock()
+        self._teen_upcoming_cache_path = PROJECT_DIR / ".runtime-cache" / "teen-upcoming.json"
+        self._teen_upcoming_cache: dict | None = None
         self._enable_startup_prewarm = os.getenv("QBK_PREWARM_ON_STARTUP", "1").lower() not in {
             "0",
             "false",
@@ -840,6 +849,71 @@ class DashClient:
         upcoming.sort(key=lambda item: item.get("start_time", ""))
         return upcoming[:target_limit]
 
+    def _current_teen_upcoming_refresh_key(self) -> str:
+        now_local = datetime.now(LOCAL_TZ)
+        weekday = now_local.weekday()
+        if weekday >= 4:
+            boundary_date = now_local.date() - timedelta(days=weekday - 4)
+        else:
+            boundary_date = now_local.date() - timedelta(days=weekday)
+        return boundary_date.isoformat()
+
+    def _load_teen_upcoming_cache_from_disk(self) -> dict | None:
+        try:
+            if not self._teen_upcoming_cache_path.is_file():
+                return None
+            payload = json.loads(self._teen_upcoming_cache_path.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                return None
+            events = payload.get("events")
+            refresh_key = payload.get("refresh_key")
+            if not isinstance(events, list) or not isinstance(refresh_key, str):
+                return None
+            return payload
+        except Exception:
+            return None
+
+    def _write_teen_upcoming_cache_to_disk(self, payload: dict) -> None:
+        try:
+            self._teen_upcoming_cache_path.parent.mkdir(parents=True, exist_ok=True)
+            self._teen_upcoming_cache_path.write_text(
+                json.dumps(payload, separators=(",", ":"), ensure_ascii=False),
+                encoding="utf-8",
+            )
+        except Exception:
+            return
+
+    def get_cached_upcoming_teen_events(self, *, limit: int = 5) -> list[dict]:
+        target_limit = max(1, min(limit, 20))
+        refresh_key = self._current_teen_upcoming_refresh_key()
+
+        with self._teen_upcoming_cache_lock:
+            cached = self._teen_upcoming_cache
+            if cached is None:
+                cached = self._load_teen_upcoming_cache_from_disk()
+                if cached is not None:
+                    self._teen_upcoming_cache = cached
+
+            if cached and cached.get("refresh_key") == refresh_key:
+                return list(cached.get("events") or [])[:target_limit]
+
+            stale_events = list((cached or {}).get("events") or [])
+            try:
+                events = self.get_upcoming_teen_events(limit=20)
+            except Exception:
+                if stale_events:
+                    return stale_events[:target_limit]
+                raise
+
+            payload = {
+                "refresh_key": refresh_key,
+                "updated_at": datetime.now(LOCAL_TZ).isoformat(),
+                "events": events,
+            }
+            self._teen_upcoming_cache = payload
+            self._write_teen_upcoming_cache_to_disk(payload)
+            return events[:target_limit]
+
 
 CLIENT = DashClient()
 
@@ -956,7 +1030,7 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             return self._send_json({"error": "Invalid limit. Use an integer."}, status=400)
 
         try:
-            events = CLIENT.get_upcoming_teen_events(limit=limit)
+            events = CLIENT.get_cached_upcoming_teen_events(limit=limit)
         except Exception as exc:
             return self._send_json(
                 {
@@ -966,13 +1040,13 @@ class CalendarHandler(SimpleHTTPRequestHandler):
                 status=502,
             )
 
-        return self._send_json(events)
+        return self._send_json(events, cache_control=TEEN_UPCOMING_CACHE_CONTROL)
 
-    def _send_json(self, payload: dict | list, status: int = 200):
+    def _send_json(self, payload: dict | list, status: int = 200, cache_control: str | None = None):
         data = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Cache-Control", API_JSON_CACHE_CONTROL)
+        self.send_header("Cache-Control", cache_control or API_JSON_CACHE_CONTROL)
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
