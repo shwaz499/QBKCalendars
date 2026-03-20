@@ -317,8 +317,7 @@
     }
 
     const isBeachLionsTryout = start.startsWith("2026-03-22")
-      && /tryouts?/.test(lowerTitle)
-      && /beach\s*lions|beachlions/.test(lowerTitle);
+      && /tryouts?\s*-\s*beach\s*lions/.test(lowerTitle);
     if (isBeachLionsTryout) {
       bookingUrl = "https://www.eventbrite.com/e/qbk-sports-beach-volleyball-youth-club-spring-tryouts-tickets-1983086995587?aff=oddtdtcreator";
       forceClickable = true;
