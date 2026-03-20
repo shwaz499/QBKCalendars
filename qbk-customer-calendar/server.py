@@ -25,6 +25,7 @@ except ModuleNotFoundError:
 
 PROJECT_DIR = Path(__file__).resolve().parent
 BOOKING_ROOT = "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports"
+BEACH_LIONS_TRYOUT_URL = "https://www.eventbrite.com/e/qbk-sports-beach-volleyball-youth-club-spring-tryouts-tickets-1983086995587?aff=oddtdtcreator"
 API_BASE = os.getenv("DASH_API_BASE", "https://api.dashplatform.com").rstrip("/")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 EVENTS_PAGE_SIZE = 1000
@@ -460,6 +461,14 @@ class DashClient:
                 title = "QBK Event"
             if len(title) > 120:
                 title = f"{title[:117]}..."
+
+            if (
+                selected_date.isoformat() == "2026-03-22"
+                and event_kind == "bookable"
+                and title.lower() == "tryouts - beach lions"
+            ):
+                booking_url = BEACH_LIONS_TRYOUT_URL
+                clickable = True
 
             location = resources.get(str(item["resource_id"]))
             sub_resource = resource_areas.get(str(item["resource_area_id"]))
