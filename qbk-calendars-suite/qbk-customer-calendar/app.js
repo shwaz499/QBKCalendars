@@ -316,6 +316,14 @@
       }
     }
 
+    const isBeachLionsTryout = start.startsWith("2026-03-22")
+      && /tryouts?/.test(lowerTitle)
+      && /beach\s*lions|beachlions/.test(lowerTitle);
+    if (isBeachLionsTryout) {
+      bookingUrl = "https://www.eventbrite.com/e/qbk-sports-beach-volleyball-youth-club-spring-tryouts-tickets-1983086995587?aff=oddtdtcreator";
+      forceClickable = true;
+    }
+
     const isTeenDropIn = /\bteens?\b/.test(lowerTitle) && /drop[\s-]*in/.test(lowerTitle);
     if (isTeenDropIn) {
       title = "Teen Drop in";
