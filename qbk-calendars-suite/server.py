@@ -33,6 +33,7 @@ APP_DIR_NAMES = {
     "/teen-dropins-week": "qbk-weekly-teen-dropins-calendar",
     "/youth-week": "qbk-weekly-youth-programs-calendar",
     "/teen-upcoming": "qbk-teen-upcoming-widget",
+    "/league-page": "qbk-league-page",
 }
 
 

@@ -1,0 +1,211 @@
+:root {
+  --ink: #0b1b30;
+  --muted: #304d6b;
+  --panel-border: rgba(29, 103, 205, 0.22);
+  --line-soft: rgba(13, 79, 61, 0.08);
+  --accent-lime: #3CBC9C;
+  --accent-gold: #F9AF26;
+  --accent-cyan: #1D67CD;
+  --card-base: #f5fffb;
+  --card-base-2: #eef7ff;
+  --card-base-3: #fef6ed;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  background: transparent;
+}
+
+.layout {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 1rem;
+}
+
+.panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+}
+
+.leagues-panel {
+  display: grid;
+}
+
+.league-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.league-card {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem 1.2rem 1.1rem 1.25rem;
+  border-radius: 24px;
+  border: 1px solid var(--panel-border);
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0) 34%),
+    linear-gradient(135deg, var(--card-base) 0%, var(--card-base-2) 56%, var(--card-base-3) 120%);
+  box-shadow: 0 14px 30px rgba(13, 79, 61, 0.08);
+}
+
+
+.league-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 26px,
+      rgba(13, 79, 61, 0.028) 26px,
+      rgba(13, 79, 61, 0.028) 27px
+    );
+  opacity: 0.45;
+}
+
+.league-card:nth-child(2n) {
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0) 36%),
+    linear-gradient(135deg, #ffffff 0%, #edf7ff 52%, #eefbf6 125%);
+}
+
+
+.league-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.league-top {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.league-title {
+  font-size: clamp(1.45rem, 2.6vw, 2.15rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+.league-meta {
+  color: #1D67CD;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.league-meta strong {
+  color: var(--ink);
+}
+
+.league-facts {
+  margin: 0;
+  padding-left: 1.05rem;
+  display: grid;
+  gap: 0.42rem;
+  font-size: 0.96rem;
+}
+
+.league-facts li {
+  color: #32506f;
+}
+
+.league-facts strong {
+  color: var(--accent-lime);
+  font-weight: 700;
+}
+
+.discount-highlight {
+  color: #cf2f32;
+  font-weight: 700;
+}
+
+.league-note {
+  padding: 0.78rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 202, 58, 0.45);
+  background: rgba(255, 202, 58, 0.12);
+  color: #7a4c00;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.league-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  border-radius: 999px;
+  padding: 0.82rem 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+  text-decoration: none;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+}
+
+.cta-primary {
+  background: linear-gradient(135deg, #3CBC9C 0%, #0D4F3D 100%);
+  color: #ffffff;
+  box-shadow: 0 10px 20px rgba(13, 79, 61, 0.18);
+}
+
+.cta-secondary {
+  background: rgba(255, 255, 255, 0.82);
+  color: #1D67CD;
+  border-color: rgba(29, 103, 205, 0.22);
+}
+
+@media (max-width: 720px) {
+  .layout {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .league-card {
+    padding: 1rem 0.95rem 0.95rem 1rem;
+    border-radius: 20px;
+  }
+
+  .league-title {
+    font-size: clamp(1.25rem, 7vw, 1.6rem);
+  }
+
+  .league-actions {
+    flex-direction: column;
+  }
+
+  .league-actions .cta {
+    width: 100%;
+  }
+}
