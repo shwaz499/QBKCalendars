@@ -716,17 +716,27 @@
       return { idx, iso: toISODate(d) };
     });
 
-    return Promise.all(days.map((day) => {
+    return Promise.allSettled(days.map((day) => {
       return fetchDayEvents(day.iso).then((rows) => {
         return rows.map((row) => ({
           ...row,
           week_day_index: day.idx,
         }));
       });
-    })).then((weeklyRows) => ({
+    })).then((results) => {
+      const weeklyRows = [];
+      results.forEach((result, idx) => {
+        if (result.status === "fulfilled") {
+          weeklyRows.push(result.value);
+          return;
+        }
+        console.error(`Weekly feed request failed for ${days[idx].iso}`, result.reason);
+      });
+      return {
       week_start: mondayISO,
       events: weeklyRows.flat(),
-    }));
+      };
+    });
   }
 
   function loadAndRender() {

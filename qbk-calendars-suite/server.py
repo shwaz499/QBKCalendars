@@ -84,7 +84,18 @@ def parse_iso8601(raw: str | None) -> datetime | None:
         return None
 
 
-def strip_html(text: str | None) -> str:
+def strip_html(text) -> str:
+    if text is None:
+        return ""
+    if isinstance(text, dict):
+        for key in ("text", "value", "html", "description", "content", "plain_text"):
+            value = text.get(key)
+            if value:
+                return strip_html(value)
+        return strip_html(" ".join(str(value) for value in text.values() if value))
+    if isinstance(text, (list, tuple, set)):
+        return " ".join(part for part in (strip_html(item) for item in text) if part)
+    text = str(text)
     if not text:
         return ""
     if "<" not in text:
