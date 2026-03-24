@@ -80,6 +80,7 @@ TEEN_UPCOMING_CACHE_CONTROL = os.getenv(
 CLICK_ANALYTICS_CACHE_CONTROL = "no-store"
 CLICK_ANALYTICS_LOG_PATH = PROJECT_DIR / ".runtime-cache" / "daily-click-events.jsonl"
 LEAGUE_CLICK_ANALYTICS_LOG_PATH = PROJECT_DIR / ".runtime-cache" / "league-click-events.jsonl"
+ANALYTICS_DATABASE_URL = os.getenv("QBK_ANALYTICS_DATABASE_URL") or os.getenv("DATABASE_URL") or ""
 TRACKED_ANALYTICS_HOSTS = {"qbksports.com", "www.qbksports.com"}
 LOCAL_ANALYTICS_HOSTS = {"localhost", "127.0.0.1", "::1"}
 TRACKED_ANALYTICS_SITE_IDS = {"qbksports"}
@@ -116,12 +117,7 @@ def strip_html(text) -> str:
     return condensed
 
 
-class ClickAnalyticsStore:
-    def __init__(self, path: Path) -> None:
-        self.path = path
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._lock = threading.Lock()
-
+class ClickAnalyticsStoreBase:
     @staticmethod
     def _sanitize_text(value: object, fallback: str = "") -> str:
         text = strip_html(value)
@@ -138,8 +134,8 @@ class ClickAnalyticsStore:
                 cleaned.append(text[:100])
         return cleaned[:20]
 
-    def record(self, payload: dict[str, object], headers) -> dict[str, object]:
-        event = {
+    def build_event(self, payload: dict[str, object], headers) -> dict[str, object]:
+        return {
             "server_received_at": datetime.now(LOCAL_TZ).isoformat(),
             "calendar": self._sanitize_text(payload.get("calendar"), "daily"),
             "action": self._sanitize_text(payload.get("action"), "click"),
@@ -155,6 +151,16 @@ class ClickAnalyticsStore:
             "active_filters": self._sanitize_filters(payload.get("active_filters")),
             "user_agent": self._sanitize_text(headers.get("User-Agent"), "")[:250],
         }
+
+
+class ClickAnalyticsStore(ClickAnalyticsStoreBase):
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.Lock()
+
+    def record(self, payload: dict[str, object], headers) -> dict[str, object]:
+        event = self.build_event(payload, headers)
         line = json.dumps(event, separators=(",", ":"), ensure_ascii=False)
         with self._lock:
             with self.path.open("a", encoding="utf-8") as fh:
@@ -233,6 +239,261 @@ class ClickAnalyticsStore:
             ],
             "recent_clicks": recent,
         }
+
+
+class PostgresClickAnalyticsStore(ClickAnalyticsStoreBase):
+    def __init__(self, database_url: str, channel: str, fallback_path: Path) -> None:
+        self.database_url = database_url
+        self.channel = channel
+        self.fallback_path = fallback_path
+        self._lock = threading.Lock()
+        self._ready = False
+        self._psycopg = None
+
+    def _ensure_ready(self) -> None:
+        if self._ready:
+            return
+        with self._lock:
+            if self._ready:
+                return
+            try:
+                import psycopg  # type: ignore
+            except Exception as exc:
+                raise RuntimeError("psycopg is required for Postgres analytics storage") from exc
+            self._psycopg = psycopg
+            with self._connect() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS analytics_click_events (
+                            id BIGSERIAL PRIMARY KEY,
+                            channel TEXT NOT NULL,
+                            server_received_at TIMESTAMPTZ NOT NULL,
+                            calendar TEXT NOT NULL,
+                            action TEXT NOT NULL,
+                            button_type TEXT NOT NULL,
+                            button_label TEXT NOT NULL,
+                            destination_url TEXT NOT NULL,
+                            selected_date TEXT NOT NULL,
+                            category TEXT NOT NULL,
+                            court TEXT NOT NULL,
+                            view_mode TEXT NOT NULL,
+                            page_path TEXT NOT NULL,
+                            referrer TEXT NOT NULL,
+                            active_filters JSONB NOT NULL DEFAULT '[]'::jsonb,
+                            user_agent TEXT NOT NULL
+                        )
+                        """
+                    )
+                    cur.execute(
+                        """
+                        CREATE INDEX IF NOT EXISTS analytics_click_events_channel_time_idx
+                        ON analytics_click_events (channel, server_received_at DESC)
+                        """
+                    )
+                conn.commit()
+            self._migrate_file_if_present()
+            self._ready = True
+
+    def _connect(self):
+        assert self._psycopg is not None
+        return self._psycopg.connect(self.database_url)
+
+    def _migrate_file_if_present(self) -> None:
+        if not self.fallback_path.exists():
+            return
+        migrated_path = self.fallback_path.with_suffix(self.fallback_path.suffix + ".migrated")
+        if migrated_path.exists():
+            return
+        rows = []
+        try:
+            for raw_line in self.fallback_path.read_text(encoding="utf-8").splitlines():
+                line = raw_line.strip()
+                if not line:
+                    continue
+                try:
+                    item = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                rows.append(item)
+        except Exception:
+            return
+        if not rows:
+            try:
+                self.fallback_path.rename(migrated_path)
+            except Exception:
+                pass
+            return
+        self._insert_events(rows)
+        try:
+            self.fallback_path.rename(migrated_path)
+        except Exception:
+            pass
+
+    def _insert_events(self, events: list[dict[str, object]]) -> None:
+        if not events:
+            return
+        with self._connect() as conn:
+            with conn.cursor() as cur:
+                cur.executemany(
+                    """
+                    INSERT INTO analytics_click_events (
+                        channel,
+                        server_received_at,
+                        calendar,
+                        action,
+                        button_type,
+                        button_label,
+                        destination_url,
+                        selected_date,
+                        category,
+                        court,
+                        view_mode,
+                        page_path,
+                        referrer,
+                        active_filters,
+                        user_agent
+                    ) VALUES (
+                        %(channel)s,
+                        %(server_received_at)s,
+                        %(calendar)s,
+                        %(action)s,
+                        %(button_type)s,
+                        %(button_label)s,
+                        %(destination_url)s,
+                        %(selected_date)s,
+                        %(category)s,
+                        %(court)s,
+                        %(view_mode)s,
+                        %(page_path)s,
+                        %(referrer)s,
+                        %(active_filters)s::jsonb,
+                        %(user_agent)s
+                    )
+                    """,
+                    [
+                        {
+                            **event,
+                            "channel": self.channel,
+                            "active_filters": json.dumps(event.get("active_filters") or []),
+                        }
+                        for event in events
+                    ],
+                )
+            conn.commit()
+
+    def record(self, payload: dict[str, object], headers) -> dict[str, object]:
+        self._ensure_ready()
+        event = self.build_event(payload, headers)
+        self._insert_events([event])
+        return event
+
+    def clear(self) -> None:
+        self._ensure_ready()
+        with self._connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM analytics_click_events WHERE channel = %s", (self.channel,))
+            conn.commit()
+
+    def _read_events(self, days: int) -> list[dict[str, object]]:
+        self._ensure_ready()
+        cutoff = datetime.now(LOCAL_TZ) - timedelta(days=max(1, days))
+        with self._connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        server_received_at,
+                        calendar,
+                        action,
+                        button_type,
+                        button_label,
+                        destination_url,
+                        selected_date,
+                        category,
+                        court,
+                        view_mode,
+                        page_path,
+                        referrer,
+                        active_filters,
+                        user_agent
+                    FROM analytics_click_events
+                    WHERE channel = %s AND server_received_at >= %s
+                    ORDER BY server_received_at ASC
+                    """,
+                    (self.channel, cutoff),
+                )
+                rows = cur.fetchall()
+        events = []
+        for row in rows:
+            active_filters = row[12]
+            if isinstance(active_filters, str):
+                try:
+                    active_filters = json.loads(active_filters)
+                except json.JSONDecodeError:
+                    active_filters = []
+            events.append(
+                {
+                    "server_received_at": row[0].astimezone(LOCAL_TZ).isoformat() if row[0] else "",
+                    "calendar": row[1] or "",
+                    "action": row[2] or "",
+                    "button_type": row[3] or "",
+                    "button_label": row[4] or "",
+                    "destination_url": row[5] or "",
+                    "selected_date": row[6] or "",
+                    "category": row[7] or "",
+                    "court": row[8] or "",
+                    "view_mode": row[9] or "",
+                    "page_path": row[10] or "",
+                    "referrer": row[11] or "",
+                    "active_filters": active_filters if isinstance(active_filters, list) else [],
+                    "user_agent": row[13] or "",
+                }
+            )
+        button_counts = Counter()
+        type_counts = Counter()
+        category_counts = Counter()
+        date_counts = Counter()
+
+        for event in events:
+            label = strip_html(event.get("button_label")) or "Unknown"
+            button_counts[label] += 1
+            button_type = strip_html(event.get("button_type")) or "unknown"
+            type_counts[button_type] += 1
+            category = strip_html(event.get("category")) or "uncategorized"
+            category_counts[category] += 1
+            selected_date = strip_html(event.get("selected_date"))
+            if selected_date:
+                date_counts[selected_date] += 1
+
+        recent = list(reversed(events[-50:]))
+        return {
+            "window_days": days,
+            "total_clicks": len(events),
+            "unique_buttons": len(button_counts),
+            "top_buttons": [
+                {"label": label, "count": count}
+                for label, count in button_counts.most_common(20)
+            ],
+            "button_types": [
+                {"type": label, "count": count}
+                for label, count in type_counts.most_common()
+            ],
+            "categories": [
+                {"label": label, "count": count}
+                for label, count in category_counts.most_common()
+            ],
+            "dates": [
+                {"date": raw_date, "count": count}
+                for raw_date, count in date_counts.most_common()
+            ],
+            "recent_clicks": recent,
+        }
+
+    def summary(self, days: int = 30, limit: int = 20) -> dict[str, object]:
+        summary = self._read_events(days)
+        summary["top_buttons"] = summary["top_buttons"][: max(1, limit)]
+        return summary
 
 
 class DashClient:
@@ -1066,8 +1327,14 @@ class DashClient:
 
 
 CLIENT = DashClient()
-CLICK_ANALYTICS = ClickAnalyticsStore(CLICK_ANALYTICS_LOG_PATH)
-LEAGUE_CLICK_ANALYTICS = ClickAnalyticsStore(LEAGUE_CLICK_ANALYTICS_LOG_PATH)
+def _build_analytics_store(channel: str, fallback_path: Path):
+    if ANALYTICS_DATABASE_URL:
+        return PostgresClickAnalyticsStore(ANALYTICS_DATABASE_URL, channel, fallback_path)
+    return ClickAnalyticsStore(fallback_path)
+
+
+CLICK_ANALYTICS = _build_analytics_store("daily", CLICK_ANALYTICS_LOG_PATH)
+LEAGUE_CLICK_ANALYTICS = _build_analytics_store("league", LEAGUE_CLICK_ANALYTICS_LOG_PATH)
 
 
 class CalendarHandler(SimpleHTTPRequestHandler):
