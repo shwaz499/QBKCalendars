@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>League Page Click Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css?v=20260324-01" />
+  </head>
+  <body>
+    <main class="layout">
+      <section class="panel controls-panel">
+        <div>
+          <p class="eyebrow">QBK SPORTS</p>
+          <h1>League Page Click Analytics</h1>
+          <p class="lede">Local dashboard for Team Sign Up and Free Agent Sign Up clicks.</p>
+        </div>
+        <div class="controls">
+          <label class="control-field">
+            <span>Window</span>
+            <select id="days-select">
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+          </label>
+          <button id="refresh-btn" class="nav-btn" type="button">Refresh</button>
+        </div>
+      </section>
+
+      <section class="stats-grid">
+        <article class="stat-card"><span class="stat-label">Total Clicks</span><strong id="total-clicks">0</strong></article>
+        <article class="stat-card"><span class="stat-label">Unique Buttons</span><strong id="unique-buttons">0</strong></article>
+        <article class="stat-card"><span class="stat-label">Top League</span><strong id="top-category">-</strong></article>
+        <article class="stat-card"><span class="stat-label">Top CTA Type</span><strong id="top-type">-</strong></article>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="panel-head"><h2>Top Clicked CTAs</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>CTA</th><th>Clicks</th></tr></thead>
+            <tbody id="top-buttons-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="grid-two">
+        <section class="panel table-panel">
+          <div class="panel-head"><h2>By CTA Type</h2></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Type</th><th>Clicks</th></tr></thead>
+              <tbody id="types-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel table-panel">
+          <div class="panel-head"><h2>By League</h2></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>League</th><th>Clicks</th></tr></thead>
+              <tbody id="categories-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="panel-head"><h2>Recent Clicks</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Time</th><th>CTA</th><th>Type</th><th>League</th></tr></thead>
+            <tbody id="recent-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js?v=20260324-01"></script>
+  </body>
+</html>

@@ -1,4 +1,5 @@
 (() => {
+  const TRACK_CLICK_URL = "/api/track-league-click";
   const LEAGUES = [
     {
       day: "Monday",
@@ -95,6 +96,31 @@
   const gridEl = document.getElementById("league-grid");
   if (!gridEl) return;
 
+  function trackClick(payload) {
+    const body = JSON.stringify({
+      calendar: "league-page",
+      action: "click",
+      page_path: window.location.pathname,
+      view_mode: window.innerWidth <= 720 ? "mobile" : "desktop",
+      referrer: document.referrer || "",
+      ...payload,
+    });
+
+    if (navigator.sendBeacon) {
+      const blob = new Blob([body], { type: "application/json" });
+      if (navigator.sendBeacon(TRACK_CLICK_URL, blob)) {
+        return;
+      }
+    }
+
+    fetch(TRACK_CLICK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  }
+
   function buildCard(league) {
     const notesHtml = league.notes.length
       ? `<div class="league-note">${league.notes.join("<br />")}</div>`
@@ -119,12 +145,41 @@
         ${notesHtml}
 
         <div class="league-actions">
-          <a class="cta cta-primary" href="${league.signUpUrl}" target="_blank" rel="noreferrer">Team Sign Up</a>
-          <a class="cta cta-secondary" href="${league.freeAgentUrl}" target="_blank" rel="noreferrer">Free Agent Sign Up</a>
+          <a
+            class="cta cta-primary"
+            href="${league.signUpUrl}"
+            target="_blank"
+            rel="noreferrer"
+            data-analytics-type="team_signup"
+            data-button-label="${league.title} — Team Sign Up"
+            data-destination-url="${league.signUpUrl}"
+            data-category="${league.title}"
+          >Team Sign Up</a>
+          <a
+            class="cta cta-secondary"
+            href="${league.freeAgentUrl}"
+            target="_blank"
+            rel="noreferrer"
+            data-analytics-type="free_agent_signup"
+            data-button-label="${league.title} — Free Agent Sign Up"
+            data-destination-url="${league.freeAgentUrl}"
+            data-category="${league.title}"
+          >Free Agent Sign Up</a>
         </div>
       </article>
     `;
   }
 
   gridEl.innerHTML = LEAGUES.map(buildCard).join("");
+
+  gridEl.addEventListener("click", (event) => {
+    const target = event.target.closest("[data-analytics-type]");
+    if (!target) return;
+    trackClick({
+      button_type: target.dataset.analyticsType || "league_cta",
+      button_label: target.dataset.buttonLabel || target.textContent.trim(),
+      destination_url: target.dataset.destinationUrl || "",
+      category: target.dataset.category || "league-page",
+    });
+  });
 })();

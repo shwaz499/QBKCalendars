@@ -30,6 +30,7 @@ REPO_ROOT = PROJECT_DIR.parent
 APP_DIR_NAMES = {
     "/daily": "qbk-customer-calendar",
     "/daily-analytics": "qbk-daily-analytics-dashboard",
+    "/league-analytics": "qbk-league-analytics-dashboard",
     "/adult-classes-week": "qbk-weekly-adult-calendar",
     "/adult-dropins-week": "qbk-weekly-adult-dropins-calendar",
     "/teen-dropins-week": "qbk-weekly-teen-dropins-calendar",
@@ -78,6 +79,7 @@ TEEN_UPCOMING_CACHE_CONTROL = os.getenv(
 )
 CLICK_ANALYTICS_CACHE_CONTROL = "no-store"
 CLICK_ANALYTICS_LOG_PATH = PROJECT_DIR / ".runtime-cache" / "daily-click-events.jsonl"
+LEAGUE_CLICK_ANALYTICS_LOG_PATH = PROJECT_DIR / ".runtime-cache" / "league-click-events.jsonl"
 TRACKED_ANALYTICS_HOSTS = {"qbksports.com", "www.qbksports.com"}
 
 
@@ -1062,6 +1064,7 @@ class DashClient:
 
 CLIENT = DashClient()
 CLICK_ANALYTICS = ClickAnalyticsStore(CLICK_ANALYTICS_LOG_PATH)
+LEAGUE_CLICK_ANALYTICS = ClickAnalyticsStore(LEAGUE_CLICK_ANALYTICS_LOG_PATH)
 
 
 class CalendarHandler(SimpleHTTPRequestHandler):
@@ -1086,9 +1089,11 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             return self._handle_events_api(parsed)
         if parsed.path == "/api/click-analytics":
             return self._handle_click_analytics_api(parsed)
+        if parsed.path == "/api/league-click-analytics":
+            return self._handle_league_click_analytics_api(parsed)
         if parsed.path == "/api/teen-upcoming":
             return self._handle_teen_upcoming_api(parsed)
-        if parsed.path in {"/daily-analytics", "/daily-analytics/"} and not self._is_local_request():
+        if parsed.path in {"/daily-analytics", "/daily-analytics/", "/league-analytics", "/league-analytics/"} and not self._is_local_request():
             return self.send_error(404, "Not found")
 
         if parsed.path in {"", "/"}:
@@ -1109,6 +1114,8 @@ class CalendarHandler(SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path == "/api/track-click":
             return self._handle_track_click_api()
+        if parsed.path == "/api/track-league-click":
+            return self._handle_track_league_click_api()
         return self.send_error(404, "Not found")
 
     def _resolve_static_path(self, raw_path: str) -> Path | None:
@@ -1231,18 +1238,9 @@ class CalendarHandler(SimpleHTTPRequestHandler):
         except ValueError as exc:
             return self._send_json({"error": str(exc)}, status=400, cache_control=CLICK_ANALYTICS_CACHE_CONTROL)
 
-        referrer = strip_html(payload.get("referrer"))
-        try:
-            referrer_host = urllib.parse.urlparse(referrer).hostname or ""
-        except Exception:
-            referrer_host = ""
-        if referrer_host.lower() not in TRACKED_ANALYTICS_HOSTS:
-            return self._send_json(
-                {"ok": True, "ignored": True, "reason": "untracked_referrer"},
-                cache_control=CLICK_ANALYTICS_CACHE_CONTROL,
-            )
-
-        event = CLICK_ANALYTICS.record(payload, self.headers)
+        event = self._record_analytics_event(payload, CLICK_ANALYTICS)
+        if event.get("ignored"):
+            return self._send_json(event, cache_control=CLICK_ANALYTICS_CACHE_CONTROL)
         return self._send_json({"ok": True, "event": event}, cache_control=CLICK_ANALYTICS_CACHE_CONTROL)
 
     def _handle_click_analytics_api(self, parsed: urllib.parse.ParseResult):
@@ -1265,6 +1263,52 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             cache_control=CLICK_ANALYTICS_CACHE_CONTROL,
             allow_origin="*",
         )
+
+    def _handle_track_league_click_api(self):
+        try:
+            payload = self._read_json_body()
+        except ValueError as exc:
+            return self._send_json({"error": str(exc)}, status=400, cache_control=CLICK_ANALYTICS_CACHE_CONTROL)
+
+        event = self._record_analytics_event(payload, LEAGUE_CLICK_ANALYTICS)
+        if event.get("ignored"):
+            return self._send_json(event, cache_control=CLICK_ANALYTICS_CACHE_CONTROL)
+        return self._send_json({"ok": True, "event": event}, cache_control=CLICK_ANALYTICS_CACHE_CONTROL)
+
+    def _handle_league_click_analytics_api(self, parsed: urllib.parse.ParseResult):
+        query = urllib.parse.parse_qs(parsed.query)
+        raw_days = (query.get("days") or ["30"])[0]
+        raw_limit = (query.get("limit") or ["20"])[0]
+        try:
+            days = max(1, min(365, int(raw_days)))
+            limit = max(1, min(100, int(raw_limit)))
+        except ValueError:
+            return self._send_json(
+                {"error": "Invalid days or limit value."},
+                status=400,
+                cache_control=CLICK_ANALYTICS_CACHE_CONTROL,
+            )
+
+        summary = LEAGUE_CLICK_ANALYTICS.summary(days=days, limit=limit)
+        return self._send_json(
+            summary,
+            cache_control=CLICK_ANALYTICS_CACHE_CONTROL,
+            allow_origin="*",
+        )
+
+    def _record_analytics_event(self, payload: dict[str, object], store: ClickAnalyticsStore):
+        referrer = strip_html(payload.get("referrer"))
+        try:
+            referrer_host = urllib.parse.urlparse(referrer).hostname or ""
+        except Exception:
+            referrer_host = ""
+        if referrer_host.lower() not in TRACKED_ANALYTICS_HOSTS:
+            return {
+                "ok": True,
+                "ignored": True,
+                "reason": "untracked_referrer",
+            }
+        return store.record(payload, self.headers)
 
     def _send_json(
         self,
