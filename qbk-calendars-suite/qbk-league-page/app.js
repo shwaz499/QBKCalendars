@@ -1,5 +1,7 @@
 (() => {
   const TRACK_CLICK_URL = "/api/track-league-click";
+  const params = new URLSearchParams(window.location.search);
+  const analyticsSiteId = params.get("site") || "";
   function isLocalAnalyticsSource() {
     const host = (window.location.hostname || "").toLowerCase();
     return host === "localhost" || host === "127.0.0.1" || host === "::1";
@@ -109,6 +111,7 @@
       view_mode: window.innerWidth <= 720 ? "mobile" : "desktop",
       referrer: document.referrer || "",
       source_host: window.location.hostname || "",
+      site_id: analyticsSiteId,
       ...payload,
     });
 

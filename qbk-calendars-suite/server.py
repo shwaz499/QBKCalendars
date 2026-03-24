@@ -82,6 +82,7 @@ CLICK_ANALYTICS_LOG_PATH = PROJECT_DIR / ".runtime-cache" / "daily-click-events.
 LEAGUE_CLICK_ANALYTICS_LOG_PATH = PROJECT_DIR / ".runtime-cache" / "league-click-events.jsonl"
 TRACKED_ANALYTICS_HOSTS = {"qbksports.com", "www.qbksports.com"}
 LOCAL_ANALYTICS_HOSTS = {"localhost", "127.0.0.1", "::1"}
+TRACKED_ANALYTICS_SITE_IDS = {"qbksports"}
 
 
 def parse_iso8601(raw: str | None) -> datetime | None:
@@ -1300,6 +1301,7 @@ class CalendarHandler(SimpleHTTPRequestHandler):
     def _record_analytics_event(self, payload: dict[str, object], store: ClickAnalyticsStore):
         referrer = strip_html(payload.get("referrer"))
         source_host = strip_html(payload.get("source_host")).lower()
+        site_id = strip_html(payload.get("site_id")).lower()
         try:
             referrer_host = urllib.parse.urlparse(referrer).hostname or ""
         except Exception:
@@ -1311,6 +1313,8 @@ class CalendarHandler(SimpleHTTPRequestHandler):
                 "ignored": True,
                 "reason": "local_source",
             }
+        if site_id in TRACKED_ANALYTICS_SITE_IDS:
+            return store.record(payload, self.headers)
         if referrer_host and referrer_host not in TRACKED_ANALYTICS_HOSTS:
             return {
                 "ok": True,

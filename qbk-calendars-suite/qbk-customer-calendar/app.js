@@ -2,6 +2,7 @@
   const params = new URLSearchParams(window.location.search);
   const embedMode = params.get("embed") === "1" || document.body.dataset.embed === "1";
   const forceMobileMode = params.get("mobile") === "1" || document.body.dataset.forceMobile === "1";
+  const analyticsSiteId = params.get("site") || "";
   if (embedMode) {
     document.body.classList.add("embed-mode");
   }
@@ -93,6 +94,7 @@
       page_path: window.location.pathname,
       referrer: document.referrer || "",
       source_host: window.location.hostname || "",
+      site_id: analyticsSiteId,
       ...payload,
     });
 
