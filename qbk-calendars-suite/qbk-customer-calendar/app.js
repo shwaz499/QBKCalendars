@@ -10,6 +10,7 @@
   }
 
   const LIVE_FEED_BASE = "/api/events";
+  const TRACK_CLICK_URL = "/api/track-click";
   const RENT_URL = "https://www.catchcorner.com/qbksports";
   const CLIENT_EVENTS_CACHE_MS = 120000;
   const MOBILE_LAYOUT_QUERY = "(max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse)";
@@ -68,6 +69,47 @@
   const clientEventsCache = new Map();
   const clientEventsInflight = new Map();
 
+  function getActiveFilterKeys() {
+    return FILTER_KEYS.filter((key) => !!filterState[key]);
+  }
+
+  function getViewMode() {
+    return isMobileLayout() ? "mobile" : "desktop";
+  }
+
+  function trackClick(payload) {
+    const body = JSON.stringify({
+      calendar: "daily",
+      action: "click",
+      selected_date: els.date?.value || "",
+      active_filters: getActiveFilterKeys(),
+      view_mode: getViewMode(),
+      page_path: window.location.pathname,
+      ...payload,
+    });
+
+    if (navigator.sendBeacon) {
+      const blob = new Blob([body], { type: "application/json" });
+      if (navigator.sendBeacon(TRACK_CLICK_URL, blob)) {
+        return;
+      }
+    }
+
+    fetch(TRACK_CLICK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  }
+
+  function setAnalyticsData(node, payload) {
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === "") return;
+      node.dataset[key] = String(value);
+    });
+  }
+
   function applyEventFilters() {
     const items = document.querySelectorAll("[data-filter-category]");
     items.forEach((node) => {
@@ -107,12 +149,24 @@
         filterState[key] = !filterState[key];
         updateFilterChipState();
         applyEventFilters();
+        trackClick({
+          button_type: "filter",
+          button_label: target.textContent.trim(),
+          category: key,
+          action: filterState[key] ? "filter_on" : "filter_off",
+        });
       });
     }
 
     if (els.clearFilters) {
       els.clearFilters.addEventListener("click", () => {
         clearAllFilters();
+        trackClick({
+          button_type: "filter",
+          button_label: "Clear All",
+          category: "all",
+          action: "clear_filters",
+        });
       });
     }
 
@@ -194,6 +248,7 @@
     const classification = getEventClassification(event);
     classification.classes.forEach((cls) => node.classList.add(cls));
     node.dataset.filterCategory = classification.filterCategory;
+    return classification;
   }
 
   function updateMobileCourtTabs() {
@@ -608,6 +663,13 @@
         rent.target = "_blank";
         rent.rel = "noopener noreferrer";
         rent.dataset.filterCategory = "availableRentals";
+        setAnalyticsData(rent, {
+          analyticsType: "rental",
+          buttonLabel: "Court Rental Available",
+          destinationUrl: RENT_URL,
+          category: "availableRentals",
+          court: COURTS[courtIndex]?.label || mobileCourtKey,
+        });
 
         const title = document.createElement("span");
         title.className = "mobile-item-title";
@@ -624,12 +686,19 @@
       const event = item.event;
       const card = document.createElement(event.clickable ? "a" : "div");
       card.className = "mobile-item";
-      applyClassification(card, event);
+      const classification = applyClassification(card, event);
       if (event.clickable) {
         card.href = event.bookingUrl;
         card.target = "_blank";
         card.rel = "noopener noreferrer";
       }
+      setAnalyticsData(card, {
+        analyticsType: "event",
+        buttonLabel: event.title,
+        destinationUrl: event.clickable ? event.bookingUrl : "",
+        category: classification.filterCategory,
+        court: COURTS[courtIndex]?.label || mobileCourtKey,
+      });
 
       const title = document.createElement("span");
       title.className = "mobile-item-title";
@@ -765,7 +834,7 @@
 
       const card = document.createElement(event.clickable ? "a" : "div");
       card.className = "day-event";
-      applyClassification(card, event);
+      const classification = applyClassification(card, event);
       if (event.clickable) {
         card.href = event.bookingUrl;
         card.target = "_blank";
@@ -773,6 +842,16 @@
       } else {
         card.classList.add("day-event-static");
       }
+      const courtLabel = courtIndexes.length === 3
+        ? "All Courts"
+        : courtIndexes.map((idx) => COURTS[idx]?.label).filter(Boolean).join(", ");
+      setAnalyticsData(card, {
+        analyticsType: "event",
+        buttonLabel: event.title,
+        destinationUrl: event.clickable ? event.bookingUrl : "",
+        category: classification.filterCategory,
+        court: courtLabel,
+      });
       card.style.top = `${top + 2}px`;
       card.style.height = `${height}px`;
       card.style.left = `calc(${leftPct}% + 5px)`;
@@ -842,6 +921,13 @@
           rent.style.height = `${height}px`;
           rent.textContent = "Court Rental Available";
           rent.dataset.filterCategory = "availableRentals";
+          setAnalyticsData(rent, {
+            analyticsType: "rental",
+            buttonLabel: "Court Rental Available",
+            destinationUrl: RENT_URL,
+            category: "availableRentals",
+            court: COURTS[col]?.label,
+          });
           els.vacancyOverlay.appendChild(rent);
         }
       }
@@ -942,13 +1028,20 @@
     els.date.value = getTodayISO();
     els.date.addEventListener("change", function () { loadAndRender(); });
     if (els.prevDay) {
-      els.prevDay.addEventListener("click", function () { shiftDateBy(-1); });
+      els.prevDay.addEventListener("click", function () {
+        trackClick({ button_type: "nav", button_label: "Previous Day", action: "prev_day" });
+        shiftDateBy(-1);
+      });
     }
     if (els.nextDay) {
-      els.nextDay.addEventListener("click", function () { shiftDateBy(1); });
+      els.nextDay.addEventListener("click", function () {
+        trackClick({ button_type: "nav", button_label: "Next Day", action: "next_day" });
+        shiftDateBy(1);
+      });
     }
     if (els.todayDay) {
       els.todayDay.addEventListener("click", function () {
+        trackClick({ button_type: "nav", button_label: "Today", action: "today" });
         els.date.value = getTodayISO();
         loadAndRender();
       });
@@ -957,6 +1050,11 @@
       els.mobileFilterToggle.addEventListener("click", function () {
         mobileFiltersOpen = !mobileFiltersOpen;
         syncMobileFilterDropdown();
+        trackClick({
+          button_type: "filter_menu",
+          button_label: mobileFiltersOpen ? "Open Filters" : "Close Filters",
+          action: mobileFiltersOpen ? "open_filters" : "close_filters",
+        });
       });
     }
     if (els.mobileCourtTabs) {
@@ -965,11 +1063,33 @@
         if (!target) return;
         mobileCourtKey = target.dataset.courtKey || "left";
         updateMobileCourtTabs();
+        trackClick({
+          button_type: "court_tab",
+          button_label: target.textContent.trim(),
+          court: target.textContent.trim(),
+          action: "court_tab",
+        });
         if (lastSelectedDate) {
           renderDayView(lastDayEvents, lastSelectedDate);
         }
       });
     }
+
+    [els.eventsOverlay, els.vacancyOverlay, els.mobileEventsList].forEach((root) => {
+      if (!root) return;
+      root.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-analytics-type]");
+        if (!target) return;
+        trackClick({
+          button_type: target.dataset.analyticsType || "event",
+          button_label: target.dataset.buttonLabel || target.textContent.trim(),
+          destination_url: target.dataset.destinationUrl || "",
+          category: target.dataset.category || "",
+          court: target.dataset.court || "",
+          action: target.dataset.analyticsType === "rental" ? "open_rental" : "open_event",
+        });
+      });
+    });
     lastIsMobile = isMobileLayout();
     window.addEventListener("resize", () => {
       const currentIsMobile = isMobileLayout();

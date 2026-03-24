@@ -10,6 +10,7 @@ import sys
 import threading
 import time
 import urllib.parse
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, time as dtime, timedelta
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -28,6 +29,7 @@ PROJECT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = PROJECT_DIR.parent
 APP_DIR_NAMES = {
     "/daily": "qbk-customer-calendar",
+    "/daily-analytics": "qbk-daily-analytics-dashboard",
     "/adult-classes-week": "qbk-weekly-adult-calendar",
     "/adult-dropins-week": "qbk-weekly-adult-dropins-calendar",
     "/teen-dropins-week": "qbk-weekly-teen-dropins-calendar",
@@ -74,6 +76,8 @@ TEEN_UPCOMING_CACHE_CONTROL = os.getenv(
     "QBK_TEEN_UPCOMING_CACHE_CONTROL",
     "public, max-age=21600, stale-while-revalidate=604800",
 )
+CLICK_ANALYTICS_CACHE_CONTROL = "no-store"
+CLICK_ANALYTICS_LOG_PATH = PROJECT_DIR / ".runtime-cache" / "daily-click-events.jsonl"
 
 
 def parse_iso8601(raw: str | None) -> datetime | None:
@@ -104,6 +108,119 @@ def strip_html(text) -> str:
     without_tags = re.sub(r"<[^>]+>", " ", text)
     condensed = re.sub(r"\s+", " ", without_tags).strip()
     return condensed
+
+
+class ClickAnalyticsStore:
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.Lock()
+
+    @staticmethod
+    def _sanitize_text(value: object, fallback: str = "") -> str:
+        text = strip_html(value)
+        return text[:500] if text else fallback
+
+    @staticmethod
+    def _sanitize_filters(raw_filters: object) -> list[str]:
+        if not isinstance(raw_filters, list):
+            return []
+        cleaned = []
+        for item in raw_filters:
+            text = strip_html(item)
+            if text:
+                cleaned.append(text[:100])
+        return cleaned[:20]
+
+    def record(self, payload: dict[str, object], headers) -> dict[str, object]:
+        event = {
+            "server_received_at": datetime.now(LOCAL_TZ).isoformat(),
+            "calendar": self._sanitize_text(payload.get("calendar"), "daily"),
+            "action": self._sanitize_text(payload.get("action"), "click"),
+            "button_type": self._sanitize_text(payload.get("button_type"), "unknown"),
+            "button_label": self._sanitize_text(payload.get("button_label"), "Unknown"),
+            "destination_url": self._sanitize_text(payload.get("destination_url")),
+            "selected_date": self._sanitize_text(payload.get("selected_date")),
+            "category": self._sanitize_text(payload.get("category")),
+            "court": self._sanitize_text(payload.get("court")),
+            "view_mode": self._sanitize_text(payload.get("view_mode")),
+            "page_path": self._sanitize_text(payload.get("page_path")),
+            "active_filters": self._sanitize_filters(payload.get("active_filters")),
+            "user_agent": self._sanitize_text(headers.get("User-Agent"), "")[:250],
+        }
+        line = json.dumps(event, separators=(",", ":"), ensure_ascii=False)
+        with self._lock:
+            with self.path.open("a", encoding="utf-8") as fh:
+                fh.write(line + "\n")
+        return event
+
+    def _read_events(self, days: int) -> list[dict[str, object]]:
+        if not self.path.exists():
+            return []
+        cutoff = datetime.now(LOCAL_TZ) - timedelta(days=max(1, days))
+        rows: list[dict[str, object]] = []
+        with self.path.open("r", encoding="utf-8") as fh:
+            for raw_line in fh:
+                line = raw_line.strip()
+                if not line:
+                    continue
+                try:
+                    item = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                stamp = parse_iso8601(item.get("server_received_at"))
+                if stamp is None:
+                    continue
+                if stamp.tzinfo is None:
+                    stamp = stamp.replace(tzinfo=LOCAL_TZ)
+                else:
+                    stamp = stamp.astimezone(LOCAL_TZ)
+                if stamp < cutoff:
+                    continue
+                rows.append(item)
+        return rows
+
+    def summary(self, days: int = 30, limit: int = 20) -> dict[str, object]:
+        events = self._read_events(days)
+        button_counts = Counter()
+        type_counts = Counter()
+        category_counts = Counter()
+        date_counts = Counter()
+
+        for event in events:
+            label = strip_html(event.get("button_label")) or "Unknown"
+            button_counts[label] += 1
+            button_type = strip_html(event.get("button_type")) or "unknown"
+            type_counts[button_type] += 1
+            category = strip_html(event.get("category")) or "uncategorized"
+            category_counts[category] += 1
+            selected_date = strip_html(event.get("selected_date"))
+            if selected_date:
+                date_counts[selected_date] += 1
+
+        recent = list(reversed(events[-50:]))
+        return {
+            "window_days": days,
+            "total_clicks": len(events),
+            "unique_buttons": len(button_counts),
+            "top_buttons": [
+                {"label": label, "count": count}
+                for label, count in button_counts.most_common(max(1, limit))
+            ],
+            "button_types": [
+                {"type": label, "count": count}
+                for label, count in type_counts.most_common()
+            ],
+            "categories": [
+                {"label": label, "count": count}
+                for label, count in category_counts.most_common()
+            ],
+            "dates": [
+                {"date": raw_date, "count": count}
+                for raw_date, count in date_counts.most_common()
+            ],
+            "recent_clicks": recent,
+        }
 
 
 class DashClient:
@@ -937,11 +1054,22 @@ class DashClient:
 
 
 CLIENT = DashClient()
+CLICK_ANALYTICS = ClickAnalyticsStore(CLICK_ANALYTICS_LOG_PATH)
 
 
 class CalendarHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(REPO_ROOT), **kwargs)
+
+    def _is_local_request(self) -> bool:
+        host = (self.headers.get("Host") or "").lower()
+        client_host = (self.client_address[0] or "").lower()
+        return (
+            host.startswith("localhost")
+            or host.startswith("127.0.0.1")
+            or host.startswith("[::1]")
+            or client_host in {"127.0.0.1", "::1"}
+        )
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -949,8 +1077,12 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             return self._handle_events_week_api(parsed)
         if parsed.path == "/api/events":
             return self._handle_events_api(parsed)
+        if parsed.path == "/api/click-analytics":
+            return self._handle_click_analytics_api(parsed)
         if parsed.path == "/api/teen-upcoming":
             return self._handle_teen_upcoming_api(parsed)
+        if parsed.path in {"/daily-analytics", "/daily-analytics/"} and not self._is_local_request():
+            return self.send_error(404, "Not found")
 
         if parsed.path in {"", "/"}:
             return self._redirect("/daily/")
@@ -964,6 +1096,12 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             self.path = "/" + static_path.relative_to(REPO_ROOT).as_posix()
             return super().do_GET()
 
+        return self.send_error(404, "Not found")
+
+    def do_POST(self):
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/api/track-click":
+            return self._handle_track_click_api()
         return self.send_error(404, "Not found")
 
     def _resolve_static_path(self, raw_path: str) -> Path | None:
@@ -1063,11 +1201,66 @@ class CalendarHandler(SimpleHTTPRequestHandler):
 
         return self._send_json(events, cache_control=TEEN_UPCOMING_CACHE_CONTROL)
 
-    def _send_json(self, payload: dict | list, status: int = 200, cache_control: str | None = None):
+    def _read_json_body(self) -> dict[str, object]:
+        raw_length = self.headers.get("Content-Length", "0")
+        try:
+            content_length = int(raw_length)
+        except ValueError:
+            raise ValueError("Invalid content length.")
+        if content_length <= 0 or content_length > 65536:
+            raise ValueError("Invalid request size.")
+        body = self.rfile.read(content_length)
+        try:
+            payload = json.loads(body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError("Invalid JSON payload.") from exc
+        if not isinstance(payload, dict):
+            raise ValueError("JSON payload must be an object.")
+        return payload
+
+    def _handle_track_click_api(self):
+        try:
+            payload = self._read_json_body()
+        except ValueError as exc:
+            return self._send_json({"error": str(exc)}, status=400, cache_control=CLICK_ANALYTICS_CACHE_CONTROL)
+
+        event = CLICK_ANALYTICS.record(payload, self.headers)
+        return self._send_json({"ok": True, "event": event}, cache_control=CLICK_ANALYTICS_CACHE_CONTROL)
+
+    def _handle_click_analytics_api(self, parsed: urllib.parse.ParseResult):
+        query = urllib.parse.parse_qs(parsed.query)
+        raw_days = (query.get("days") or ["30"])[0]
+        raw_limit = (query.get("limit") or ["20"])[0]
+        try:
+            days = max(1, min(365, int(raw_days)))
+            limit = max(1, min(100, int(raw_limit)))
+        except ValueError:
+            return self._send_json(
+                {"error": "Invalid days or limit value."},
+                status=400,
+                cache_control=CLICK_ANALYTICS_CACHE_CONTROL,
+            )
+
+        summary = CLICK_ANALYTICS.summary(days=days, limit=limit)
+        return self._send_json(
+            summary,
+            cache_control=CLICK_ANALYTICS_CACHE_CONTROL,
+            allow_origin="*",
+        )
+
+    def _send_json(
+        self,
+        payload: dict | list,
+        status: int = 200,
+        cache_control: str | None = None,
+        allow_origin: str | None = None,
+    ):
         data = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Cache-Control", cache_control or API_JSON_CACHE_CONTROL)
+        if allow_origin:
+            self.send_header("Access-Control-Allow-Origin", allow_origin)
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
