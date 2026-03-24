@@ -85,6 +85,7 @@
       active_filters: getActiveFilterKeys(),
       view_mode: getViewMode(),
       page_path: window.location.pathname,
+      referrer: document.referrer || "",
       ...payload,
     });
 

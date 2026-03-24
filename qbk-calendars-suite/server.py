@@ -78,6 +78,7 @@ TEEN_UPCOMING_CACHE_CONTROL = os.getenv(
 )
 CLICK_ANALYTICS_CACHE_CONTROL = "no-store"
 CLICK_ANALYTICS_LOG_PATH = PROJECT_DIR / ".runtime-cache" / "daily-click-events.jsonl"
+TRACKED_ANALYTICS_HOSTS = {"qbksports.com", "www.qbksports.com"}
 
 
 def parse_iso8601(raw: str | None) -> datetime | None:
@@ -145,6 +146,7 @@ class ClickAnalyticsStore:
             "court": self._sanitize_text(payload.get("court")),
             "view_mode": self._sanitize_text(payload.get("view_mode")),
             "page_path": self._sanitize_text(payload.get("page_path")),
+            "referrer": self._sanitize_text(payload.get("referrer")),
             "active_filters": self._sanitize_filters(payload.get("active_filters")),
             "user_agent": self._sanitize_text(headers.get("User-Agent"), "")[:250],
         }
@@ -153,6 +155,11 @@ class ClickAnalyticsStore:
             with self.path.open("a", encoding="utf-8") as fh:
                 fh.write(line + "\n")
         return event
+
+    def clear(self) -> None:
+        with self._lock:
+            if self.path.exists():
+                self.path.unlink()
 
     def _read_events(self, days: int) -> list[dict[str, object]]:
         if not self.path.exists():
@@ -1223,6 +1230,17 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             payload = self._read_json_body()
         except ValueError as exc:
             return self._send_json({"error": str(exc)}, status=400, cache_control=CLICK_ANALYTICS_CACHE_CONTROL)
+
+        referrer = strip_html(payload.get("referrer"))
+        try:
+            referrer_host = urllib.parse.urlparse(referrer).hostname or ""
+        except Exception:
+            referrer_host = ""
+        if referrer_host.lower() not in TRACKED_ANALYTICS_HOSTS:
+            return self._send_json(
+                {"ok": True, "ignored": True, "reason": "untracked_referrer"},
+                cache_control=CLICK_ANALYTICS_CACHE_CONTROL,
+            )
 
         event = CLICK_ANALYTICS.record(payload, self.headers)
         return self._send_json({"ok": True, "event": event}, cache_control=CLICK_ANALYTICS_CACHE_CONTROL)
