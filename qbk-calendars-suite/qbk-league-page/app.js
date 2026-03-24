@@ -130,6 +130,20 @@
     }).catch(() => {});
   }
 
+  function trackTarget(node) {
+    if (!node) return;
+    const now = Date.now();
+    const lastSent = Number(node.dataset.analyticsTrackedAt || 0);
+    if (now - lastSent < 1500) return;
+    node.dataset.analyticsTrackedAt = String(now);
+    trackClick({
+      button_type: node.dataset.analyticsType || "league_cta",
+      button_label: node.dataset.buttonLabel || node.textContent.trim(),
+      destination_url: node.dataset.destinationUrl || "",
+      category: node.dataset.category || "league-page",
+    });
+  }
+
   function buildCard(league) {
     const notesHtml = league.notes.length
       ? `<div class="league-note">${league.notes.join("<br />")}</div>`
@@ -181,14 +195,20 @@
 
   gridEl.innerHTML = LEAGUES.map(buildCard).join("");
 
-  gridEl.addEventListener("click", (event) => {
-    const target = event.target.closest("[data-analytics-type]");
-    if (!target) return;
-    trackClick({
-      button_type: target.dataset.analyticsType || "league_cta",
-      button_label: target.dataset.buttonLabel || target.textContent.trim(),
-      destination_url: target.dataset.destinationUrl || "",
-      category: target.dataset.category || "league-page",
+  const analyticsNodes = gridEl.querySelectorAll("[data-analytics-type]");
+  analyticsNodes.forEach((node) => {
+    node.addEventListener("pointerdown", () => {
+      trackTarget(node);
+    }, { passive: true });
+
+    node.addEventListener("click", () => {
+      trackTarget(node);
+    });
+
+    node.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        trackTarget(node);
+      }
     });
   });
 })();

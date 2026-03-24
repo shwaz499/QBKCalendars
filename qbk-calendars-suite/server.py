@@ -83,6 +83,7 @@ LEAGUE_CLICK_ANALYTICS_LOG_PATH = PROJECT_DIR / ".runtime-cache" / "league-click
 TRACKED_ANALYTICS_HOSTS = {"qbksports.com", "www.qbksports.com"}
 LOCAL_ANALYTICS_HOSTS = {"localhost", "127.0.0.1", "::1"}
 TRACKED_ANALYTICS_SITE_IDS = {"qbksports"}
+TRUSTED_WIX_ANALYTICS_SUFFIX = ".filesusr.com"
 
 
 def parse_iso8601(raw: str | None) -> datetime | None:
@@ -1315,13 +1316,24 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             }
         if site_id in TRACKED_ANALYTICS_SITE_IDS:
             return store.record(payload, self.headers)
-        if referrer_host and referrer_host not in TRACKED_ANALYTICS_HOSTS:
+        if referrer_host and not self._is_trusted_analytics_referrer(referrer_host):
             return {
                 "ok": True,
                 "ignored": True,
                 "reason": "untracked_referrer",
             }
         return store.record(payload, self.headers)
+
+    @staticmethod
+    def _is_trusted_analytics_referrer(referrer_host: str) -> bool:
+        if not referrer_host:
+            return True
+        if referrer_host in TRACKED_ANALYTICS_HOSTS:
+            return True
+        return (
+            referrer_host.endswith(TRUSTED_WIX_ANALYTICS_SUFFIX)
+            and "qbksports" in referrer_host
+        )
 
     def _send_json(
         self,
