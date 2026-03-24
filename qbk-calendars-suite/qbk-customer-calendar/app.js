@@ -69,6 +69,11 @@
   const clientEventsCache = new Map();
   const clientEventsInflight = new Map();
 
+  function isLocalAnalyticsSource() {
+    const host = (window.location.hostname || "").toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host === "::1";
+  }
+
   function getActiveFilterKeys() {
     return FILTER_KEYS.filter((key) => !!filterState[key]);
   }
@@ -78,6 +83,7 @@
   }
 
   function trackClick(payload) {
+    if (isLocalAnalyticsSource()) return;
     const body = JSON.stringify({
       calendar: "daily",
       action: "click",
@@ -86,6 +92,7 @@
       view_mode: getViewMode(),
       page_path: window.location.pathname,
       referrer: document.referrer || "",
+      source_host: window.location.hostname || "",
       ...payload,
     });
 

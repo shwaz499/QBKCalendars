@@ -1,5 +1,9 @@
 (() => {
   const TRACK_CLICK_URL = "/api/track-league-click";
+  function isLocalAnalyticsSource() {
+    const host = (window.location.hostname || "").toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host === "::1";
+  }
   const LEAGUES = [
     {
       day: "Monday",
@@ -97,12 +101,14 @@
   if (!gridEl) return;
 
   function trackClick(payload) {
+    if (isLocalAnalyticsSource()) return;
     const body = JSON.stringify({
       calendar: "league-page",
       action: "click",
       page_path: window.location.pathname,
       view_mode: window.innerWidth <= 720 ? "mobile" : "desktop",
       referrer: document.referrer || "",
+      source_host: window.location.hostname || "",
       ...payload,
     });
 
