@@ -318,6 +318,7 @@
     if (isTeenDropIn) return null;
 
     const is4sDropIn = /\b4s\b/.test(lower) && /drop[\s-]*in/.test(lower);
+    const is4sGlowParty = /\b4s\b/.test(lower) && /glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party/.test(lower);
     const is2s = /\b2s\b/.test(lower);
     const isAdvanced = /\badvanced\b/.test(lower);
     const isIntermediate = /\bintermediate\b/.test(lower);
@@ -328,6 +329,9 @@
     let filterCategory = null;
     if (is4sDropIn) {
       title = "4s Drop In";
+      filterCategory = "drop4s";
+    } else if (is4sGlowParty) {
+      title = "4s Glow In The Dark Party";
       filterCategory = "drop4s";
     } else if (is2s && isAdvanced && isKingOfCourt) {
       title = "Advanced 2s - King of the Court";

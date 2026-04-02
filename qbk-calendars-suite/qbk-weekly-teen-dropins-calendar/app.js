@@ -180,9 +180,10 @@
       || categoryLower.includes("drop in")
       || /drop[\s-]*in/.test(lower);
     const isTeenLike = /\bteens?\b/.test(lower);
-    if (!isGlowParty && (!isDropIn || !isTeenLike)) return null;
+    const isTeenGlowParty = isGlowParty && isTeenLike;
+    if (!isTeenGlowParty && (!isDropIn || !isTeenLike)) return null;
 
-    const title = isGlowParty ? "Teen Glow In The Dark Party" : "Teen Drop In";
+    const title = isTeenGlowParty ? "Teen Glow In The Dark Party" : "Teen Drop In";
 
     const start = raw.start_time || raw.start;
     const end = raw.end_time || raw.end;

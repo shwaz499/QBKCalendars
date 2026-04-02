@@ -148,9 +148,11 @@
     const titleText = String(event.title || "").toLowerCase();
     const isAdultClass = titleText.includes("adult") && titleText.includes("class");
     const isFreeTrialClass = titleText.includes("free trial class");
+    const is4sGlowParty = /\b4s\b/.test(titleText) && /glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party/.test(titleText);
     const isTeenDropIn = titleText === "teen drop in"
       || (/\bteens?\b/.test(titleText) && /drop[\s-]*in/.test(titleText));
-    const isTeenGlowParty = /glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party/.test(titleText);
+    const isTeenGlowParty = !is4sGlowParty
+      && /glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party/.test(titleText);
     const isLeagueOrGame = categoryText.includes("league") || categoryText.includes("game");
     const isYouthClass = titleText.includes("junior classes")
       || titleText.includes("cubs")
@@ -158,7 +160,7 @@
       || titleText.includes("beach lions");
     const isAdultDropIn = !isTeenDropIn
       && !isTeenGlowParty
-      && (categoryText.includes("drop-in") || categoryText.includes("drop in"));
+      && (is4sGlowParty || categoryText.includes("drop-in") || categoryText.includes("drop in"));
     const isPrivateEventOrRental = titleText.includes("private event")
       || titleText.includes("private rental")
       || (!event.clickable && (categoryText.includes("rental") || categoryText.includes("block")));
@@ -258,6 +260,10 @@
 
   function normalizeEvent(raw) {
     let title = String(raw.title || raw.name || "Untitled Event");
+    title = title.replace(
+      /\s*\(\s*\d{1,2}\/\d{1,2}(?:\/\d{2,4})?(?:\s+\d{1,2}(?::\d{2})?\s*[AP]M)?\s*\)\s*$/i,
+      "",
+    ).trim();
     const start = raw.start_time || raw.start || raw.startAt;
     const end = raw.end_time || raw.end || raw.endAt;
     if (!start || !end) return null;
@@ -328,7 +334,9 @@
       title = "Teen Drop in";
     }
 
-    const isTeenGlowParty = /\bteens?\b/.test(lowerTitle)
+    const is4sGlowParty = /\b4s\b/.test(lowerTitle)
+      && /glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party/.test(lowerTitle);
+    const isTeenGlowParty = !is4sGlowParty && /\bteens?\b/.test(lowerTitle)
       && /glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party/.test(lowerTitle);
     if (isTeenGlowParty) {
       title = "Teen Glow In The Dark Party";
