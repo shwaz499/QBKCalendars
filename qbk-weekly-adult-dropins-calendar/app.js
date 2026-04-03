@@ -244,7 +244,7 @@
     }
     if (capacity === null || capacity <= 0) return "";
     if (registered === null || registered < 0) return "";
-    return `${registered}/${capacity} spots`;
+    return `${registered}/${capacity} filled`;
   }
 
   function setDayHeaders(weekStartISO) {
