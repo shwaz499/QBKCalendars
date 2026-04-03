@@ -415,6 +415,14 @@
       forceClickable = false;
     }
 
+    const isProCourt = /pro[\s-]*court/.test(lowerTitle);
+    if (isProCourt) {
+      title = "Private Event";
+      category = "Private Event";
+      bookingUrl = "#";
+      forceClickable = false;
+    }
+
     const clickable = (forceClickable || raw.clickable !== false) && bookingUrl && bookingUrl !== "#";
 
     return {
