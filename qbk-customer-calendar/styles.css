@@ -574,7 +574,8 @@ h2 {
 }
 
 .mobile-item {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.25rem;
   border: 1px solid #b6d7c8;
   background: #effbf5;
@@ -594,6 +595,16 @@ h2 {
   color: #2d6d58;
   font-size: 0.82rem;
   line-height: 1.2;
+}
+
+.mobile-item-capacity {
+  margin-top: auto;
+  align-self: flex-end;
+  text-align: right;
+  color: #2d6d58;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
 .mobile-rent-slot {
@@ -628,6 +639,10 @@ h2 {
   color: #4a5f77;
 }
 
+.mobile-item.day-event-static .mobile-item-capacity {
+  color: #4a5f77;
+}
+
 .mobile-item.day-event-league {
   background: #fff5c9;
   border-color: #e5d27a;
@@ -638,6 +653,10 @@ h2 {
 }
 
 .mobile-item.day-event-league .mobile-item-time {
+  color: #7a670d;
+}
+
+.mobile-item.day-event-league .mobile-item-capacity {
   color: #7a670d;
 }
 
@@ -654,6 +673,10 @@ h2 {
   color: #63458e;
 }
 
+.mobile-item.day-event-dropin .mobile-item-capacity {
+  color: #63458e;
+}
+
 .mobile-item.day-event-teen {
   background: #fde2e2;
   border-color: #f4b4b4;
@@ -667,6 +690,10 @@ h2 {
   color: #a12e2e;
 }
 
+.mobile-item.day-event-teen .mobile-item-capacity {
+  color: #a12e2e;
+}
+
 .mobile-item.day-event-junior {
   background: #ffe8c9;
   border-color: #efbe7a;
@@ -677,6 +704,10 @@ h2 {
 }
 
 .mobile-item.day-event-junior .mobile-item-time {
+  color: #87551a;
+}
+
+.mobile-item.day-event-junior .mobile-item-capacity {
   color: #87551a;
 }
 
@@ -796,7 +827,8 @@ h2 {
 
 .day-event {
   position: absolute;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.15rem;
   border: 1px solid #b6d7c8;
   background: #effbf5;
@@ -818,6 +850,16 @@ h2 {
   color: #2d6d58;
   font-size: 0.74rem;
   line-height: 1.2;
+}
+
+.day-event-capacity {
+  margin-top: auto;
+  align-self: flex-end;
+  text-align: right;
+  color: #2d6d58;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.05;
 }
 
 .day-event:hover {
@@ -915,6 +957,10 @@ h2 {
   color: #4a5f77;
 }
 
+.day-event-static .day-event-capacity {
+  color: #4a5f77;
+}
+
 .day-event-league {
   background: #fff5c9;
   border-color: #e5d27a;
@@ -925,6 +971,10 @@ h2 {
 }
 
 .day-event-league .day-event-time {
+  color: #7a670d;
+}
+
+.day-event-league .day-event-capacity {
   color: #7a670d;
 }
 
@@ -941,6 +991,10 @@ h2 {
   color: #63458e;
 }
 
+.day-event-dropin .day-event-capacity {
+  color: #63458e;
+}
+
 .day-event-teen {
   background: #fde2e2;
   border-color: #f4b4b4;
@@ -954,6 +1008,10 @@ h2 {
   color: #a12e2e;
 }
 
+.day-event-teen .day-event-capacity {
+  color: #a12e2e;
+}
+
 .day-event-junior {
   background: #ffe8c9;
   border-color: #efbe7a;
@@ -964,6 +1022,10 @@ h2 {
 }
 
 .day-event-junior .day-event-time {
+  color: #87551a;
+}
+
+.day-event-junior .day-event-capacity {
   color: #87551a;
 }
 

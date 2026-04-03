@@ -263,6 +263,13 @@
     return classification;
   }
 
+  function shouldShowCapacity(classification, event) {
+    if (!event.capacityText) return false;
+    if (String(event.title || "").toLowerCase().includes("free trial class")) return false;
+    return classification.filterCategory === "adultClasses"
+      || classification.filterCategory === "adultDropIns";
+  }
+
   function updateMobileCourtTabs() {
     if (!els.mobileCourtTabs) return;
     const tabs = els.mobileCourtTabs.querySelectorAll(".mobile-court-tab[data-court-key]");
@@ -321,6 +328,28 @@
       return `${formatClockTime(start, compact, false)} - ${formatClockTime(end, compact, true)}`;
     }
     return `${formatClockTime(start, compact)} - ${formatClockTime(end, compact)}`;
+  }
+
+  function toIntOrNull(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return Math.round(n);
+  }
+
+  function getCapacityText(raw) {
+    const capacity = toIntOrNull(raw.register_capacity ?? raw.registerCapacity);
+    let registered = toIntOrNull(raw.registered_count ?? raw.registeredCount);
+    const remaining = toIntOrNull(
+      raw.remaining_registration_slots ?? raw.remainingRegistrationSlots,
+    );
+
+    if ((registered === null || registered < 0) && capacity !== null && capacity >= 0 && remaining !== null) {
+      registered = Math.max(0, capacity - remaining);
+    }
+    if (capacity === null || capacity <= 0) return "";
+    if (registered === null || registered < 0) return "";
+    return `${registered}/${capacity} filled`;
   }
 
   function normalizeEvent(raw) {
@@ -436,6 +465,7 @@
       end,
       bookingUrl,
       clickable,
+      capacityText: getCapacityText(raw),
     };
   }
 
@@ -734,6 +764,12 @@
       time.textContent = formatTimeRange(event.start, event.end, { compact: true });
       card.appendChild(title);
       card.appendChild(time);
+      if (shouldShowCapacity(classification, event)) {
+        const capacity = document.createElement("span");
+        capacity.className = "mobile-item-capacity";
+        capacity.textContent = event.capacityText;
+        card.appendChild(capacity);
+      }
       els.mobileEventsList.appendChild(card);
     }
 
@@ -893,6 +929,12 @@
 
       card.appendChild(title);
       card.appendChild(time);
+      if (shouldShowCapacity(classification, event)) {
+        const capacity = document.createElement("span");
+        capacity.className = "day-event-capacity";
+        capacity.textContent = event.capacityText;
+        card.appendChild(capacity);
+      }
       els.eventsOverlay.appendChild(card);
     }
 
