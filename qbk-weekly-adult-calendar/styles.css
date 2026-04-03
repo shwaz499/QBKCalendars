@@ -312,6 +312,15 @@ h2 {
   text-overflow: clip;
 }
 
+.mobile-week-event-capacity {
+  color: #4f8a73;
+  font-size: 0.66rem;
+  line-height: 1.08;
+  white-space: nowrap;
+  align-self: flex-end;
+  text-align: right;
+}
+
 .week-grid {
   min-width: 1220px;
   display: grid;
@@ -432,6 +441,16 @@ h2 {
   overflow-wrap: normal;
   word-break: keep-all;
   hyphens: none;
+}
+
+.week-event-capacity {
+  display: block;
+  color: #4f8a73;
+  font-size: 0.64rem;
+  line-height: 1.08;
+  white-space: nowrap;
+  align-self: end;
+  text-align: right;
 }
 
 .week-event-beachmode .week-event-title {

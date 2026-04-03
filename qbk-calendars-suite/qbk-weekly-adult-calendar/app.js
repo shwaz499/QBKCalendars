@@ -260,6 +260,28 @@
     return `Adult Classes Week View (${startText} - ${endText})`;
   }
 
+  function toIntOrNull(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return Math.round(n);
+  }
+
+  function getCapacityText(raw) {
+    const capacity = toIntOrNull(raw.register_capacity ?? raw.registerCapacity);
+    let registered = toIntOrNull(raw.registered_count ?? raw.registeredCount);
+    const remaining = toIntOrNull(
+      raw.remaining_registration_slots ?? raw.remainingRegistrationSlots,
+    );
+
+    if ((registered === null || registered < 0) && capacity !== null && capacity >= 0 && remaining !== null) {
+      registered = Math.max(0, capacity - remaining);
+    }
+    if (capacity === null || capacity <= 0) return "";
+    if (registered === null || registered < 0) return "";
+    return `${registered}/${capacity} filled`;
+  }
+
   function setDayHeaders(weekStartISO) {
     const start = new Date(`${weekStartISO}T00:00:00`);
     for (let i = 0; i < 7; i += 1) {
@@ -397,6 +419,7 @@
       bookingUrl: String(bookingUrl),
       dayIndex,
       filterCategories: Array.from(filterCategories),
+      capacityText: isFreeTrialClass ? "" : getCapacityText(raw),
     };
   }
 
@@ -461,6 +484,7 @@
   function fitCardText(card) {
     const title = card.querySelector(".week-event-title");
     const time = card.querySelector(".week-event-time");
+    const capacity = card.querySelector(".week-event-capacity");
     if (!title || !time) return;
 
     const cardTiers = ["", "week-event-fit-sm", "week-event-fit-xs", "week-event-fit-xxs", "week-event-fit-micro"];
@@ -488,11 +512,15 @@
       applyClassAt(card, cardTiers, cardIdx);
       applyClassAt(title, titleTiers, titleIdx);
       applyClassAt(time, timeTiers, timeIdx);
+      if (capacity) {
+        applyClassAt(capacity, timeTiers, timeIdx);
+      }
 
       const titleOverflow = isWidthOverflowing(title);
       const timeOverflow = isWidthOverflowing(time);
+      const capacityOverflow = capacity ? isWidthOverflowing(capacity) : false;
       const cardOverflow = isHeightOverflowing(card);
-      if (!titleOverflow && !timeOverflow && !cardOverflow) break;
+      if (!titleOverflow && !timeOverflow && !capacityOverflow && !cardOverflow) break;
 
       let changed = false;
       if (titleOverflow && titleIdx < titleTiers.length - 1) {
@@ -500,6 +528,10 @@
         changed = true;
       }
       if (timeOverflow && timeIdx < timeTiers.length - 1) {
+        timeIdx += 1;
+        changed = true;
+      }
+      if (capacityOverflow && timeIdx < timeTiers.length - 1) {
         timeIdx += 1;
         changed = true;
       }
@@ -611,6 +643,12 @@
 
           card.appendChild(title);
           card.appendChild(time);
+          if (event.capacityText) {
+            const capacity = document.createElement("span");
+            capacity.className = "mobile-week-event-capacity";
+            capacity.textContent = event.capacityText;
+            card.appendChild(capacity);
+          }
           dayList.appendChild(card);
         }
       }
@@ -675,6 +713,12 @@
 
       card.appendChild(title);
       card.appendChild(time);
+      if (event.capacityText) {
+        const capacity = document.createElement("span");
+        capacity.className = "week-event-capacity";
+        capacity.textContent = event.capacityText;
+        card.appendChild(capacity);
+      }
       els.eventsOverlay.appendChild(card);
       fitCardText(card);
     }
