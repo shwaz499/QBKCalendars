@@ -461,6 +461,12 @@ class DashClient:
             if len(title) > 120:
                 title = f"{title[:117]}..."
 
+            if re.search(r"staff[\s-]*court", title, re.IGNORECASE):
+                title = "Private Event"
+                program_category = "Private Event"
+                booking_url = None
+                clickable = False
+
             location = resources.get(str(item["resource_id"]))
             sub_resource = resource_areas.get(str(item["resource_area_id"]))
             court_key, court_label = self._court_info(location, sub_resource)

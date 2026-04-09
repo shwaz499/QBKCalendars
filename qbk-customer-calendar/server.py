@@ -462,6 +462,12 @@ class DashClient:
             if len(title) > 120:
                 title = f"{title[:117]}..."
 
+            if re.search(r"staff[\s-]*court", title, re.IGNORECASE):
+                title = "Private Event"
+                program_category = "Private Event"
+                booking_url = None
+                clickable = False
+
             if (
                 selected_date.isoformat() == "2026-03-22"
                 and event_kind == "bookable"
