@@ -424,14 +424,50 @@
   }
 
   function getFilteredEvents(rawEvents, weekStartISO) {
-    return rawEvents
+    return mergeMultiCourtEvents(rawEvents
       .map((raw) => normalizeAdultEvent(raw, weekStartISO))
       .filter(Boolean)
       .filter((event) => {
         const categories = Array.isArray(event.filterCategories) ? event.filterCategories : [];
         return categories.some((category) => !!filterState[category]);
       })
-      .sort((a, b) => new Date(a.start) - new Date(b.start));
+      .sort((a, b) => new Date(a.start) - new Date(b.start)));
+  }
+
+  function mergeMultiCourtEvents(events) {
+    const merged = new Map();
+
+    for (const event of events) {
+      const categories = Array.isArray(event.filterCategories) ? event.filterCategories : [];
+      const key = [
+        event.dayIndex,
+        event.title,
+        event.start,
+        event.end,
+        event.bookingUrl,
+        categories.slice().sort().join(","),
+      ].join("|");
+
+      const existing = merged.get(key);
+      if (!existing) {
+        merged.set(key, {
+          ...event,
+          filterCategories: [...categories],
+        });
+        continue;
+      }
+
+      const mergedCategories = new Set([
+        ...existing.filterCategories,
+        ...categories,
+      ]);
+      existing.filterCategories = Array.from(mergedCategories);
+      if (!existing.capacityText && event.capacityText) {
+        existing.capacityText = event.capacityText;
+      }
+    }
+
+    return Array.from(merged.values()).sort((a, b) => new Date(a.start) - new Date(b.start));
   }
 
   function assignDayLanes(events) {
