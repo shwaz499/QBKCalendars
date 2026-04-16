@@ -1,3 +1,10 @@
+html {
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+}
+
 :root {
   --ink: #0b1b30;
   --muted: #304d6b;
@@ -21,6 +28,11 @@ body {
   color: var(--ink);
   font-family: "Space Grotesk", "Segoe UI", sans-serif;
   background: transparent;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y pinch-zoom;
 }
 
 .layout {
@@ -185,6 +197,74 @@ h3 {
   border-color: rgba(29, 103, 205, 0.22);
 }
 
+body.embed-mobile {
+  min-height: auto;
+}
+
+body.embed-mobile .layout {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+body.embed-mobile .league-grid {
+  gap: 0.7rem;
+}
+
+body.embed-mobile .league-card {
+  gap: 0.72rem;
+  padding: 0.82rem 0.82rem 0.78rem 0.88rem;
+  border-radius: 18px;
+  box-shadow: 0 10px 22px rgba(13, 79, 61, 0.07);
+}
+
+body.embed-mobile .league-card::after {
+  opacity: 0.22;
+}
+
+body.embed-mobile .league-top {
+  gap: 0.28rem;
+}
+
+body.embed-mobile .league-title {
+  font-size: 1.05rem;
+  line-height: 1.02;
+}
+
+body.embed-mobile .league-meta {
+  font-size: 0.8rem;
+}
+
+body.embed-mobile .league-facts {
+  gap: 0.26rem;
+  padding-left: 0.95rem;
+  font-size: 0.8rem;
+}
+
+body.embed-mobile .league-facts li {
+  line-height: 1.2;
+}
+
+body.embed-mobile .league-note {
+  padding: 0.58rem 0.68rem;
+  border-radius: 12px;
+  font-size: 0.78rem;
+}
+
+body.embed-mobile .league-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+body.embed-mobile .league-actions .cta {
+  min-height: 40px;
+  width: 100%;
+  padding: 0.68rem 0.75rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
 @media (max-width: 720px) {
   .layout {
     width: 100%;
@@ -207,5 +287,25 @@ h3 {
 
   .league-actions .cta {
     width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  body.embed-mobile .league-card {
+    padding: 0.76rem 0.74rem 0.72rem 0.8rem;
+  }
+
+  body.embed-mobile .league-title {
+    font-size: 0.98rem;
+  }
+
+  body.embed-mobile .league-facts {
+    font-size: 0.76rem;
+  }
+
+  body.embed-mobile .league-actions .cta {
+    min-height: 38px;
+    font-size: 0.66rem;
+    padding: 0.62rem 0.62rem;
   }
 }
