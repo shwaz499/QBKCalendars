@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Round Robin Tournament Manager</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="setup-view" id="setupView" aria-labelledby="setupTitle">
+        <div class="setup-panel">
+          <p class="eyebrow">Round Robin Setup</p>
+          <h1 id="setupTitle">Build the tournament</h1>
+
+          <label class="field-block" for="tournamentNameInput">
+            <span>Tournament name</span>
+            <input
+              id="tournamentNameInput"
+              type="text"
+              autocomplete="off"
+              placeholder="Friday Night Round Robin"
+            />
+          </label>
+
+          <section class="teams-section" aria-label="Team names">
+            <div class="section-heading">
+              <h2>Teams</h2>
+              <p id="setupStatus">Enter five unique team names.</p>
+            </div>
+            <div class="team-grid" id="teamGrid"></div>
+          </section>
+
+          <div class="setup-actions">
+            <button class="primary" id="generateBtn" type="button">Generate TV Page</button>
+            <button class="secondary" id="viewTvBtn" type="button">Open TV Page</button>
+            <button class="secondary" id="clearScoresBtn" type="button">Clear Scores</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="tv-view" id="tvView" aria-label="Tournament TV page">
+        <header class="tv-header">
+          <img class="tv-logo" src="./assets/qbktona-logo-cropped.png" alt="QBKTONA 500 4s Coed Volleyball Tournament" />
+          <div class="tv-actions">
+            <span class="summary-pill" id="matchSummary">0 matches</span>
+            <span class="summary-pill" id="gamesSummary">0 games</span>
+            <button class="secondary" id="backToSetupBtn" type="button">Edit Teams</button>
+          </div>
+        </header>
+
+        <section class="tv-board">
+          <section class="match-panel" aria-labelledby="matchTitle">
+            <div class="panel-heading compact">
+              <h2 id="matchTitle">Matchups</h2>
+            </div>
+            <div class="empty-state" id="emptyMatches">
+              Set up the tournament first.
+            </div>
+            <div class="match-list" id="matchList" aria-live="polite"></div>
+          </section>
+
+          <aside class="standings-panel" aria-labelledby="standingsTitle">
+            <div class="panel-heading compact">
+              <h2 id="standingsTitle">Standings</h2>
+            </div>
+            <table class="standings-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Team</th>
+                  <th>W</th>
+                  <th>L</th>
+                  <th>PF</th>
+                  <th>PA</th>
+                  <th>+/-</th>
+                </tr>
+              </thead>
+              <tbody id="standingsBody"></tbody>
+            </table>
+          </aside>
+        </section>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
