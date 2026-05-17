@@ -275,6 +275,10 @@ h2 {
   gap: 12px;
 }
 
+.tv-board.playoff-mode {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .match-panel,
 .standings-panel {
   min-height: 0;
@@ -361,10 +365,11 @@ h2 {
 
 .court-label {
   max-width: 100%;
-  font-size: clamp(8px, 0.58vw, 11px);
+  font-size: clamp(6px, 0.44vw, 8px);
   font-weight: 950;
-  line-height: 1;
+  line-height: 0.92;
   text-transform: uppercase;
+  white-space: pre-line;
 }
 
 .match-main {
@@ -471,8 +476,8 @@ h2 {
 .playoff-body {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 176px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) 188px minmax(0, 1fr);
+  gap: 28px;
   align-items: center;
 }
 
@@ -480,7 +485,7 @@ h2 {
   min-width: 0;
   overflow: hidden;
   color: var(--text);
-  font-size: clamp(28px, 2.9vw, 54px);
+  font-size: clamp(34px, 3.6vw, 72px);
   font-weight: 950;
   line-height: 1.02;
   text-align: center;
@@ -490,7 +495,7 @@ h2 {
 
 .playoff-scores {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .playoff-game-row {
@@ -498,8 +503,8 @@ h2 {
 }
 
 .playoff-game-row .score-input {
-  height: 40px;
-  font-size: clamp(22px, 1.9vw, 34px);
+  height: 34px;
+  font-size: clamp(20px, 1.7vw, 30px);
 }
 
 .reorder-controls {

@@ -13,10 +13,12 @@ const generatePlayoffBtn = document.querySelector("#generatePlayoffBtn");
 const fullScreenBtn = document.querySelector("#fullScreenBtn");
 const backToSetupBtn = document.querySelector("#backToSetupBtn");
 const matchTitle = document.querySelector("#matchTitle");
+const tvBoard = document.querySelector(".tv-board");
 const matchList = document.querySelector("#matchList");
 const playoffBracket = document.querySelector("#playoffBracket");
 const emptyMatches = document.querySelector("#emptyMatches");
 const standingsBody = document.querySelector("#standingsBody");
+const standingsPanel = document.querySelector(".standings-panel");
 const matchSummary = document.querySelector("#matchSummary");
 const gamesSummary = document.querySelector("#gamesSummary");
 
@@ -81,6 +83,7 @@ function normalizeMatches(matches) {
 
 function normalizePlayoff(playoff) {
   if (!playoff || !Array.isArray(playoff.matches)) return null;
+  const playoffGameCount = 3;
   const matches = playoff.matches.map((match, index) => ({
     id: match.id || `playoff-${index + 1}`,
     label: String(match.label || (index === 0 ? "Semifinal" : "Final")),
@@ -91,7 +94,7 @@ function normalizePlayoff(playoff) {
     placeholderA: String(match.placeholderA || ""),
     placeholderB: String(match.placeholderB || ""),
     court: String(match.court || (index === 0 ? "Middle Court" : "Right Court")),
-    games: [0, 1].map((gameIndex) => ({
+    games: Array.from({ length: playoffGameCount }, (_, gameIndex) => ({
       a: cleanScore(match.games?.[gameIndex]?.a ?? ""),
       b: cleanScore(match.games?.[gameIndex]?.b ?? ""),
     })),
@@ -297,7 +300,7 @@ function renderMatches() {
 
     const court = document.createElement("span");
     court.className = "court-label";
-    court.textContent = (index + 1) % 2 === 1 ? "Middle Court" : "Right Court";
+    court.textContent = (index + 1) % 2 === 1 ? "Middle\nCourt" : "Right\nCourt";
 
     number.append(matchOrdinal, court);
 
@@ -350,6 +353,7 @@ function generatePlayoff() {
         games: [
           { a: "", b: "" },
           { a: "", b: "" },
+          { a: "", b: "" },
         ],
       },
       {
@@ -362,6 +366,7 @@ function generatePlayoff() {
         placeholderB: "Winner of 2 vs 3",
         court: "Right Court",
         games: [
+          { a: "", b: "" },
           { a: "", b: "" },
           { a: "", b: "" },
         ],
@@ -489,20 +494,18 @@ function updateFinalParticipantFromSemifinal() {
 function playoffMatchWinner(match) {
   let aWins = 0;
   let bWins = 0;
-  let pointDiff = 0;
 
   match.games.forEach((game) => {
     if (game.a === "" || game.b === "") return;
     const scoreA = Number(game.a);
     const scoreB = Number(game.b);
     if (!Number.isFinite(scoreA) || !Number.isFinite(scoreB) || scoreA === scoreB) return;
-    pointDiff += scoreA - scoreB;
     if (scoreA > scoreB) aWins += 1;
     if (scoreB > scoreA) bWins += 1;
   });
 
-  if (aWins === bWins && pointDiff === 0) return null;
-  const winnerIsA = aWins > bWins || (aWins === bWins && pointDiff > 0);
+  if (aWins < 2 && bWins < 2) return null;
+  const winnerIsA = aWins > bWins;
   const winnerId = winnerIsA ? match.teamA : match.teamB;
   return {
     id: winnerId,
@@ -679,6 +682,8 @@ function render() {
   generatePlayoffBtn.disabled = state.matches.length === 0;
   generatePlayoffBtn.textContent = state.playoff ? "Show Matchups" : "Generate Playoff";
   fullScreenBtn.textContent = document.fullscreenElement ? "Exit Full Screen" : "Full Screen";
+  standingsPanel.hidden = Boolean(state.playoff);
+  tvBoard.classList.toggle("playoff-mode", Boolean(state.playoff));
   renderSetupStatus();
   renderMatches();
   renderStandings();
