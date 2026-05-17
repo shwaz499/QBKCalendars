@@ -45,6 +45,8 @@
           <div class="tv-actions">
             <span class="summary-pill" id="matchSummary">0 matches</span>
             <span class="summary-pill" id="gamesSummary">0 games</span>
+            <button class="secondary" id="generatePlayoffBtn" type="button">Generate Playoff</button>
+            <button class="secondary" id="fullScreenBtn" type="button">Full Screen</button>
             <button class="secondary" id="backToSetupBtn" type="button">Edit Teams</button>
           </div>
         </header>
@@ -58,6 +60,7 @@
               Set up the tournament first.
             </div>
             <div class="match-list" id="matchList" aria-live="polite"></div>
+            <div class="playoff-bracket" id="playoffBracket" hidden aria-live="polite"></div>
           </section>
 
           <aside class="standings-panel" aria-labelledby="standingsTitle">

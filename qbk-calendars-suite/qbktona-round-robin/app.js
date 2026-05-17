@@ -9,8 +9,12 @@ const teamGrid = document.querySelector("#teamGrid");
 const generateBtn = document.querySelector("#generateBtn");
 const viewTvBtn = document.querySelector("#viewTvBtn");
 const clearScoresBtn = document.querySelector("#clearScoresBtn");
+const generatePlayoffBtn = document.querySelector("#generatePlayoffBtn");
+const fullScreenBtn = document.querySelector("#fullScreenBtn");
 const backToSetupBtn = document.querySelector("#backToSetupBtn");
+const matchTitle = document.querySelector("#matchTitle");
 const matchList = document.querySelector("#matchList");
+const playoffBracket = document.querySelector("#playoffBracket");
 const emptyMatches = document.querySelector("#emptyMatches");
 const standingsBody = document.querySelector("#standingsBody");
 const matchSummary = document.querySelector("#matchSummary");
@@ -32,6 +36,7 @@ function loadState() {
       tournamentName: String(saved.tournamentName || "Round Robin Tournament"),
       teams: normalizeTeams(saved.teams),
       matches: normalizeMatches(saved.matches),
+      playoff: normalizePlayoff(saved.playoff),
     };
   }
 
@@ -39,6 +44,7 @@ function loadState() {
     tournamentName: "Round Robin Tournament",
     teams: defaultTeams,
     matches: [],
+    playoff: null,
   };
 }
 
@@ -71,6 +77,27 @@ function normalizeMatches(matches) {
         b: cleanScore(match.games?.[gameIndex]?.b ?? ""),
       })),
     }));
+}
+
+function normalizePlayoff(playoff) {
+  if (!playoff || !Array.isArray(playoff.matches)) return null;
+  const matches = playoff.matches.map((match, index) => ({
+    id: match.id || `playoff-${index + 1}`,
+    label: String(match.label || (index === 0 ? "Semifinal" : "Final")),
+    teamA: match.teamA || null,
+    teamB: match.teamB || null,
+    teamAName: String(match.teamAName || ""),
+    teamBName: String(match.teamBName || ""),
+    placeholderA: String(match.placeholderA || ""),
+    placeholderB: String(match.placeholderB || ""),
+    court: String(match.court || (index === 0 ? "Middle Court" : "Right Court")),
+    games: [0, 1].map((gameIndex) => ({
+      a: cleanScore(match.games?.[gameIndex]?.a ?? ""),
+      b: cleanScore(match.games?.[gameIndex]?.b ?? ""),
+    })),
+  }));
+
+  return matches.length ? { matches } : null;
 }
 
 function saveState() {
@@ -158,6 +185,7 @@ function generateRoundRobin() {
   }
 
   state.matches = rounds.flat();
+  state.playoff = null;
   saveState();
   window.location.hash = "tv";
   render();
@@ -192,20 +220,43 @@ function updateScore(matchId, gameIndex, side, value) {
   renderStandings();
 }
 
+function updatePlayoffScore(matchId, gameIndex, side, value) {
+  const match = state.playoff?.matches.find((item) => item.id === matchId);
+  if (!match) return;
+  match.games[gameIndex][side] = cleanScore(value);
+  updateFinalParticipantFromSemifinal();
+  saveState();
+  renderPlayoff();
+}
+
 function clearScores() {
   state.matches = state.matches.map((match) => ({
     ...match,
     games: match.games.map(() => ({ a: "", b: "" })),
   }));
+  if (state.playoff) {
+    state.playoff.matches = state.playoff.matches.map((match) => ({
+      ...match,
+      games: match.games.map(() => ({ a: "", b: "" })),
+    }));
+    updateFinalParticipantFromSemifinal();
+  }
   saveState();
   render();
 }
 
 function renderMatches() {
   matchList.innerHTML = "";
-  emptyMatches.hidden = state.matches.length > 0;
-  matchList.hidden = state.matches.length === 0;
+  playoffBracket.hidden = true;
+  matchList.hidden = state.matches.length === 0 || Boolean(state.playoff);
+  emptyMatches.hidden = state.matches.length > 0 || Boolean(state.playoff);
   matchSummary.textContent = `${state.matches.length} matches`;
+  matchTitle.textContent = "Matchups";
+
+  if (state.playoff) {
+    renderPlayoff();
+    return;
+  }
 
   state.matches.forEach((match, index) => {
     const card = document.createElement("article");
@@ -239,7 +290,16 @@ function renderMatches() {
 
     const number = document.createElement("div");
     number.className = "match-number";
-    number.textContent = String(index + 1);
+
+    const matchOrdinal = document.createElement("span");
+    matchOrdinal.className = "match-ordinal";
+    matchOrdinal.textContent = String(index + 1);
+
+    const court = document.createElement("span");
+    court.className = "court-label";
+    court.textContent = (index + 1) % 2 === 1 ? "Middle Court" : "Right Court";
+
+    number.append(matchOrdinal, court);
 
     const main = document.createElement("div");
     main.className = "match-main";
@@ -272,6 +332,184 @@ function renderMatches() {
   });
 }
 
+function generatePlayoff() {
+  const standings = calculateStandings();
+  if (standings.length < 3 || standings.slice(0, 3).some((team) => !team.name.trim())) return;
+
+  const [seedOne, seedTwo, seedThree] = standings;
+  state.playoff = {
+    matches: [
+      {
+        id: "playoff-semifinal",
+        label: "Semifinal",
+        teamA: seedTwo.id,
+        teamB: seedThree.id,
+        teamAName: seedTwo.name,
+        teamBName: seedThree.name,
+        court: "Middle Court",
+        games: [
+          { a: "", b: "" },
+          { a: "", b: "" },
+        ],
+      },
+      {
+        id: "playoff-final",
+        label: "Final",
+        teamA: seedOne.id,
+        teamB: null,
+        teamAName: seedOne.name,
+        teamBName: "",
+        placeholderB: "Winner of 2 vs 3",
+        court: "Right Court",
+        games: [
+          { a: "", b: "" },
+          { a: "", b: "" },
+        ],
+      },
+    ],
+  };
+
+  saveState();
+  render();
+}
+
+function togglePlayoff() {
+  if (state.playoff) {
+    state.playoff = null;
+    saveState();
+    render();
+    return;
+  }
+
+  generatePlayoff();
+}
+
+function renderPlayoff() {
+  if (!state.playoff) return;
+  updateFinalParticipantFromSemifinal();
+  matchList.hidden = true;
+  emptyMatches.hidden = true;
+  playoffBracket.hidden = false;
+  playoffBracket.innerHTML = "";
+  matchSummary.textContent = "Playoffs";
+  matchTitle.textContent = "Playoff Bracket";
+
+  state.playoff.matches.forEach((match, index) => {
+    const card = document.createElement("article");
+    card.className = `playoff-card ${index === 1 ? "final" : ""}`;
+
+    const heading = document.createElement("div");
+    heading.className = "playoff-heading";
+    heading.innerHTML = `
+      <span>${escapeHtml(match.label)}</span>
+      <span>${escapeHtml(match.court)}</span>
+    `;
+
+    const body = document.createElement("div");
+    body.className = "playoff-body";
+
+    const teamA = document.createElement("div");
+    teamA.className = "playoff-team";
+    teamA.textContent = playoffTeamName(match, "A");
+
+    const scores = document.createElement("div");
+    scores.className = "playoff-scores";
+    match.games.forEach((game, gameIndex) => {
+      scores.append(renderPlayoffGameRow(match, game, gameIndex));
+    });
+
+    const teamB = document.createElement("div");
+    teamB.className = "playoff-team";
+    teamB.textContent = playoffTeamName(match, "B");
+
+    body.append(teamA, scores, teamB);
+    card.append(heading, body);
+    playoffBracket.append(card);
+  });
+}
+
+function renderPlayoffGameRow(match, game, gameIndex) {
+  const row = document.createElement("div");
+  row.className = "game-row playoff-game-row";
+
+  const scoreA = Number(game.a);
+  const scoreB = Number(game.b);
+  const complete = game.a !== "" && game.b !== "";
+  const aWon = complete && scoreA > scoreB;
+  const bWon = complete && scoreB > scoreA;
+
+  const inputA = playoffScoreInput(match.id, gameIndex, "a", game.a);
+  if (aWon) inputA.classList.add("winner");
+
+  const separator = document.createElement("div");
+  separator.className = "score-separator";
+  separator.textContent = "-";
+
+  const inputB = playoffScoreInput(match.id, gameIndex, "b", game.b);
+  if (bWon) inputB.classList.add("winner");
+
+  row.append(inputA, separator, inputB);
+  return row;
+}
+
+function playoffScoreInput(matchId, gameIndex, side, value) {
+  const input = scoreInput(matchId, gameIndex, side, value);
+  input.addEventListener("input", () => updatePlayoffScore(matchId, gameIndex, side, input.value));
+  return input;
+}
+
+function playoffTeamName(match, side) {
+  const explicit = side === "A" ? match.teamAName : match.teamBName;
+  const id = side === "A" ? match.teamA : match.teamB;
+  const placeholder = side === "A" ? match.placeholderA : match.placeholderB;
+  if (id) return teamName(id);
+  if (explicit) return explicit;
+  return placeholder || "TBD";
+}
+
+function updateFinalParticipantFromSemifinal() {
+  if (!state.playoff?.matches?.length) return;
+  const semifinal = state.playoff.matches[0];
+  const final = state.playoff.matches[1];
+  if (!semifinal || !final) return;
+
+  const winner = playoffMatchWinner(semifinal);
+  if (!winner) {
+    final.teamB = null;
+    final.teamBName = "";
+    final.placeholderB = "Winner of 2 vs 3";
+    return;
+  }
+
+  final.teamB = winner.id;
+  final.teamBName = winner.name;
+  final.placeholderB = "";
+}
+
+function playoffMatchWinner(match) {
+  let aWins = 0;
+  let bWins = 0;
+  let pointDiff = 0;
+
+  match.games.forEach((game) => {
+    if (game.a === "" || game.b === "") return;
+    const scoreA = Number(game.a);
+    const scoreB = Number(game.b);
+    if (!Number.isFinite(scoreA) || !Number.isFinite(scoreB) || scoreA === scoreB) return;
+    pointDiff += scoreA - scoreB;
+    if (scoreA > scoreB) aWins += 1;
+    if (scoreB > scoreA) bWins += 1;
+  });
+
+  if (aWins === bWins && pointDiff === 0) return null;
+  const winnerIsA = aWins > bWins || (aWins === bWins && pointDiff > 0);
+  const winnerId = winnerIsA ? match.teamA : match.teamB;
+  return {
+    id: winnerId,
+    name: winnerId ? teamName(winnerId) : winnerIsA ? match.teamAName : match.teamBName,
+  };
+}
+
 function renderGameRow(match, game, gameIndex) {
   const row = document.createElement("div");
   row.className = "game-row";
@@ -283,6 +521,7 @@ function renderGameRow(match, game, gameIndex) {
   const bWon = complete && scoreB > scoreA;
 
   const inputA = scoreInput(match.id, gameIndex, "a", game.a);
+  inputA.addEventListener("input", () => updateScore(match.id, gameIndex, "a", inputA.value));
   if (aWon) inputA.classList.add("winner");
 
   const separator = document.createElement("div");
@@ -290,6 +529,7 @@ function renderGameRow(match, game, gameIndex) {
   separator.textContent = "-";
 
   const inputB = scoreInput(match.id, gameIndex, "b", game.b);
+  inputB.addEventListener("input", () => updateScore(match.id, gameIndex, "b", inputB.value));
   if (bWon) inputB.classList.add("winner");
 
   row.append(inputA, separator, inputB);
@@ -304,7 +544,6 @@ function scoreInput(matchId, gameIndex, side, value) {
   input.inputMode = "numeric";
   input.value = value;
   input.ariaLabel = `Game ${gameIndex + 1} score`;
-  input.addEventListener("input", () => updateScore(matchId, gameIndex, side, input.value));
   return input;
 }
 
@@ -437,9 +676,24 @@ function render() {
   generateBtn.disabled = !allTeamNamesValid();
   viewTvBtn.disabled = state.matches.length === 0;
   clearScoresBtn.disabled = state.matches.length === 0;
+  generatePlayoffBtn.disabled = state.matches.length === 0;
+  generatePlayoffBtn.textContent = state.playoff ? "Show Matchups" : "Generate Playoff";
+  fullScreenBtn.textContent = document.fullscreenElement ? "Exit Full Screen" : "Full Screen";
   renderSetupStatus();
   renderMatches();
   renderStandings();
+}
+
+async function toggleFullScreen() {
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else {
+      await document.documentElement.requestFullscreen();
+    }
+  } catch {
+    fullScreenBtn.textContent = "Full Screen";
+  }
 }
 
 tournamentNameInput.addEventListener("input", () => {
@@ -451,9 +705,12 @@ tournamentNameInput.addEventListener("input", () => {
 generateBtn.addEventListener("click", generateRoundRobin);
 viewTvBtn.addEventListener("click", showTv);
 clearScoresBtn.addEventListener("click", clearScores);
+generatePlayoffBtn.addEventListener("click", togglePlayoff);
+fullScreenBtn.addEventListener("click", toggleFullScreen);
 backToSetupBtn.addEventListener("click", showSetup);
 window.addEventListener("hashchange", render);
 window.addEventListener("resize", fitStandingsTeamNames);
+document.addEventListener("fullscreenchange", render);
 
 renderTeamInputs();
 render();

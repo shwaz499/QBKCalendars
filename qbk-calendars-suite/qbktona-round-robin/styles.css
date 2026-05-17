@@ -183,6 +183,8 @@ h2 {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .setup-actions {
@@ -212,6 +214,11 @@ h2 {
 
 .secondary {
   padding: 0 16px;
+}
+
+.tv-actions .secondary {
+  min-height: 42px;
+  padding: 0 14px;
 }
 
 .primary:hover:not(:disabled),
@@ -336,12 +343,28 @@ h2 {
 
 .match-number {
   display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 2px;
   place-items: center;
   color: var(--accent-ink);
   background: var(--accent);
   border-radius: 6px;
-  font-size: clamp(20px, 1.8vw, 30px);
   font-weight: 950;
+  padding: 5px 2px;
+  text-align: center;
+}
+
+.match-ordinal {
+  font-size: clamp(20px, 1.8vw, 30px);
+  line-height: 0.95;
+}
+
+.court-label {
+  max-width: 100%;
+  font-size: clamp(8px, 0.58vw, 11px);
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .match-main {
@@ -404,6 +427,79 @@ h2 {
   font-size: 18px;
   font-weight: 900;
   text-align: center;
+}
+
+.playoff-bracket {
+  min-height: 0;
+  height: 100%;
+  padding-top: 10px;
+  display: grid;
+  grid-template-rows: minmax(0, 0.88fr) minmax(0, 1.12fr);
+  gap: 14px;
+}
+
+.playoff-card {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(180deg, #20242a 0%, #171a1f 100%);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.playoff-card.final {
+  border-color: rgba(247, 201, 72, 0.42);
+}
+
+.playoff-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  color: var(--muted);
+  font-size: clamp(16px, 1.3vw, 24px);
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.playoff-card.final .playoff-heading {
+  color: var(--amber);
+}
+
+.playoff-body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 176px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.playoff-team {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: clamp(28px, 2.9vw, 54px);
+  font-weight: 950;
+  line-height: 1.02;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playoff-scores {
+  display: grid;
+  gap: 10px;
+}
+
+.playoff-game-row {
+  grid-template-columns: 72px 16px 72px;
+}
+
+.playoff-game-row .score-input {
+  height: 40px;
+  font-size: clamp(22px, 1.9vw, 34px);
 }
 
 .reorder-controls {
