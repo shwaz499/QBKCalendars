@@ -643,6 +643,18 @@ h2 {
   color: #4a5f77;
 }
 
+.mobile-item.closed-private-event {
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+  text-align: center;
+}
+
+.mobile-item.closed-private-event .mobile-item-title {
+  font-size: 1.35rem;
+  line-height: 1.12;
+}
+
 .mobile-item.day-event-league {
   background: #fff5c9;
   border-color: #e5d27a;
@@ -864,6 +876,19 @@ h2 {
 
 .day-event:hover {
   border-color: var(--accent-strong);
+}
+
+.day-event.closed-private-event {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.day-event.closed-private-event .day-event-title {
+  max-width: 18rem;
+  color: #203040;
+  font-size: clamp(1.2rem, 2.2vw, 2rem);
+  line-height: 1.08;
 }
 
 .rent-slot {

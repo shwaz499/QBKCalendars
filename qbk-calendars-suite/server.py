@@ -53,6 +53,7 @@ APP_ROUTE_DIRS = {
 }
 BOOKING_ROOT = "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports"
 BEACH_LIONS_TRYOUT_URL = "https://www.eventbrite.com/e/qbk-sports-beach-volleyball-youth-club-spring-tryouts-tickets-1983086995587?aff=oddtdtcreator"
+PRIVATE_EVENT_CLOSED_DATES = {"2026-05-30", "2026-05-31"}
 API_BASE = os.getenv("DASH_API_BASE", "https://api.dashplatform.com").rstrip("/")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 EVENTS_PAGE_SIZE = 1000
@@ -859,7 +860,33 @@ class DashClient:
                 continue
             self._schedule_prefetch_date(selected_date + timedelta(days=offset))
 
+    @staticmethod
+    def _private_event_closed_events(selected_date: date) -> list[dict]:
+        start = datetime.combine(selected_date, dtime(hour=6), tzinfo=LOCAL_TZ)
+        end = datetime.combine(selected_date + timedelta(days=1), dtime(hour=1), tzinfo=LOCAL_TZ)
+        return [
+            {
+                "id": f"closed-private-event-{selected_date.isoformat()}",
+                "title": "Closed For Private Event",
+                "category": "Private Event",
+                "location": "All Courts",
+                "sub_resource": "All Courts",
+                "court_key": "all",
+                "start_time": start.isoformat(),
+                "end_time": end.isoformat(),
+                "booking_url": None,
+                "clickable": False,
+                "register_capacity": None,
+                "registered_count": None,
+                "remaining_registration_slots": None,
+                "registration_status": None,
+            }
+        ]
+
     def _compute_events_for_date(self, selected_date: date) -> tuple[list[dict], int | None]:
+        if selected_date.isoformat() in PRIVATE_EVENT_CLOSED_DATES:
+            return self._private_event_closed_events(selected_date), 1
+
         day_start = datetime.combine(selected_date, dtime.min)
         day_end = day_start + timedelta(days=1)
         selected_key = selected_date.isoformat()

@@ -26,6 +26,7 @@
   const RENT_PEAK_END_MIN = 22 * 60;
   const RENT_TIER_OFF_PEAK = "offpeak";
   const RENT_TIER_PEAK = "peak";
+  const CLOSED_PRIVATE_EVENT_DATES = new Set(["2026-05-30", "2026-05-31"]);
   const COURTS = [
     { key: "left", label: "Left Court" },
     { key: "middle", label: "Middle Court" },
@@ -60,6 +61,7 @@
     mobileDayView: document.getElementById("mobile-day-view"),
     mobileCourtTabs: document.getElementById("mobile-court-tabs"),
     mobileEventsList: document.getElementById("mobile-events-list"),
+    rentalLegend: document.querySelector(".rental-legend"),
   };
   const filterBarEl = document.querySelector(".filter-bar");
   let mobileCourtKey = "left";
@@ -536,6 +538,21 @@
   }
 
   function getDayEvents(events, selectedDate) {
+    if (CLOSED_PRIVATE_EVENT_DATES.has(selectedDate)) {
+      return [normalizeEvent({
+        id: `closed-private-event-${selectedDate}`,
+        title: "Closed For Private Event",
+        category: "Private Event",
+        location: "All Courts",
+        sub_resource: "All Courts",
+        court_key: "all",
+        start_time: `${selectedDate}T06:00:00`,
+        end_time: `${shiftISODate(selectedDate, 1)}T01:00:00`,
+        booking_url: null,
+        clickable: false,
+      })].filter(Boolean);
+    }
+
     const startOfDay = new Date(`${selectedDate}T00:00:00`);
     const endOfDay = new Date(`${selectedDate}T23:59:59.999`);
 
@@ -549,6 +566,10 @@
       .sort((a, b) => new Date(a.start) - new Date(b.start));
 
     return resolveLeagueMatchTitles(dayEvents);
+  }
+
+  function isClosedPrivateEvent(event) {
+    return String(event.id || "").startsWith("closed-private-event-");
   }
 
   function hourOrderFromDate(rawDate) {
@@ -751,6 +772,8 @@
       const card = document.createElement(event.clickable ? "a" : "div");
       card.className = "mobile-item";
       const classification = applyClassification(card, event);
+      const closedPrivateEvent = isClosedPrivateEvent(event);
+      card.classList.toggle("closed-private-event", closedPrivateEvent);
       if (event.clickable) {
         card.href = event.bookingUrl;
         card.target = "_blank";
@@ -767,11 +790,13 @@
       const title = document.createElement("span");
       title.className = "mobile-item-title";
       title.textContent = event.title;
-      const time = document.createElement("span");
-      time.className = "mobile-item-time";
-      time.textContent = formatTimeRange(event.start, event.end, { compact: true });
       card.appendChild(title);
-      card.appendChild(time);
+      if (!closedPrivateEvent) {
+        const time = document.createElement("span");
+        time.className = "mobile-item-time";
+        time.textContent = formatTimeRange(event.start, event.end, { compact: true });
+        card.appendChild(time);
+      }
       if (shouldShowCapacity(classification, event)) {
         const capacity = document.createElement("span");
         capacity.className = "mobile-item-capacity";
@@ -795,6 +820,10 @@
   function renderDayView(events, selectedDate) {
     lastDayEvents = events;
     lastSelectedDate = selectedDate;
+
+    if (els.rentalLegend) {
+      els.rentalLegend.hidden = CLOSED_PRIVATE_EVENT_DATES.has(selectedDate);
+    }
 
     els.dayViewTitle.textContent = `Court Day View for ${formatShortDate(selectedDate)}`;
     const slotHeight = getSlotHeightPx();
@@ -905,6 +934,8 @@
       const card = document.createElement(event.clickable ? "a" : "div");
       card.className = "day-event";
       const classification = applyClassification(card, event);
+      const closedPrivateEvent = isClosedPrivateEvent(event);
+      card.classList.toggle("closed-private-event", closedPrivateEvent);
       if (event.clickable) {
         card.href = event.bookingUrl;
         card.target = "_blank";
@@ -931,12 +962,13 @@
       title.className = "day-event-title";
       title.textContent = event.title;
 
-      const time = document.createElement("span");
-      time.className = "day-event-time";
-      time.textContent = formatTimeRange(event.start, event.end, { compact: useCompactTimes });
-
       card.appendChild(title);
-      card.appendChild(time);
+      if (!closedPrivateEvent) {
+        const time = document.createElement("span");
+        time.className = "day-event-time";
+        time.textContent = formatTimeRange(event.start, event.end, { compact: useCompactTimes });
+        card.appendChild(time);
+      }
       if (shouldShowCapacity(classification, event)) {
         const capacity = document.createElement("span");
         capacity.className = "day-event-capacity";
