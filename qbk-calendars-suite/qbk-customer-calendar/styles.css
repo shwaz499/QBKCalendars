@@ -585,10 +585,13 @@ h2 {
 }
 
 .mobile-item-title {
-  color: #0a5138;
-  font-size: 0.95rem;
+  color: #084733;
+  font-size: 0.94rem;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.08;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .mobile-item-time {
@@ -852,16 +855,24 @@ h2 {
 }
 
 .day-event-title {
-  color: #0a5138;
-  font-size: 0.8rem;
+  color: #084733;
+  font-size: 0.88rem;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.08;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+  hyphens: none;
 }
 
 .day-event-time {
   color: #2d6d58;
-  font-size: 0.74rem;
-  line-height: 1.2;
+  font-size: 0.72rem;
+  line-height: 1.08;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
 }
 
 .day-event-capacity {

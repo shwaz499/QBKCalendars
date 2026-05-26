@@ -27,6 +27,16 @@
   const RENT_TIER_OFF_PEAK = "offpeak";
   const RENT_TIER_PEAK = "peak";
   const CLOSED_PRIVATE_EVENT_DATES = new Set(["2026-05-30", "2026-05-31"]);
+  const ADULT_TITLE_TERMS = [
+    "beachmode",
+    "sandy hands",
+    "beach bombers",
+    "beach bomberts",
+    "serve / serve receive",
+    "serve/serve receive",
+    "serve receive",
+    "shots shop",
+  ];
   const COURTS = [
     { key: "left", label: "Left Court" },
     { key: "middle", label: "Middle Court" },
@@ -212,7 +222,7 @@
   function getEventClassification(event) {
     const categoryText = String(event.category || "").toLowerCase();
     const titleText = String(event.title || "").toLowerCase();
-    const isAdultClass = titleText.includes("adult") && titleText.includes("class");
+    const isAdultClass = event.adultProgram || (titleText.includes("adult") && titleText.includes("class"));
     const isFreeTrialClass = titleText.includes("free trial class");
     const is4sGlowParty = /\b4s\b/.test(titleText) && /glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party/.test(titleText);
     const isTeenDropIn = titleText === "teen drop in"
@@ -226,6 +236,7 @@
       || titleText.includes("beach lions");
     const isAdultDropIn = !isTeenDropIn
       && !isTeenGlowParty
+      && !event.adultProgram
       && (is4sGlowParty || categoryText.includes("drop-in") || categoryText.includes("drop in"));
     const isPrivateEventOrRental = titleText.includes("private event")
       || titleText.includes("private rental")
@@ -236,13 +247,15 @@
       filterCategory = "teenDropIns";
     } else if (isYouthClass) {
       filterCategory = "youthClasses";
+    } else if (isAdultClass || isFreeTrialClass || event.adultProgram) {
+      filterCategory = "adultClasses";
     } else if (isAdultDropIn) {
       filterCategory = "adultDropIns";
     } else if (isLeagueOrGame) {
       filterCategory = "leagues";
     } else if (isPrivateEventOrRental) {
       filterCategory = "privateEventsRentals";
-    } else if (isAdultClass || isFreeTrialClass || event.clickable) {
+    } else if (event.clickable) {
       filterCategory = "adultClasses";
     }
 
@@ -252,7 +265,9 @@
       classes.push("day-event-dropin");
     }
     if (isTeenDropIn || isTeenGlowParty) classes.push("day-event-teen");
-    if (titleText.includes("junior classes")) classes.push("day-event-junior");
+    if (titleText.includes("junior classes") || titleText.includes("youth class") || titleText.includes("beach lions")) {
+      classes.push("day-event-junior");
+    }
     if (!event.clickable) classes.push("day-event-static");
 
     return { classes, filterCategory };
@@ -354,6 +369,54 @@
     return `${registered}/${capacity} filled`;
   }
 
+  function formatAdultProgramTitle(title, lowerTitle) {
+    const isSundaySkills = /sunday[\s-]*skills/.test(lowerTitle);
+    const isFreeTrialClass = /free[\s-]*trial[\s-]*class/.test(lowerTitle);
+    const isAdultClass = /\badult\b/.test(lowerTitle) && /\bclass\b/.test(lowerTitle);
+    const isAdultCampOrClinic = /\badult\b/.test(lowerTitle) && (lowerTitle.includes("camp") || lowerTitle.includes("clinic"));
+    const isKnownAdultProgram = ADULT_TITLE_TERMS.some((term) => lowerTitle.includes(term));
+    if (isSundaySkills) return "Sunday Skills";
+    if (isFreeTrialClass) return "Free Trial Class";
+    if (!isAdultClass && !isAdultCampOrClinic && !isKnownAdultProgram) return title;
+    const cleaned = title
+      .replace(/\badult\b/gi, "")
+      .replace(/\bclass\b/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    return cleaned || title;
+  }
+
+  function isAdultProgramTitle(lowerTitle) {
+    const isSundaySkills = /sunday[\s-]*skills/.test(lowerTitle);
+    const isFreeTrialClass = /free[\s-]*trial[\s-]*class/.test(lowerTitle);
+    const isAdultClass = /\badult\b/.test(lowerTitle) && /\bclass\b/.test(lowerTitle);
+    const isAdultCampOrClinic = /\badult\b/.test(lowerTitle) && (lowerTitle.includes("camp") || lowerTitle.includes("clinic"));
+    const isKnownAdultProgram = ADULT_TITLE_TERMS.some((term) => lowerTitle.includes(term));
+    return isSundaySkills || isFreeTrialClass || isAdultClass || isAdultCampOrClinic || isKnownAdultProgram;
+  }
+
+  function formatBeachLionsTitle(title, lowerTitle) {
+    if (!lowerTitle.includes("beach lions")) return title;
+    const colorMatch = title.match(/\((teal|yellow)\)/i) || title.match(/\b(teal|yellow)\b/i);
+    if (!colorMatch) return "Beach Lions Youth Club Practice";
+    const color = colorMatch[1].charAt(0).toUpperCase() + colorMatch[1].slice(1).toLowerCase();
+    return `Beach Lions Youth Club Practice (${color})`;
+  }
+
+  function formatYouthClassTitle(title, lowerTitle) {
+    if (lowerTitle.includes("beach lions")) return title;
+    if (/\bcubs\b/.test(lowerTitle)) {
+      return "Cubs (6 - 9 y/o) Youth Class";
+    }
+    if (/\bseals?\b/.test(lowerTitle)) {
+      const bracket = /(13\s*\+|13\+|\(13\+\)|13\+\s*y\/o)/.test(lowerTitle)
+        ? "13+"
+        : "10 - 12 y/o";
+      return `Seals (${bracket}) Youth Class`;
+    }
+    return title;
+  }
+
   function normalizeEvent(raw) {
     let title = String(raw.title || raw.name || "Untitled Event");
     title = title.replace(
@@ -371,6 +434,10 @@
     let forceClickable = false;
 
     const lowerTitle = title.toLowerCase();
+    const adultProgram = isAdultProgramTitle(lowerTitle);
+    title = formatAdultProgramTitle(title, lowerTitle);
+    title = formatBeachLionsTitle(title, lowerTitle);
+    title = formatYouthClassTitle(title, lowerTitle);
 
     const is2sEvent = /\b2s\b/.test(lowerTitle);
     const isMatchPlay = /match[\s-]*play/.test(lowerTitle);
@@ -381,17 +448,6 @@
       const level = isAdvanced ? "Advanced" : "Intermediate";
       const format = isMatchPlay ? "Match Play" : "King of the Court";
       title = `${level} 2s - ${format}`;
-    }
-
-    if (/free[\s-]*trial[\s-]*class/.test(lowerTitle)) {
-      title = "Free Trial Class";
-    }
-
-    if (lowerTitle.includes("beach lions")) {
-      title = title
-        .replace(/\s*[-–—]?\s*\b(winter|spring|summer|fall)\b\s*[-–—]?\s*/gi, " ")
-        .replace(/\s{2,}/g, " ")
-        .trim();
     }
 
     const categoryLower = String(category || "").toLowerCase();
@@ -410,7 +466,6 @@
     }
 
     if (lowerTitle.includes("junior classes")) {
-      title = title.replace(/\bCubs\b(?!\s*\(6-9 y\/o\))/i, "Cubs (6-9 y/o)");
       if (lowerTitle.includes("cubs") || lowerTitle.includes("seals")) {
         bookingUrl = "https://qbksports.com/youth";
       } else if (lowerTitle.includes("beach lions")) {
@@ -475,6 +530,7 @@
       end,
       bookingUrl,
       clickable,
+      adultProgram,
       capacityText: getCapacityText(raw),
     };
   }
