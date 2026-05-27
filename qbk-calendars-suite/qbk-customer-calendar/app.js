@@ -14,6 +14,7 @@
   const TRACK_CLICK_URL = "/api/track-click";
   const RENT_URL = "https://www.catchcorner.com/qbksports";
   const CLIENT_EVENTS_CACHE_MS = 120000;
+  const EMBED_HEIGHT_PADDING = 14;
   const MOBILE_LAYOUT_QUERY = "(max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse)";
   const SLOT_MINUTES = 30;
   const DEFAULT_SLOT_HEIGHT = 28;
@@ -132,6 +133,25 @@
     });
   }
 
+  function reportEmbedHeight() {
+    if (!embedMode) return;
+    window.requestAnimationFrame(() => {
+      const layout = document.querySelector(".layout");
+      if (!layout) return;
+      const rect = layout.getBoundingClientRect();
+      const height = Math.ceil(rect.bottom + window.scrollY + EMBED_HEIGHT_PADDING);
+      document.documentElement.style.setProperty("--embed-content-height", `${height}px`);
+      document.body.style.minHeight = `${height}px`;
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: "qbk-daily-calendar-height",
+          calendar: "daily",
+          height,
+        }, "*");
+      }
+    });
+  }
+
   function applyEventFilters() {
     const items = document.querySelectorAll("[data-filter-category]");
     items.forEach((node) => {
@@ -139,6 +159,7 @@
       const visible = !!filterState[key];
       node.style.display = visible ? "" : "none";
     });
+    reportEmbedHeight();
   }
 
   function updateFilterChipState() {
@@ -236,6 +257,7 @@
       || titleText.includes("beach lions");
     const isAdultDropIn = !isTeenDropIn
       && !isTeenGlowParty
+      && !isYouthClass
       && !event.adultProgram
       && (is4sGlowParty || categoryText.includes("drop-in") || categoryText.includes("drop in"));
     const isPrivateEventOrRental = titleText.includes("private event")
@@ -285,6 +307,32 @@
     if (String(event.title || "").toLowerCase().includes("free trial class")) return false;
     return classification.filterCategory === "adultClasses"
       || classification.filterCategory === "adultDropIns";
+  }
+
+  function appendEventMeta(card, event, classification, classPrefix) {
+    const showCapacity = shouldShowCapacity(classification, event);
+    const hideCoach = classification.filterCategory === "youthClasses"
+      || String(event.title || "").toLowerCase().includes("free trial class");
+    const coachText = hideCoach
+      ? ""
+      : event.coachText;
+    if (!coachText && !showCapacity) return;
+
+    const meta = document.createElement("div");
+    meta.className = `${classPrefix}-bottom`;
+    if (coachText) {
+      const coach = document.createElement("span");
+      coach.className = `${classPrefix}-coach`;
+      coach.textContent = coachText;
+      meta.appendChild(coach);
+    }
+    if (showCapacity) {
+      const capacity = document.createElement("span");
+      capacity.className = `${classPrefix}-capacity`;
+      capacity.textContent = event.capacityText;
+      meta.appendChild(capacity);
+    }
+    card.appendChild(meta);
   }
 
   function updateMobileCourtTabs() {
@@ -345,6 +393,60 @@
       return `${formatClockTime(start, compact, false)} - ${formatClockTime(end, compact, true)}`;
     }
     return `${formatClockTime(start, compact)} - ${formatClockTime(end, compact)}`;
+  }
+
+  function getCompactDropInTitleLines(title) {
+    const match = String(title || "").trim().match(/^(advanced|intermediate)\s+2s\s*-\s*(match play|king of the court)$/i);
+    if (!match) return null;
+    const level = match[1].toLowerCase() === "advanced" ? "Adv." : "Int.";
+    const format = match[2]
+      .toLowerCase()
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    return [`${level} 2s`, format];
+  }
+
+  function getCompactYouthTitleLines(title) {
+    const match = String(title || "").trim().match(/^(Cubs|Seals)\s+\(([^)]+)\)\s+Youth Class$/i);
+    if (!match) return null;
+    const group = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+    return [`${group} (${match[2]})`, "Youth Class"];
+  }
+
+  function getCompactBeachLionsTitleLines(title) {
+    const match = String(title || "").trim().match(/^Beach Lions\s+Youth Club Practice\s+(\((?:Yellow|Teal)\))$/i);
+    if (!match) return null;
+    return ["Beach Lions", "Youth Club Practice", match[1]];
+  }
+
+  function setEventTitleText(node, event, options = {}) {
+    const lines = (options.compactDropIn ? getCompactDropInTitleLines(event.title) : null)
+      || (options.compactYouthClass ? getCompactYouthTitleLines(event.title) : null)
+      || (options.compactYouthClass ? getCompactBeachLionsTitleLines(event.title) : null);
+    node.textContent = "";
+    if (!lines) {
+      node.textContent = event.title;
+      return;
+    }
+    node.classList.add(
+      options.compactYouthClass && getCompactBeachLionsTitleLines(event.title)
+        ? "event-title-compact-beach-lions"
+        : options.compactYouthClass && getCompactYouthTitleLines(event.title)
+        ? "event-title-compact-youth"
+        : "event-title-compact-dropin",
+    );
+    node.setAttribute("aria-label", event.title);
+    lines.forEach((lineText, idx) => {
+      const line = document.createElement("span");
+      line.className = "event-title-line";
+      if (idx === 0 && options.compactYouthClass) {
+        line.classList.add("event-title-line-nowrap");
+      }
+      if (idx > 0 && options.compactYouthClass && getCompactBeachLionsTitleLines(event.title)) {
+        line.classList.add("event-title-line-detail");
+      }
+      line.textContent = lineText;
+      node.appendChild(line);
+    });
   }
 
   function toIntOrNull(value) {
@@ -531,6 +633,7 @@
       bookingUrl,
       clickable,
       adultProgram,
+      coachText: String(raw.coach_text || raw.coachText || "").trim(),
       capacityText: getCapacityText(raw),
     };
   }
@@ -845,7 +948,7 @@
 
       const title = document.createElement("span");
       title.className = "mobile-item-title";
-      title.textContent = event.title;
+      setEventTitleText(title, event, { compactDropIn: true, compactYouthClass: true });
       card.appendChild(title);
       if (!closedPrivateEvent) {
         const time = document.createElement("span");
@@ -853,12 +956,7 @@
         time.textContent = formatTimeRange(event.start, event.end, { compact: true });
         card.appendChild(time);
       }
-      if (shouldShowCapacity(classification, event)) {
-        const capacity = document.createElement("span");
-        capacity.className = "mobile-item-capacity";
-        capacity.textContent = event.capacityText;
-        card.appendChild(capacity);
-      }
+      appendEventMeta(card, event, classification, "mobile-item");
       els.mobileEventsList.appendChild(card);
     }
 
@@ -871,6 +969,7 @@
     }
 
     applyEventFilters();
+    reportEmbedHeight();
   }
 
   function renderDayView(events, selectedDate) {
@@ -1016,7 +1115,7 @@
 
       const title = document.createElement("span");
       title.className = "day-event-title";
-      title.textContent = event.title;
+      setEventTitleText(title, event, { compactDropIn: useCompactTimes, compactYouthClass: useCompactTimes });
 
       card.appendChild(title);
       if (!closedPrivateEvent) {
@@ -1025,12 +1124,7 @@
         time.textContent = formatTimeRange(event.start, event.end, { compact: useCompactTimes });
         card.appendChild(time);
       }
-      if (shouldShowCapacity(classification, event)) {
-        const capacity = document.createElement("span");
-        capacity.className = "day-event-capacity";
-        capacity.textContent = event.capacityText;
-        card.appendChild(capacity);
-      }
+      appendEventMeta(card, event, classification, "day-event");
       els.eventsOverlay.appendChild(card);
     }
 
@@ -1098,6 +1192,7 @@
     }
 
     applyEventFilters();
+    reportEmbedHeight();
   }
 
   function fetchEventsFrom(url) {
@@ -1266,7 +1361,11 @@
       if (lastSelectedDate) {
         renderDayView(lastDayEvents, lastSelectedDate);
       }
+      reportEmbedHeight();
     });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(reportEmbedHeight).catch(() => {});
+    }
     loadAndRender();
   }
 

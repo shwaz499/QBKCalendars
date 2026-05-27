@@ -815,6 +815,30 @@ class DashClient:
                 names.append(coach)
         return self._sort_coaches_by_hierarchy(names)
 
+    def _attach_class_coaches(self, events: list[dict], coach_events: list[dict]) -> list[dict]:
+        if not events or not coach_events:
+            return events
+        with_coaches: list[dict] = []
+        for event in events:
+            output = dict(event)
+            title = str(output.get("title") or "")
+            if (
+                re.search(r"free[\s-]*trial[\s-]*class", title, re.IGNORECASE)
+                or re.search(r"\b(cubs|seals?|beach\s*lions)\b", title, re.IGNORECASE)
+                or re.search(r"junior[\s-]*classes|youth[\s-]*class", title, re.IGNORECASE)
+            ):
+                with_coaches.append(output)
+                continue
+            coaches = self._find_class_coaches(output, coach_events)
+            if coaches:
+                output["coaches"] = coaches
+                first_names = [
+                    name for name in (self._first_name(coach) for coach in coaches) if name
+                ]
+                output["coach_text"] = ", ".join(first_names)
+            with_coaches.append(output)
+        return with_coaches
+
     @staticmethod
     def _first_name(value: str) -> str:
         parts = value.strip().split()
@@ -1348,6 +1372,11 @@ class DashClient:
 
         try:
             events, _ = self._compute_events_for_date(selected_date)
+            try:
+                coach_events = self._load_sling_coach_events()
+                events = self._attach_class_coaches(events, coach_events)
+            except Exception:
+                pass
             now = time.time()
             self._events_by_date_cache[selected_key] = (now, list(events))
             if schedule_prefetch:

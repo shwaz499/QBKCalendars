@@ -190,6 +190,12 @@ body.force-mobile-mode .day-event-time {
   line-height: 1.03;
 }
 
+body.force-mobile-mode .day-event-coach,
+body.force-mobile-mode .day-event-capacity {
+  font-size: 0.48rem;
+  line-height: 1.02;
+}
+
 body.force-mobile-mode .rent-slot {
   font-size: 0.5rem;
   line-height: 1.02;
@@ -594,20 +600,67 @@ h2 {
   word-break: break-word;
 }
 
+.event-title-line {
+  display: block;
+}
+
+.event-title-line-nowrap {
+  white-space: nowrap;
+}
+
+.event-title-compact-dropin {
+  line-height: 1.04;
+}
+
+.event-title-compact-youth {
+  line-height: 1.04;
+}
+
+.event-title-compact-beach-lions {
+  line-height: 1.03;
+}
+
+.event-title-line-detail {
+  font-size: 0.9em;
+}
+
 .mobile-item-time {
   color: #2d6d58;
   font-size: 0.82rem;
   line-height: 1.2;
 }
 
+.mobile-item-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.12rem;
+  min-width: 0;
+  margin-top: 0.02rem;
+}
+
+.mobile-item-coach {
+  color: #0a5138;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.08;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  min-width: 0;
+}
+
 .mobile-item-capacity {
-  margin-top: auto;
-  align-self: flex-end;
-  text-align: right;
+  align-self: flex-start;
+  text-align: left;
   color: #2d6d58;
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 1.1;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .mobile-rent-slot {
@@ -642,6 +695,10 @@ h2 {
   color: #4a5f77;
 }
 
+.mobile-item.day-event-static .mobile-item-coach {
+  color: #4a5f77;
+}
+
 .mobile-item.day-event-static .mobile-item-capacity {
   color: #4a5f77;
 }
@@ -671,6 +728,10 @@ h2 {
   color: #7a670d;
 }
 
+.mobile-item.day-event-league .mobile-item-coach {
+  color: #7a670d;
+}
+
 .mobile-item.day-event-league .mobile-item-capacity {
   color: #7a670d;
 }
@@ -685,6 +746,10 @@ h2 {
 }
 
 .mobile-item.day-event-dropin .mobile-item-time {
+  color: #63458e;
+}
+
+.mobile-item.day-event-dropin .mobile-item-coach {
   color: #63458e;
 }
 
@@ -705,6 +770,10 @@ h2 {
   color: #a12e2e;
 }
 
+.mobile-item.day-event-teen .mobile-item-coach {
+  color: #a12e2e;
+}
+
 .mobile-item.day-event-teen .mobile-item-capacity {
   color: #a12e2e;
 }
@@ -719,6 +788,10 @@ h2 {
 }
 
 .mobile-item.day-event-junior .mobile-item-time {
+  color: #87551a;
+}
+
+.mobile-item.day-event-junior .mobile-item-coach {
   color: #87551a;
 }
 
@@ -856,33 +929,60 @@ h2 {
 
 .day-event-title {
   color: #084733;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  line-height: 1.08;
-  text-wrap: balance;
-  overflow-wrap: anywhere;
+  line-height: 1.12;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  overflow-wrap: normal;
   word-break: keep-all;
   hyphens: none;
 }
 
 .day-event-time {
   color: #2d6d58;
-  font-size: 0.72rem;
-  line-height: 1.08;
+  font-size: 0.76rem;
+  line-height: 1.1;
   white-space: nowrap;
   overflow-wrap: normal;
   word-break: keep-all;
   hyphens: none;
 }
 
-.day-event-capacity {
+.day-event-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.32rem;
+  min-width: 0;
   margin-top: auto;
-  align-self: flex-end;
-  text-align: right;
+}
+
+.day-event-coach {
+  display: block;
+  color: #084733;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
+  min-width: 0;
+}
+
+.day-event-capacity {
+  display: block;
+  text-align: left;
   color: #2d6d58;
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   font-weight: 700;
   line-height: 1.05;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .day-event:hover {
@@ -993,6 +1093,10 @@ h2 {
   color: #4a5f77;
 }
 
+.day-event-static .day-event-coach {
+  color: #4a5f77;
+}
+
 .day-event-static .day-event-capacity {
   color: #4a5f77;
 }
@@ -1007,6 +1111,10 @@ h2 {
 }
 
 .day-event-league .day-event-time {
+  color: #7a670d;
+}
+
+.day-event-league .day-event-coach {
   color: #7a670d;
 }
 
@@ -1027,6 +1135,10 @@ h2 {
   color: #63458e;
 }
 
+.day-event-dropin .day-event-coach {
+  color: #63458e;
+}
+
 .day-event-dropin .day-event-capacity {
   color: #63458e;
 }
@@ -1044,6 +1156,10 @@ h2 {
   color: #a12e2e;
 }
 
+.day-event-teen .day-event-coach {
+  color: #a12e2e;
+}
+
 .day-event-teen .day-event-capacity {
   color: #a12e2e;
 }
@@ -1058,6 +1174,10 @@ h2 {
 }
 
 .day-event-junior .day-event-time {
+  color: #87551a;
+}
+
+.day-event-junior .day-event-coach {
   color: #87551a;
 }
 
@@ -1182,9 +1302,52 @@ h2 {
     line-height: 1.12;
   }
 
+  .day-event-title.event-title-compact-dropin {
+    font-size: 0.62rem;
+    line-height: 1.04;
+  }
+
+  .day-event-title.event-title-compact-youth {
+    font-size: 0.5rem;
+    line-height: 1.04;
+  }
+
+  .day-event-title.event-title-compact-beach-lions {
+    font-size: 0.52rem;
+    line-height: 1.03;
+  }
+
+  .day-event-title.event-title-compact-beach-lions .event-title-line-detail {
+    font-size: 0.86em;
+    line-height: 1.02;
+  }
+
   .day-event-time {
     font-size: 0.58rem;
     line-height: 1.12;
+  }
+
+  .day-event-bottom {
+    display: block;
+    margin-top: auto;
+  }
+
+  .day-event-coach {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    font-size: 0.56rem;
+    line-height: 1.08;
+  }
+
+  .day-event-capacity {
+    display: block;
+    margin-top: 0.06rem;
+    font-size: 0.54rem;
+    line-height: 1.05;
+    text-align: left;
   }
 
   .rent-slot {
