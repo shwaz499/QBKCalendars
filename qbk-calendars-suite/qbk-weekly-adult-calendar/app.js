@@ -10,6 +10,7 @@
   }
 
   const LIVE_FEED_BASE = "/api/events";
+  const WEEK_FEED_BASE = "/api/events-week";
   const MOBILE_LAYOUT_QUERY = "(max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse)";
   const SLOT_MINUTES = 30;
   const SLOT_HEIGHT = 28;
@@ -420,6 +421,7 @@
       dayIndex,
       filterCategories: Array.from(filterCategories),
       capacityText: isFreeTrialClass ? "" : getCapacityText(raw),
+      coachText: isFreeTrialClass ? "" : String(raw.coach_text || raw.coachText || "").trim(),
     };
   }
 
@@ -464,6 +466,9 @@
       existing.filterCategories = Array.from(mergedCategories);
       if (!existing.capacityText && event.capacityText) {
         existing.capacityText = event.capacityText;
+      }
+      if (!existing.coachText && event.coachText) {
+        existing.coachText = event.coachText;
       }
     }
 
@@ -520,8 +525,14 @@
   function fitCardText(card) {
     const title = card.querySelector(".week-event-title");
     const time = card.querySelector(".week-event-time");
+    const coach = card.querySelector(".week-event-coach");
     const capacity = card.querySelector(".week-event-capacity");
     if (!title || !time) return;
+
+    card.classList.remove("week-event-stack-coaches");
+    if (coach && coach.textContent.includes(",") && card.clientWidth < 118) {
+      card.classList.add("week-event-stack-coaches");
+    }
 
     const cardTiers = ["", "week-event-fit-sm", "week-event-fit-xs", "week-event-fit-xxs", "week-event-fit-micro"];
     const titleTiers = ["", "week-event-title-fit-sm", "week-event-title-fit-xs", "week-event-title-fit-xxs", "week-event-title-fit-micro"];
@@ -548,15 +559,21 @@
       applyClassAt(card, cardTiers, cardIdx);
       applyClassAt(title, titleTiers, titleIdx);
       applyClassAt(time, timeTiers, timeIdx);
+      if (coach) {
+        applyClassAt(coach, timeTiers, timeIdx);
+      }
       if (capacity) {
         applyClassAt(capacity, timeTiers, timeIdx);
       }
 
       const titleOverflow = isWidthOverflowing(title);
       const timeOverflow = isWidthOverflowing(time);
+      const coachOverflow = coach && !card.classList.contains("week-event-stack-coaches")
+        ? isWidthOverflowing(coach)
+        : false;
       const capacityOverflow = capacity ? isWidthOverflowing(capacity) : false;
       const cardOverflow = isHeightOverflowing(card);
-      if (!titleOverflow && !timeOverflow && !capacityOverflow && !cardOverflow) break;
+      if (!titleOverflow && !timeOverflow && !coachOverflow && !capacityOverflow && !cardOverflow) break;
 
       let changed = false;
       if (titleOverflow && titleIdx < titleTiers.length - 1) {
@@ -564,6 +581,10 @@
         changed = true;
       }
       if (timeOverflow && timeIdx < timeTiers.length - 1) {
+        timeIdx += 1;
+        changed = true;
+      }
+      if (coachOverflow && timeIdx < timeTiers.length - 1) {
         timeIdx += 1;
         changed = true;
       }
@@ -575,15 +596,12 @@
         cardIdx += 1;
         changed = true;
       }
-      if (!changed) {
-        if (titleIdx < titleTiers.length - 1) {
-          titleIdx += 1;
-          changed = true;
-        } else if (timeIdx < timeTiers.length - 1) {
+      if (!changed && cardOverflow) {
+        if (timeIdx < timeTiers.length - 1) {
           timeIdx += 1;
           changed = true;
-        } else if (cardIdx < cardTiers.length - 1) {
-          cardIdx += 1;
+        } else if (titleIdx < titleTiers.length - 1) {
+          titleIdx += 1;
           changed = true;
         }
       }
@@ -679,11 +697,22 @@
 
           card.appendChild(title);
           card.appendChild(time);
-          if (event.capacityText) {
-            const capacity = document.createElement("span");
-            capacity.className = "mobile-week-event-capacity";
-            capacity.textContent = event.capacityText;
-            card.appendChild(capacity);
+          if (event.coachText || event.capacityText) {
+            const meta = document.createElement("div");
+            meta.className = "mobile-week-event-bottom";
+            if (event.coachText) {
+              const coach = document.createElement("span");
+              coach.className = "mobile-week-event-coach";
+              coach.textContent = event.coachText;
+              meta.appendChild(coach);
+            }
+            if (event.capacityText) {
+              const capacity = document.createElement("span");
+              capacity.className = "mobile-week-event-capacity";
+              capacity.textContent = event.capacityText;
+              meta.appendChild(capacity);
+            }
+            card.appendChild(meta);
           }
           dayList.appendChild(card);
         }
@@ -749,11 +778,22 @@
 
       card.appendChild(title);
       card.appendChild(time);
-      if (event.capacityText) {
-        const capacity = document.createElement("span");
-        capacity.className = "week-event-capacity";
-        capacity.textContent = event.capacityText;
-        card.appendChild(capacity);
+      if (event.coachText || event.capacityText) {
+        const meta = document.createElement("div");
+        meta.className = "week-event-bottom";
+        if (event.coachText) {
+          const coach = document.createElement("span");
+          coach.className = "week-event-coach";
+          coach.textContent = event.coachText;
+          meta.appendChild(coach);
+        }
+        if (event.capacityText) {
+          const capacity = document.createElement("span");
+          capacity.className = "week-event-capacity";
+          capacity.textContent = event.capacityText;
+          meta.appendChild(capacity);
+        }
+        card.appendChild(meta);
       }
       els.eventsOverlay.appendChild(card);
       fitCardText(card);
@@ -789,33 +829,19 @@
   }
 
   function fetchWeekEvents(mondayISO) {
-    const monday = new Date(`${mondayISO}T00:00:00`);
-    const days = Array.from({ length: 7 }, (_, idx) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + idx);
-      return { idx, iso: toISODate(d) };
-    });
-
-    return Promise.allSettled(days.map((day) => {
-      return fetchDayEvents(day.iso).then((rows) => {
-        return rows.map((row) => ({
-          ...row,
-          week_day_index: day.idx,
-        }));
-      });
-    })).then((results) => {
-      const weeklyRows = [];
-      results.forEach((result, idx) => {
-        if (result.status === "fulfilled") {
-          weeklyRows.push(result.value);
-          return;
-        }
-        console.error(`Weekly feed request failed for ${days[idx].iso}`, result.reason);
-      });
-      return {
-      week_start: mondayISO,
-      events: weeklyRows.flat(),
-      };
+    const url = `${WEEK_FEED_BASE}?date=${encodeURIComponent(mondayISO)}`;
+    return fetch(url, { cache: "no-store" }).then((response) => {
+      if (!response.ok) {
+        return response.text().then((body) => {
+          throw new Error(`Weekly feed request failed (${response.status}): ${body.slice(0, 120)}`);
+        });
+      }
+      return response.json();
+    }).then((payload) => {
+      if (!payload || !Array.isArray(payload.events)) {
+        throw new Error("Weekly feed response must include an events array.");
+      }
+      return payload;
     });
   }
 

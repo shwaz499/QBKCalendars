@@ -54,12 +54,17 @@ APP_ROUTE_DIRS = {
 BOOKING_ROOT = "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports"
 BEACH_LIONS_TRYOUT_URL = "https://www.eventbrite.com/e/qbk-sports-beach-volleyball-youth-club-spring-tryouts-tickets-1983086995587?aff=oddtdtcreator"
 PRIVATE_EVENT_CLOSED_DATES = {"2026-05-30", "2026-05-31"}
+SLING_CALENDAR_URL = os.getenv(
+    "QBK_SLING_CALENDAR_URL",
+    "https://calendar.getsling.com/874141/884d00d05b4e56e711926848e172d42c75f4a9d4e4f8478aba9e4af6/Sling_Calendar_all.ics",
+)
 API_BASE = os.getenv("DASH_API_BASE", "https://api.dashplatform.com").rstrip("/")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 EVENTS_PAGE_SIZE = 1000
 LOOKUP_PAGE_SIZE = 500
 EVENTS_MAX_PAGES = int(os.getenv("QBK_EVENTS_MAX_PAGES", "40"))
 LOOKUP_CACHE_TTL = int(os.getenv("QBK_LOOKUP_CACHE_TTL", "21600"))
+SLING_CACHE_TTL = int(os.getenv("QBK_SLING_CACHE_TTL", "300"))
 API_JSON_CACHE_CONTROL = os.getenv(
     "QBK_API_CACHE_CONTROL",
     "public, max-age=30, stale-while-revalidate=120",
@@ -74,6 +79,19 @@ ADULT_CLINIC_TERMS = (
     "serve receive",
     "shots shop",
 )
+COACH_HIERARCHY = (
+    "connor",
+    "mike",
+    "antonio",
+    "walker",
+    "himesh",
+    "erik",
+    "rakib",
+    "juan",
+    "tylar",
+    "isabella",
+)
+COACH_HIERARCHY_INDEX = {name: idx for idx, name in enumerate(COACH_HIERARCHY)}
 LOCAL_TZ = ZoneInfo(os.getenv("QBK_LOCAL_TIMEZONE", "America/New_York"))
 TEEN_UPCOMING_CACHE_CONTROL = os.getenv(
     "QBK_TEEN_UPCOMING_CACHE_CONTROL",
@@ -512,6 +530,8 @@ class DashClient:
         self._team_name_cache: dict[str, str] = {}
         self._events_cache_ttl = int(os.getenv("QBK_EVENTS_CACHE_TTL", "120"))
         self._events_by_date_cache: dict[str, tuple[float, list[dict]]] = {}
+        self._sling_coach_cache: tuple[float, list[dict]] = (0.0, [])
+        self._sling_coach_lock = threading.Lock()
         self._page_hint_ttl = int(os.getenv("QBK_PAGE_HINT_TTL", "3600"))
         self._page_hint_by_date: dict[str, tuple[float, int]] = {}
         self._events_inflight: dict[str, threading.Event] = {}
@@ -665,6 +685,153 @@ class DashClient:
         except Exception:
             # Best-effort warmup only.
             return
+
+    @staticmethod
+    def _unfold_ics(text: str) -> str:
+        return re.sub(r"\r?\n[ \t]", "", text)
+
+    @staticmethod
+    def _unescape_ics(value: str) -> str:
+        return (
+            value.replace("\\n", "\n")
+            .replace("\\N", "\n")
+            .replace("\\,", ",")
+            .replace("\\;", ";")
+            .replace("\\\\", "\\")
+            .strip()
+        )
+
+    @classmethod
+    def _ics_prop(cls, event: str, name: str) -> str:
+        match = re.search(rf"^{re.escape(name)}(?:;[^:]*)?:(.*)$", event, re.MULTILINE)
+        return cls._unescape_ics(match.group(1)) if match else ""
+
+    @staticmethod
+    def _parse_ics_dt(value: str) -> datetime | None:
+        value = value.strip()
+        try:
+            if value.endswith("Z"):
+                raw = datetime.strptime(value, "%Y%m%dT%H%M%SZ").replace(tzinfo=ZoneInfo("UTC"))
+            elif "T" in value:
+                raw = datetime.strptime(value, "%Y%m%dT%H%M%S").replace(tzinfo=LOCAL_TZ)
+            else:
+                raw = datetime.combine(datetime.strptime(value, "%Y%m%d").date(), dtime.min, tzinfo=LOCAL_TZ)
+            return raw.astimezone(LOCAL_TZ)
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _normalize_class_match_text(value: str) -> str:
+        text = value.lower()
+        text = text.replace("&", " and ")
+        text = re.sub(r"\badult\b", " ", text)
+        text = re.sub(r"\bclass(?:es)?\b", " ", text)
+        text = re.sub(r"\bcamp(?:s)?\b", " ", text)
+        text = re.sub(r"\bat\s+qbk\s+queens\b", " ", text)
+        text = re.sub(r"\b(winter|spring|summer|fall)\b", " ", text)
+        roman_map = {
+            "iv": "4",
+            "iii": "3",
+            "ii": "2",
+            "i": "1",
+        }
+        for roman, digit in roman_map.items():
+            text = re.sub(rf"\b{roman}\b", digit, text)
+        text = re.sub(r"\s*-\s*", "-", text)
+        text = re.sub(r"[^a-z0-9+]+", " ", text)
+        return re.sub(r"\s+", " ", text).strip()
+
+    @classmethod
+    def _class_note_matches_title(cls, notes: str, title: str) -> bool:
+        notes_key = cls._normalize_class_match_text(notes)
+        title_key = cls._normalize_class_match_text(title)
+        if not notes_key or not title_key or notes_key == "none":
+            return False
+        if notes_key == "intro":
+            return bool(re.search(r"\bintro\b", title_key))
+        return notes_key in title_key or title_key in notes_key
+
+    def _load_sling_coach_events(self) -> list[dict]:
+        now = time.time()
+        with self._sling_coach_lock:
+            ts, cached = self._sling_coach_cache
+            if cached and now - ts < SLING_CACHE_TTL:
+                return list(cached)
+
+            response = httpx.get(SLING_CALENDAR_URL, timeout=25.0, follow_redirects=True)
+            response.raise_for_status()
+            text = self._unfold_ics(response.text)
+            raw_events = re.findall(r"BEGIN:VEVENT(.*?)END:VEVENT", text, re.DOTALL)
+            events: list[dict] = []
+            for raw in raw_events:
+                summary = self._ics_prop(raw, "SUMMARY")
+                if " - Coach - QBK Sports" not in summary:
+                    continue
+                start = self._parse_ics_dt(self._ics_prop(raw, "DTSTART"))
+                end = self._parse_ics_dt(self._ics_prop(raw, "DTEND"))
+                if not start or not end:
+                    continue
+                events.append(
+                    {
+                        "coach": summary.split(" - Coach - QBK Sports", 1)[0].strip(),
+                        "notes": self._ics_prop(raw, "DESCRIPTION") or "None",
+                        "start": start,
+                        "end": end,
+                    }
+                )
+
+            events.sort(key=lambda item: (item["start"], item["coach"]))
+            self._sling_coach_cache = (now, list(events))
+            return events
+
+    def _find_class_coaches(self, event: dict, coach_events: list[dict]) -> list[str]:
+        title = str(event.get("title") or "")
+        start = parse_iso8601(str(event.get("start_time") or ""))
+        end = parse_iso8601(str(event.get("end_time") or ""))
+        if not title or not start or not end:
+            return []
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=LOCAL_TZ)
+        else:
+            start = start.astimezone(LOCAL_TZ)
+        if end.tzinfo is None:
+            end = end.replace(tzinfo=LOCAL_TZ)
+        else:
+            end = end.astimezone(LOCAL_TZ)
+
+        names: list[str] = []
+        seen: set[str] = set()
+        for coach_event in coach_events:
+            if coach_event["start"].date() != start.date():
+                continue
+            overlaps = coach_event["start"] <= end + timedelta(minutes=15) and coach_event["end"] >= start - timedelta(minutes=15)
+            if not overlaps:
+                continue
+            if not self._class_note_matches_title(str(coach_event.get("notes") or ""), title):
+                continue
+            coach = str(coach_event.get("coach") or "").strip()
+            if coach and coach not in seen:
+                seen.add(coach)
+                names.append(coach)
+        return self._sort_coaches_by_hierarchy(names)
+
+    @staticmethod
+    def _first_name(value: str) -> str:
+        parts = value.strip().split()
+        return parts[0] if parts else ""
+
+    def _coach_hierarchy_index(self, value: str) -> int:
+        first_name = self._first_name(value).lower()
+        return COACH_HIERARCHY_INDEX.get(first_name, len(COACH_HIERARCHY_INDEX))
+
+    def _sort_coaches_by_hierarchy(self, coaches: list[str]) -> list[str]:
+        return [
+            coach
+            for _, coach in sorted(
+                enumerate(coaches),
+                key=lambda item: (self._coach_hierarchy_index(item[1]), item[0]),
+            )
+        ]
 
     def _cached_lookup(self, key: str) -> dict[str, str]:
         now = time.time()
@@ -1195,6 +1362,10 @@ class DashClient:
     def get_adult_class_events_for_week(self, selected_date: date) -> dict:
         week_start = selected_date - timedelta(days=selected_date.weekday())
         week_days = [week_start + timedelta(days=i) for i in range(7)]
+        try:
+            coach_events = self._load_sling_coach_events()
+        except Exception:
+            coach_events = []
 
         with ThreadPoolExecutor(max_workers=7) as pool:
             futures = {
@@ -1211,6 +1382,7 @@ class DashClient:
             for event in day_events.get(day, []):
                 title = str(event.get("title") or "").lower()
                 has_adult = "adult" in title
+                is_sunday_skills = bool(re.search(r"sunday[\s-]*skills", title))
                 is_free_trial_class = bool(re.search(r"free[\s-]*trial[\s-]*class", title))
                 is_adult_class = has_adult and "class" in title
                 is_adult_camp_or_clinic = has_adult and ("camp" in title or "clinic" in title)
@@ -1218,7 +1390,8 @@ class DashClient:
                     token in title for token in ADULT_CLINIC_TERMS
                 )
                 include = (
-                    is_free_trial_class
+                    is_sunday_skills
+                    or is_free_trial_class
                     or is_adult_class
                     or is_adult_camp_or_clinic
                     or is_known_adult_program
@@ -1231,6 +1404,14 @@ class DashClient:
 
                 output = dict(event)
                 output["week_day_index"] = idx
+                if not is_free_trial_class:
+                    coaches = self._find_class_coaches(output, coach_events)
+                    if coaches:
+                        output["coaches"] = coaches
+                        first_names = [
+                            name for name in (self._first_name(coach) for coach in coaches) if name
+                        ]
+                        output["coach_text"] = ", ".join(first_names)
                 events.append(output)
 
         events.sort(key=lambda e: e.get("start_time", ""))

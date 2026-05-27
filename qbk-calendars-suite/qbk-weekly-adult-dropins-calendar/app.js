@@ -19,6 +19,7 @@
   let SLOT_MINUTES = 30;
   let SLOT_HEIGHT = 28;
   let SLOT_COUNT = 38; // 6:00 AM -> 1:00 AM
+  let SLOT_HEIGHTS = Array.from({ length: SLOT_COUNT }, () => SLOT_HEIGHT);
   let DAY_END_MIN = DAY_START_MIN + (SLOT_COUNT * SLOT_MINUTES);
 
   const DAYS = [
@@ -114,15 +115,37 @@
 
   function applyTimeScaleMode() {
     const nextHourlyCompactMode = forceHourlyMode || (!forceHalfHourMode && !isMobileLayout());
-    if (hourlyCompactMode === nextHourlyCompactMode) {
-      return false;
-    }
+    const changed = hourlyCompactMode !== nextHourlyCompactMode;
     hourlyCompactMode = nextHourlyCompactMode;
     SLOT_MINUTES = hourlyCompactMode ? 60 : 30;
     SLOT_HEIGHT = hourlyCompactMode ? 22 : 28;
     SLOT_COUNT = hourlyCompactMode ? 19 : 38;
+    SLOT_HEIGHTS = Array.from({ length: SLOT_COUNT }, (_, index) => getSlotHeight(index));
     DAY_END_MIN = DAY_START_MIN + (SLOT_COUNT * SLOT_MINUTES);
-    return true;
+    return changed;
+  }
+
+  function getSlotHeight(index) {
+    const slotStartMin = DAY_START_MIN + (index * SLOT_MINUTES);
+    const isMorning = slotStartMin < (10 * 60);
+    const isEvening = slotStartMin >= (18 * 60);
+    return hourlyCompactMode && (isMorning || isEvening) ? SLOT_HEIGHT * 2 : SLOT_HEIGHT;
+  }
+
+  function getTrackHeight() {
+    return SLOT_HEIGHTS.reduce((sum, height) => sum + height, 0);
+  }
+
+  function getMinuteY(minute) {
+    const clamped = Math.max(DAY_START_MIN, Math.min(DAY_END_MIN, minute));
+    const offset = clamped - DAY_START_MIN;
+    const slotIndex = Math.min(SLOT_COUNT - 1, Math.max(0, Math.floor(offset / SLOT_MINUTES)));
+    const slotProgress = (offset - (slotIndex * SLOT_MINUTES)) / SLOT_MINUTES;
+    let y = 0;
+    for (let i = 0; i < slotIndex; i += 1) {
+      y += SLOT_HEIGHTS[i] || SLOT_HEIGHT;
+    }
+    return y + (slotProgress * (SLOT_HEIGHTS[slotIndex] || SLOT_HEIGHT));
   }
 
   function syncMobileFilterDropdown() {
@@ -247,6 +270,40 @@
     return `${registered}/${capacity} filled`;
   }
 
+  function getDisplayTitleParts(title) {
+    const shortened = String(title || "")
+      .replace(/\bAdvanced\b/g, "Adv.")
+      .replace(/\bIntermediate\b/g, "Int.");
+    const match = shortened.match(/^(Adv\.|Int\.)\s+(2s)\s+-\s+(Match Play|King of the Court)$/);
+    if (!match) {
+      return {
+        level: "",
+        type: shortened,
+      };
+    }
+    return {
+      level: `${match[1]} ${match[2]}`,
+      type: match[3],
+    };
+  }
+
+  function setTitleContent(titleEl, eventTitle) {
+    const parts = getDisplayTitleParts(eventTitle);
+    titleEl.textContent = "";
+    if (!parts.level) {
+      titleEl.textContent = parts.type;
+      return;
+    }
+    const level = document.createElement("span");
+    level.className = "week-event-title-level";
+    level.textContent = parts.level;
+    const type = document.createElement("span");
+    type.className = "week-event-title-type";
+    type.textContent = parts.type;
+    titleEl.appendChild(level);
+    titleEl.appendChild(type);
+  }
+
   function setDayHeaders(weekStartISO) {
     const start = new Date(`${weekStartISO}T00:00:00`);
     for (let i = 0; i < 7; i += 1) {
@@ -262,19 +319,23 @@
   }
 
   function buildGridSkeleton() {
-    const trackHeight = SLOT_COUNT * SLOT_HEIGHT;
+    const trackHeight = getTrackHeight();
+    const slotRows = SLOT_HEIGHTS.map((height) => `${height}px`).join(" ");
     document.documentElement.style.setProperty("--visible-slot-count", String(SLOT_COUNT));
     document.documentElement.style.setProperty("--slot-height", `${SLOT_HEIGHT}px`);
     document.documentElement.style.setProperty("--visible-track-height", `${trackHeight}px`);
+    document.documentElement.style.setProperty("--slot-rows", slotRows);
     const firstHead = els.weekGrid.querySelector(".week-head");
     const headHeight = firstHead ? firstHead.getBoundingClientRect().height : 32;
     els.weekGrid.style.setProperty("--head-height", `${headHeight}px`);
 
     els.timeTrack.innerHTML = "";
     els.timeTrack.style.height = `${trackHeight}px`;
+    els.timeTrack.style.gridTemplateRows = slotRows;
     for (let i = 0; i < 7; i += 1) {
       els.dayTracks[i].innerHTML = "";
       els.dayTracks[i].style.height = `${trackHeight}px`;
+      els.dayTracks[i].style.gridTemplateRows = slotRows;
     }
     els.eventsOverlay.innerHTML = "";
     els.eventsOverlay.style.height = `${trackHeight}px`;
@@ -486,15 +547,12 @@
         cardIdx += 1;
         changed = true;
       }
-      if (!changed) {
-        if (titleIdx < titleTiers.length - 1) {
-          titleIdx += 1;
-          changed = true;
-        } else if (timeIdx < timeTiers.length - 1) {
+      if (!changed && cardOverflow) {
+        if (timeIdx < timeTiers.length - 1) {
           timeIdx += 1;
           changed = true;
-        } else if (cardIdx < cardTiers.length - 1) {
-          cardIdx += 1;
+        } else if (titleIdx < titleTiers.length - 1) {
+          titleIdx += 1;
           changed = true;
         }
       }
@@ -580,7 +638,7 @@
 
           const title = document.createElement("span");
           title.className = "mobile-week-event-title";
-          title.textContent = event.title;
+          setTitleContent(title, event.title);
 
           const time = document.createElement("span");
           time.className = "mobile-week-event-time";
@@ -618,10 +676,8 @@
       const endMin = Math.max(startMin + SLOT_MINUTES, Math.min(DAY_END_MIN, getMinuteOrder(event.end)));
       if (endMin <= DAY_START_MIN || startMin >= DAY_END_MIN) continue;
 
-      const startOffset = (startMin - DAY_START_MIN) / SLOT_MINUTES;
-      const endOffset = (endMin - DAY_START_MIN) / SLOT_MINUTES;
-      const top = (startOffset * SLOT_HEIGHT) + 2;
-      const height = Math.max(22, ((endOffset - startOffset) * SLOT_HEIGHT) - 4);
+      const top = getMinuteY(startMin) + 2;
+      const height = Math.max(22, (getMinuteY(endMin) - getMinuteY(startMin)) - 4);
 
       const lane = event.lane || 0;
       const groupSize = Math.max(1, Number(event.groupSize) || 1);
@@ -647,13 +703,7 @@
 
       const title = document.createElement("span");
       title.className = "week-event-title";
-      let displayTitle = event.title;
-      if (groupSize >= 2) {
-        displayTitle = displayTitle
-          .replace(/\bAdvanced\b/g, "Adv.")
-          .replace(/\bIntermediate\b/g, "Int.");
-      }
-      title.textContent = displayTitle;
+      setTitleContent(title, event.title);
 
       const time = document.createElement("span");
       time.className = "week-event-time";
