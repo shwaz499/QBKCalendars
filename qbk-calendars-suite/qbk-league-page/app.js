@@ -8,22 +8,76 @@
   }
   const LEAGUES = [
     {
+      day: "Monday",
+      format: "4v4",
+      title: "Monday Intermediate Coed 4x4",
+      leagueStarts: "July 13, 2026",
+      teamPrice: "$1,095/team",
+      teamNote: "Unlimited roster. $100 off if signed up by June 21st, 2026.",
+      freeAgentPrice: "$150/player",
+      freeAgentNote: "Placed onto a team. Expect roughly 7 players per team.",
+      startTimes: "6:00 PM and later",
+      season: "6 weeks",
+      schedule: "5 weeks regular play + 1 week playoffs",
+      playoffDate: "August 17, 2026",
+      playoffNote: "Playoff night.",
+      notes: [],
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/379?facility_ids=1&registrantType=manager",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9495"
+    },
+    {
+      day: "Tuesday",
+      format: "6v6",
+      title: "Tuesday All Abilities Coed 6x6",
+      leagueStarts: "July 14, 2026",
+      teamPrice: "$1,195/team",
+      teamNote: "Unlimited roster. $100 off if signed up by June 21st, 2026.",
+      freeAgentPrice: "$120/player",
+      freeAgentNote: "Placed onto a team. Expect roughly 11 players per team.",
+      startTimes: "6:00 PM and later",
+      season: "6 weeks",
+      schedule: "5 weeks regular play + 1 week playoffs",
+      playoffDate: "August 18, 2026",
+      playoffNote: "Playoff night.",
+      notes: [],
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/378?facility_ids=1&registrantType=manager",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9494"
+    },
+    {
+      day: "Wednesday",
+      format: "4v4",
+      title: "Wednesday Intermediate Coed 4x4",
+      leagueStarts: "July 15, 2026",
+      teamPrice: "$1,095/team",
+      teamNote: "Unlimited roster. $100 off if signed up by June 21st, 2026.",
+      freeAgentPrice: "$150/player",
+      freeAgentNote: "Placed onto a team. Expect roughly 7 players per team.",
+      startTimes: "6:00 PM and later",
+      season: "6 weeks",
+      schedule: "5 weeks regular play + 1 week playoffs",
+      playoffDate: "August 19, 2026",
+      playoffNote: "Playoff night.",
+      notes: [],
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/381?facility_ids=1&registrantType=manager",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9497"
+    },
+    {
       day: "Thursday",
-      format: "6x6",
-      title: "Thursday Night All Abilities 6x6 Coed Rec League",
-      leagueStarts: "May 21, 2026",
-      teamPrice: "$1590/team",
-      teamNote: "Unlimited roster. $100 off if signed up by April 19th.",
-      freeAgentPrice: "$160/player",
+      format: "6v6",
+      title: "Thursday All Abilities Coed 6x6",
+      leagueStarts: "July 16, 2026",
+      teamPrice: "$1,195/team",
+      teamNote: "Unlimited roster. $100 off if signed up by June 21st, 2026.",
+      freeAgentPrice: "$120/player",
       freeAgentNote: "Placed onto a team. Expect roughly 10 players per team.",
       startTimes: "6:00 PM and later",
-      season: "8 weeks",
-      schedule: "7 weeks regular play + 1 week playoffs",
-      playoffDate: "July 9, 2026",
-      playoffNote: "Top 6 teams in each division guaranteed playoffs.",
+      season: "6 weeks",
+      schedule: "5 weeks regular play + 1 week playoffs",
+      playoffDate: "August 20, 2026",
+      playoffNote: "Playoff night.",
       notes: [],
-      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/360?facility_ids=1",
-      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9028"
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/activity-finder/programs/1/levels/380?&&registrantType=manager",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9496"
     }
   ];
 
@@ -76,6 +130,10 @@
     const notesHtml = league.notes.length
       ? `<div class="league-note">${league.notes.join("<br />")}</div>`
       : "";
+    const teamNoteHtml = league.teamNote.replace(
+      "$100 off if signed up by June 21st, 2026.",
+      `<span class="discount-highlight">$100 off if signed up by June 21st, 2026.</span>`
+    );
 
     return `
       <article class="league-card">
@@ -85,7 +143,7 @@
         </div>
 
         <ul class="league-facts">
-          <li><strong>${league.teamPrice}</strong> — ${league.teamNote.replace("$100 off if signed up by April 19th.", `<span class="discount-highlight">$100 off if signed up by April 19th.</span>`)}</li>
+          <li><strong>${league.teamPrice}</strong> — ${teamNoteHtml}</li>
           <li><strong>${league.freeAgentPrice}</strong> — ${league.freeAgentNote}</li>
           <li><strong>Start times:</strong> ${league.startTimes}</li>
           <li><strong>Season:</strong> ${league.season}</li>

@@ -6,16 +6,17 @@ html {
 }
 
 :root {
-  --ink: #0b1b30;
-  --muted: #304d6b;
-  --panel-border: rgba(29, 103, 205, 0.22);
-  --line-soft: rgba(13, 79, 61, 0.08);
-  --accent-lime: #3CBC9C;
-  --accent-gold: #F9AF26;
-  --accent-cyan: #1D67CD;
-  --card-base: #f5fffb;
-  --card-base-2: #eef7ff;
-  --card-base-3: #fef6ed;
+  --ink: #10233a;
+  --muted: #47617e;
+  --deep-green: #0d4f3d;
+  --qbk-green: #3cbc9c;
+  --qbk-blue: #1d67cd;
+  --qbk-gold: #f9af26;
+  --surface: #ffffff;
+  --surface-green: #effbf7;
+  --surface-blue: #f1f7ff;
+  --line: rgba(29, 103, 205, 0.18);
+  --shadow: rgba(11, 27, 48, 0.12);
 }
 
 * {
@@ -26,7 +27,7 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
-  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-family: "Sora", sans-serif;
   background: transparent;
   overflow-x: hidden;
   overflow-y: auto;
@@ -38,13 +39,10 @@ body {
 .layout {
   width: min(1120px, 100%);
   margin: 0 auto;
-  display: grid;
-  gap: 1rem;
 }
 
 .panel {
   border: 0;
-  border-radius: 0;
   background: transparent;
   padding: 0;
   box-shadow: none;
@@ -56,75 +54,88 @@ h3 {
   margin: 0;
 }
 
-.leagues-panel {
-  display: grid;
-}
-
 .league-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
+  gap: 0.95rem;
+  min-width: 0;
 }
 
 .league-card {
   position: relative;
+  isolation: isolate;
   overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   display: grid;
-  gap: 1rem;
-  padding: 1.2rem 1.2rem 1.1rem 1.25rem;
-  border-radius: 24px;
-  border: 1px solid var(--panel-border);
+  grid-template-columns: minmax(230px, 0.85fr) minmax(0, 1.35fr);
+  grid-template-areas:
+    "top facts"
+    "actions facts";
+  gap: 1rem 1.15rem;
+  padding: 1.1rem;
+  border: 1px solid var(--line);
+  border-left: 8px solid var(--qbk-green);
+  border-radius: 8px;
   background:
-    linear-gradient(140deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0) 34%),
-    linear-gradient(135deg, var(--card-base) 0%, var(--card-base-2) 56%, var(--card-base-3) 120%);
-  box-shadow: 0 14px 30px rgba(13, 79, 61, 0.08);
+    linear-gradient(90deg, rgba(60, 188, 156, 0.1), transparent 32%),
+    linear-gradient(180deg, var(--surface) 0%, #f8fcff 100%);
+  box-shadow: 0 12px 28px var(--shadow);
 }
 
+.league-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--qbk-green), var(--qbk-gold), var(--qbk-blue));
+  z-index: -1;
+}
 
 .league-card::after {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: -1;
   pointer-events: none;
   background:
-    repeating-linear-gradient(
-      0deg,
-      transparent 0,
-      transparent 26px,
-      rgba(13, 79, 61, 0.028) 26px,
-      rgba(13, 79, 61, 0.028) 27px
-    );
-  opacity: 0.45;
+    linear-gradient(120deg, transparent 0 66%, rgba(249, 175, 38, 0.08) 66% 78%, transparent 78%),
+    repeating-linear-gradient(90deg, transparent 0 42px, rgba(13, 79, 61, 0.035) 42px 43px);
 }
 
 .league-card:nth-child(2n) {
+  border-left-color: var(--qbk-blue);
   background:
-    linear-gradient(140deg, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0) 36%),
-    linear-gradient(135deg, #ffffff 0%, #edf7ff 52%, #eefbf6 125%);
-}
-
-
-.league-card > * {
-  position: relative;
-  z-index: 1;
+    linear-gradient(90deg, rgba(29, 103, 205, 0.09), transparent 34%),
+    linear-gradient(180deg, #ffffff 0%, #f6fbf8 100%);
 }
 
 .league-top {
+  grid-area: top;
   display: grid;
-  gap: 0.5rem;
+  align-content: start;
+  gap: 0.55rem;
+  min-width: 0;
 }
 
 .league-title {
-  font-size: clamp(1.45rem, 2.6vw, 2.15rem);
-  line-height: 1;
-  letter-spacing: -0.035em;
-  font-weight: 700;
-  text-wrap: balance;
+  max-width: 15ch;
+  color: var(--deep-green);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 2.45rem;
+  line-height: 0.92;
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
 .league-meta {
-  color: #1D67CD;
-  font-size: 0.98rem;
+  width: fit-content;
+  padding: 0.45rem 0.62rem;
+  border: 1px solid rgba(29, 103, 205, 0.2);
+  border-radius: 6px;
+  background: var(--surface-blue);
+  color: var(--qbk-blue);
+  font-size: 0.84rem;
   font-weight: 700;
 }
 
@@ -133,68 +144,110 @@ h3 {
 }
 
 .league-facts {
+  grid-area: facts;
   margin: 0;
-  padding-left: 1.05rem;
+  padding: 0;
   display: grid;
-  gap: 0.42rem;
-  font-size: 0.96rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.58rem;
+  list-style: none;
+  min-width: 0;
 }
 
 .league-facts li {
-  color: #32506f;
+  min-width: 0;
+  min-height: 58px;
+  padding: 0.68rem 0.75rem;
+  border: 1px solid rgba(13, 79, 61, 0.12);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.34;
+  overflow-wrap: anywhere;
+}
+
+.league-facts li:first-child,
+.league-facts li:nth-child(2) {
+  background: var(--surface-green);
 }
 
 .league-facts strong {
-  color: var(--accent-lime);
-  font-weight: 700;
+  display: inline-block;
+  color: var(--deep-green);
+  font-weight: 800;
 }
 
 .discount-highlight {
-  color: #cf2f32;
-  font-weight: 700;
+  color: #c62532;
+  font-weight: 800;
 }
 
 .league-note {
-  padding: 0.78rem 0.9rem;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 202, 58, 0.45);
-  background: rgba(255, 202, 58, 0.12);
+  grid-column: 1 / -1;
+  padding: 0.72rem 0.82rem;
+  border-radius: 7px;
+  border: 1px solid rgba(249, 175, 38, 0.42);
+  background: rgba(249, 175, 38, 0.12);
   color: #7a4c00;
-  font-size: 0.92rem;
-  font-weight: 500;
+  font-size: 0.84rem;
+  font-weight: 600;
 }
 
 .league-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
+  grid-area: actions;
+  align-self: end;
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
 }
 
 .cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 46px;
-  border-radius: 999px;
-  padding: 0.82rem 1.05rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 6px;
+  padding: 0.78rem 0.9rem;
   border: 1px solid transparent;
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.1;
   text-decoration: none;
   text-transform: uppercase;
-  font-size: 0.82rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease;
+}
+
+.cta:hover {
+  transform: translateY(-1px);
 }
 
 .cta-primary {
-  background: linear-gradient(135deg, #3CBC9C 0%, #0D4F3D 100%);
+  background: var(--deep-green);
   color: #ffffff;
-  box-shadow: 0 10px 20px rgba(13, 79, 61, 0.18);
+  box-shadow: 0 8px 16px rgba(13, 79, 61, 0.2);
+}
+
+.cta-primary:hover {
+  box-shadow: 0 11px 18px rgba(13, 79, 61, 0.24);
 }
 
 .cta-secondary {
-  background: rgba(255, 255, 255, 0.82);
-  color: #1D67CD;
-  border-color: rgba(29, 103, 205, 0.22);
+  background: #ffffff;
+  color: var(--qbk-blue);
+  border-color: rgba(29, 103, 205, 0.28);
+}
+
+.cta-secondary:hover {
+  border-color: rgba(29, 103, 205, 0.46);
 }
 
 body.embed-mobile {
@@ -204,108 +257,110 @@ body.embed-mobile {
 body.embed-mobile .layout {
   width: 100%;
   max-width: none;
-  padding: 0;
+  overflow-x: hidden;
 }
 
 body.embed-mobile .league-grid {
-  gap: 0.7rem;
+  gap: 0.68rem;
+  width: 100%;
+  max-width: 100vw;
 }
 
 body.embed-mobile .league-card {
-  gap: 0.72rem;
-  padding: 0.82rem 0.82rem 0.78rem 0.88rem;
-  border-radius: 18px;
-  box-shadow: 0 10px 22px rgba(13, 79, 61, 0.07);
-}
-
-body.embed-mobile .league-card::after {
-  opacity: 0.22;
-}
-
-body.embed-mobile .league-top {
-  gap: 0.28rem;
+  width: 100%;
+  max-width: 100vw;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "top"
+    "facts"
+    "actions";
+  gap: 0.65rem;
+  padding: 0.8rem;
+  border-left-width: 6px;
 }
 
 body.embed-mobile .league-title {
-  font-size: 1.05rem;
-  line-height: 1.02;
+  max-width: none;
+  font-size: 1.7rem;
+  line-height: 0.94;
 }
 
 body.embed-mobile .league-meta {
-  font-size: 0.8rem;
+  padding: 0.36rem 0.48rem;
+  font-size: 0.72rem;
 }
 
 body.embed-mobile .league-facts {
-  gap: 0.26rem;
-  padding-left: 0.95rem;
-  font-size: 0.8rem;
+  grid-template-columns: 1fr;
+  gap: 0.42rem;
 }
 
 body.embed-mobile .league-facts li {
-  line-height: 1.2;
+  min-height: 0;
+  padding: 0.52rem 0.58rem;
+  font-size: 0.72rem;
+  line-height: 1.28;
 }
 
-body.embed-mobile .league-note {
-  padding: 0.58rem 0.68rem;
-  border-radius: 12px;
-  font-size: 0.78rem;
+body.embed-mobile .league-facts strong {
+  display: block;
+  margin-bottom: 0.12rem;
 }
 
 body.embed-mobile .league-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+  grid-template-columns: 1fr;
+  gap: 0.45rem;
 }
 
-body.embed-mobile .league-actions .cta {
-  min-height: 40px;
-  width: 100%;
-  padding: 0.68rem 0.75rem;
-  font-size: 0.7rem;
-  letter-spacing: 0.02em;
+body.embed-mobile .cta {
+  min-height: 38px;
+  padding: 0.58rem 0.48rem;
+  font-size: 0.66rem;
 }
 
 @media (max-width: 720px) {
   .layout {
     width: 100%;
-    margin: 0;
-    padding: 0;
   }
 
   .league-card {
-    padding: 1rem 0.95rem 0.95rem 1rem;
-    border-radius: 20px;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "top"
+      "facts"
+      "actions";
+    gap: 0.75rem;
+    padding: 0.9rem;
   }
 
   .league-title {
-    font-size: clamp(1.25rem, 7vw, 1.6rem);
+    max-width: none;
+    font-size: 1.95rem;
+  }
+
+  .league-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .league-facts li {
+    min-height: 0;
   }
 
   .league-actions {
-    flex-direction: column;
-  }
-
-  .league-actions .cta {
-    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 420px) {
-  body.embed-mobile .league-card {
-    padding: 0.76rem 0.74rem 0.72rem 0.8rem;
-  }
-
   body.embed-mobile .league-title {
-    font-size: 0.98rem;
+    font-size: 1.5rem;
   }
 
-  body.embed-mobile .league-facts {
-    font-size: 0.76rem;
+  body.embed-mobile .league-facts li {
+    font-size: 0.68rem;
   }
 
-  body.embed-mobile .league-actions .cta {
-    min-height: 38px;
-    font-size: 0.66rem;
-    padding: 0.62rem 0.62rem;
+  body.embed-mobile .cta {
+    font-size: 0.62rem;
   }
 }
