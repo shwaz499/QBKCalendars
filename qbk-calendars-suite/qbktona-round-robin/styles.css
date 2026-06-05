@@ -236,7 +236,7 @@ h2 {
 }
 
 .tv-header {
-  min-height: 118px;
+  min-height: 138px;
   display: flex;
   justify-content: space-between;
   gap: 20px;
@@ -249,8 +249,8 @@ h2 {
 }
 
 .tv-logo {
-  width: min(820px, 68vw);
-  max-height: 108px;
+  width: min(620px, 54vw);
+  max-height: 122px;
   object-fit: contain;
   object-position: left center;
 }
