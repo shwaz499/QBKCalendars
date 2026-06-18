@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QBK Adult Trial Funnel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f2efe6;
+      --ink: #13242f;
+      --muted: #5f7481;
+      --panel: rgba(255, 251, 244, 0.94);
+      --line: rgba(19, 36, 47, 0.12);
+      --shadow: 0 18px 48px rgba(19, 36, 47, 0.08);
+      --green: #0c7a69;
+      --navy: #173d63;
+      --gold: #dfb64b;
+      --warm: #fff4dc;
+      --danger: #b44949;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Space Grotesk", sans-serif;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(223, 182, 75, 0.18), transparent 28%),
+        radial-gradient(circle at 100% 0%, rgba(23, 61, 99, 0.10), transparent 30%),
+        linear-gradient(180deg, #faf8f1 0%, #ece6d7 100%);
+    }
+    a { color: var(--navy); text-decoration: none; font-weight: 700; }
+    a:hover { text-decoration: underline; }
+    .auth-gate {
+      position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px;
+      background: rgba(19, 36, 47, 0.28); backdrop-filter: blur(10px);
+    }
+    .auth-gate.hidden { display: none; }
+    .auth-card {
+      width: min(420px, 100%); border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 22px;
+      padding: 28px; background: var(--panel); box-shadow: 0 22px 54px rgba(19, 36, 47, 0.16);
+    }
+    .auth-form { display: grid; gap: 12px; margin-top: 16px; }
+    .auth-form label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; color: var(--muted); }
+    .auth-form input, .btn, select {
+      width: 100%; border-radius: 12px; border: 1px solid var(--line); padding: 11px 12px; font: inherit;
+    }
+    .shell { max-width: 1340px; margin: 0 auto; padding: 22px 16px 40px; }
+    .hero { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: stretch; margin-bottom: 18px; }
+    .hero-card, .panel { border: 1px solid var(--line); border-radius: 22px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+    .hero-main { padding: 22px 24px 24px; background: linear-gradient(120deg, rgba(255, 244, 220, 0.86), rgba(255,255,255,0.88)), var(--panel); }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px;
+      font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--navy); background: rgba(23, 61, 99, 0.08);
+    }
+    .title { margin: 14px 0 0; font-family: "Bebas Neue", sans-serif; letter-spacing: 0.03em; line-height: 0.95; font-size: clamp(52px, 10vw, 86px); }
+    .lede { margin: 10px 0 0; max-width: 720px; color: var(--muted); font-size: 15px; line-height: 1.45; }
+    .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+    .hero-side { display: grid; gap: 1px; background: var(--line); }
+    .hero-stat { padding: 18px 20px; background: rgba(255,255,255,0.74); }
+    .hero-stat strong { display: block; font-size: 34px; line-height: 1; margin-bottom: 8px; }
+    .hero-stat span { color: var(--muted); font-size: 13px; }
+    .toolbar {
+      display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px 16px;
+      border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, 0.55);
+    }
+    .toolbar-left, .toolbar-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .mono { font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+    .btn { cursor: pointer; font-weight: 700; transition: transform 120ms ease, opacity 120ms ease; background: white; }
+    .btn:active { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+    .btn-primary { color: white; background: linear-gradient(180deg, #0f8e79, #0c7a69); border-color: transparent; }
+    .btn-secondary { color: var(--navy); background: rgba(23, 61, 99, 0.08); }
+    .status-line { min-height: 28px; padding: 10px 16px 0; color: var(--muted); font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+    .metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .metric-card { padding: 16px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,255,255,0.72); box-shadow: var(--shadow); }
+    .metric-card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+    .metric-card .value { margin-top: 10px; font-size: 34px; line-height: 1; font-weight: 700; }
+    .metric-card .subtext { margin-top: 8px; color: var(--muted); font-size: 13px; }
+    .two-up { display: grid; grid-template-columns: 0.95fr 1.05fr; gap: 18px; margin-bottom: 18px; }
+    .panel-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+    .panel-head h2 { margin: 0; font-size: 18px; }
+    .panel-body { padding: 16px 18px 18px; }
+    .status-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .status-chip { padding: 12px; border-radius: 16px; background: rgba(23, 61, 99, 0.06); border: 1px solid rgba(23, 61, 99, 0.08); }
+    .status-chip strong { display: block; font-size: 24px; line-height: 1; }
+    .status-chip span { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .segmented { display: inline-flex; gap: 6px; align-items: center; }
+    .segmented .btn { width: auto; min-width: 86px; padding: 8px 12px; }
+    .segmented .btn.active {
+      color: white;
+      background: linear-gradient(180deg, #173d63, #102b45);
+      border-color: transparent;
+    }
+    .trend-summary {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .trend-stat {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(23, 61, 99, 0.05);
+      border: 1px solid rgba(23, 61, 99, 0.08);
+    }
+    .trend-stat strong { display: block; font-size: 24px; line-height: 1; }
+    .trend-stat span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .trend-meta { margin-bottom: 10px; color: var(--muted); }
+    .trend-chart-wrap {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.72);
+      overflow: hidden;
+    }
+    .trend-chart { display: block; width: 100%; height: auto; min-height: 360px; }
+    .trend-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 18px;
+      padding: 12px 2px 2px;
+    }
+    .trend-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 120ms ease, transform 120ms ease, color 120ms ease;
+    }
+    .trend-legend-item:hover { transform: translateY(-1px); color: var(--ink); }
+    .trend-legend-item.is-hidden { opacity: 0.42; }
+    .trend-swatch { width: 16px; height: 4px; border-radius: 999px; display: inline-block; }
+    .trend-empty {
+      padding: 34px 18px;
+      text-align: center;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .trend-tooltip {
+      position: absolute;
+      z-index: 2;
+      min-width: 180px;
+      max-width: 260px;
+      padding: 10px 12px;
+      border: 1px solid rgba(19, 36, 47, 0.12);
+      border-radius: 14px;
+      background: rgba(19, 36, 47, 0.94);
+      color: white;
+      box-shadow: 0 18px 40px rgba(19, 36, 47, 0.22);
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 120ms ease, transform 120ms ease;
+    }
+    .trend-tooltip.visible { opacity: 1; transform: translateY(0); }
+    .trend-tooltip-period {
+      margin-bottom: 8px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      color: rgba(255,255,255,0.78);
+    }
+    .trend-tooltip-row { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; line-height: 1.5; }
+    .trend-tooltip-row strong { font-size: 12px; }
+    .trend-table-wrap {
+      margin-top: 14px;
+      overflow: auto;
+      max-height: 280px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.6);
+    }
+    .table-wrap { overflow: auto; max-height: 58vh; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid #e5e1d6; text-align: left; vertical-align: top; font-size: 13px; }
+    th { position: sticky; top: 0; z-index: 1; background: #fcfbf6; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .stage-pill {
+      display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase; background: rgba(23, 61, 99, 0.08); color: var(--navy);
+    }
+    .stage-pill.warn { background: rgba(223, 182, 75, 0.16); color: #7a5c0a; }
+    .stage-pill.danger { background: rgba(180, 73, 73, 0.12); color: var(--danger); }
+    .stage-pill.good { background: rgba(12, 122, 105, 0.12); color: var(--green); }
+    .empty { padding: 28px 18px; color: var(--muted); }
+    @media (max-width: 1160px) {
+      .hero, .two-up { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .trend-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .metrics, .status-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .trend-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .toolbar { flex-direction: column; align-items: flex-start; }
+    }
+    @media (max-width: 520px) {
+      .metrics, .status-grid, .trend-summary { grid-template-columns: 1fr; }
+      th, td { padding: 10px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-gate" id="authGate">
+    <div class="auth-card">
+      <h2>Protected Access</h2>
+      <p>Enter the shared password to open the Adult Trial KPI dashboard.</p>
+      <form class="auth-form" id="authForm">
+        <label>
+          <span>Password</span>
+          <input id="authPassword" type="password" autocomplete="current-password" placeholder="Password" />
+        </label>
+        <button class="btn btn-primary" id="authSubmitButton" type="submit">Unlock</button>
+      </form>
+      <div class="status-line" id="authMessage">Enter the shared password to continue.</div>
+    </div>
+  </div>
+
+  <main class="shell">
+    <section class="hero">
+      <article class="hero-card hero-main">
+        <div class="eyebrow">QBK Operations / Adult Trial Funnel</div>
+        <h1 class="title">Adult Trial Funnel</h1>
+        <p class="lede">This standalone view tracks adult inbox leads, whether they got scheduled into a free trial class, whether they actually checked in, and whether a membership followed.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" id="btnRefreshAll" type="button">Refresh</button>
+          <button class="btn btn-secondary" id="btnLogout" type="button">Log Out</button>
+        </div>
+      </article>
+      <aside class="hero-card hero-side">
+        <div class="hero-stat">
+          <strong id="windowLabel">Last 7 Days</strong>
+          <span id="lastRefreshed">Last refresh: --</span>
+        </div>
+        <div class="hero-stat">
+          <strong id="headlineLeadCount">0</strong>
+          <span>Adult inbox leads in the current cohort</span>
+        </div>
+        <div class="hero-stat">
+          <strong id="headlineAttendance">0</strong>
+          <span>Actual DaySmart check-ins matched to free trial classes</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="toolbar panel">
+      <div class="toolbar-left">
+        <label for="daysSelect" class="mono">Window</label>
+        <select id="daysSelect" style="width:auto;">
+          <option value="7" selected>Last 7 days</option>
+          <option value="14">Last 14 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="this_year">This Year</option>
+          <option value="last_year">Last Year</option>
+          <option value="all_time">All Time</option>
+        </select>
+      </div>
+      <div class="toolbar-right mono">
+        <span id="statusLine">Ready.</span>
+      </div>
+    </section>
+
+    <section class="metrics" id="metrics"></section>
+
+    <section class="panel trend-panel" style="margin-bottom: 18px;">
+      <div class="panel-head">
+        <div>
+          <h2 id="trendTitle">Lead Trend</h2>
+          <div class="trend-meta mono" id="trendMeta">Loading trend...</div>
+        </div>
+        <div class="segmented" aria-label="Trend granularity">
+          <button class="btn btn-secondary active" id="trendMonthButton" type="button">Month</button>
+          <button class="btn btn-secondary" id="trendWeekButton" type="button">Week</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="trend-summary" id="trendSummary"></div>
+        <div class="trend-chart-wrap">
+          <svg class="trend-chart" id="trendChart" viewBox="0 0 1200 360" preserveAspectRatio="xMidYMid meet" aria-label="Adult KPI trend chart"></svg>
+          <div class="trend-tooltip" id="trendTooltip"></div>
+        </div>
+        <div class="trend-legend" id="trendLegend"></div>
+        <div class="trend-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Total Leads</th>
+                <th>Check-ins</th>
+                <th>Check-in %</th>
+                <th>Packs</th>
+                <th>Pack %</th>
+              </tr>
+            </thead>
+            <tbody id="trendTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Lead Detail</h2>
+        <span class="mono" id="detailCount">0 rows</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Lead Started</th>
+              <th>Status</th>
+              <th>Trial Class</th>
+              <th>Checked In</th>
+              <th>Packs</th>
+              <th>Membership</th>
+              <th>Conversation</th>
+            </tr>
+          </thead>
+          <tbody id="detailBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const q = (id) => document.getElementById(id);
+    const authGate = q("authGate");
+    const authForm = q("authForm");
+    const authPassword = q("authPassword");
+    const authSubmitButton = q("authSubmitButton");
+    const authMessage = q("authMessage");
+    const statusLine = q("statusLine");
+    const metrics = q("metrics");
+    const detailBody = q("detailBody");
+    const detailCount = q("detailCount");
+    const daysSelect = q("daysSelect");
+    const trendTitle = q("trendTitle");
+    const trendSummary = q("trendSummary");
+    const trendMeta = q("trendMeta");
+    const trendChart = q("trendChart");
+    const trendLegend = q("trendLegend");
+    const trendTooltip = q("trendTooltip");
+    const trendTableBody = q("trendTableBody");
+    const trendMonthButton = q("trendMonthButton");
+    const trendWeekButton = q("trendWeekButton");
+    let syncPollHandle = null;
+    let refreshRequestId = 0;
+    let trendToken = 0;
+    let trendGranularity = "month";
+    let latestTrendPayload = null;
+    const WINDOW_STORAGE_KEY = "qbk_adult_kpi_window";
+    const visibleTrendKeys = new Set(["leads", "checked_in", "checkin_percentage", "packs", "pack_percentage"]);
+    const trendSeries = [
+      { key: "leads", label: "Total Leads", color: "#173d63", axis: "count", dashed: false },
+      { key: "checked_in", label: "Check-ins", color: "#0c7a69", axis: "count", dashed: false },
+      { key: "checkin_percentage", label: "Check-in %", color: "#2e8b7f", axis: "pct", dashed: true },
+      { key: "packs", label: "Packs", color: "#b44949", axis: "count", dashed: false },
+      { key: "pack_percentage", label: "Pack %", color: "#7a5c0a", axis: "pct", dashed: true },
+    ];
+
+    function timestamp() { return new Date().toLocaleString(); }
+    function setStatus(text, isError = false) {
+      statusLine.textContent = text;
+      statusLine.style.color = isError ? "#b44949" : "#5f7481";
+    }
+    function setAuthMessage(text, isError = false) {
+      authMessage.textContent = text;
+      authMessage.style.color = isError ? "#b44949" : "#5f7481";
+    }
+    function showAuthGate(text = "Enter the shared password to continue.") {
+      authGate.classList.remove("hidden");
+      setAuthMessage(text);
+    }
+    function hideAuthGate() { authGate.classList.add("hidden"); }
+    function getSelectedWindow() { return daysSelect.value || "7"; }
+    function saveSelectedWindow(value) {
+      try { localStorage.setItem(WINDOW_STORAGE_KEY, value); } catch {}
+    }
+    function restoreSelectedWindow() {
+      try {
+        const saved = localStorage.getItem(WINDOW_STORAGE_KEY);
+        if (saved && Array.from(daysSelect.options).some((option) => option.value === saved)) {
+          daysSelect.value = saved;
+        }
+      } catch {}
+    }
+
+    async function getJson(url) {
+      const res = await fetch(url);
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      if (res.status === 401) {
+        showAuthGate("Session expired. Enter the password again.");
+        throw new Error(data.detail || "Authentication required.");
+      }
+      if (!res.ok) throw new Error(data.detail || data.error || text || `HTTP ${res.status}`);
+      return data;
+    }
+
+    async function sendJson(url, method, payload) {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload || {}),
+      });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      if (res.status === 401) {
+        showAuthGate("Session expired. Enter the password again.");
+        throw new Error(data.detail || "Authentication required.");
+      }
+      if (!res.ok) throw new Error(data.detail || data.error || text || `HTTP ${res.status}`);
+      return data;
+    }
+
+    async function login(password) {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      if (!res.ok) throw new Error(data.detail || data.error || text || `HTTP ${res.status}`);
+      hideAuthGate();
+      renderTrendLegend();
+      await refreshDashboardProgressive(getSelectedWindow());
+      setStatus("Adult KPI page ready.");
+    }
+
+    async function logout() {
+      await sendJson("/api/logout", "POST", {});
+      showAuthGate("Signed out.");
+      setStatus("Enter password to continue.");
+    }
+
+    function stageClass(label) {
+      if (["Membership purchased", "Checked in"].includes(label)) return "stage-pill good";
+      if (["No-show", "Lost"].includes(label)) return "stage-pill danger";
+      if (["Needs follow-up", "Scheduled"].includes(label)) return "stage-pill warn";
+      return "stage-pill";
+    }
+
+    function renderMetrics(cards) {
+      metrics.innerHTML = "";
+      for (const card of cards || []) {
+        metrics.insertAdjacentHTML("beforeend", `
+          <article class="metric-card">
+            <div class="label">${card.label}</div>
+            <div class="value">${card.count ?? 0}</div>
+            <div class="subtext">${card.subtext || ""}</div>
+          </article>
+        `);
+      }
+    }
+
+    function renderDetail(items) {
+      detailCount.textContent = `${items.length} row${items.length === 1 ? "" : "s"}`;
+      detailBody.innerHTML = "";
+      if (!items.length) {
+        detailBody.innerHTML = `<tr><td colspan="8" class="empty">No adult trial leads in this date window yet.</td></tr>`;
+        return;
+      }
+      for (const item of items) {
+        const checkedIn = item.has_checked_in ? (item.checked_in_at_display || "Yes") : "--";
+        const packsText = item.packs_display || "--";
+        const membershipText = item.memberships_display || "--";
+        const nameCell = item.daysmart_url
+          ? `<a href="${item.daysmart_url}" target="_blank" rel="noreferrer">${item.name || "--"}</a><div class="mono">${item.phone || "--"}</div>`
+          : `${item.name || "--"}<div class="mono">${item.phone || "--"}</div>`;
+        detailBody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${nameCell}</td>
+            <td>${item.lead_started_at_display || "--"}</td>
+            <td><span class="${stageClass(item.lead_status)}">${item.lead_status}</span></td>
+            <td>${item.trial_class_display || "--"}</td>
+            <td>${checkedIn}</td>
+            <td>${packsText}</td>
+            <td>${membershipText}</td>
+            <td><a href="${item.conversation_url}" target="_blank" rel="noreferrer">Open</a></td>
+          </tr>
+        `);
+      }
+    }
+
+    function formatPercent(value) {
+      const numeric = Number(value || 0);
+      return `${Number.isInteger(numeric) ? numeric : numeric.toFixed(1)}%`;
+    }
+
+    function shortPeriodLabel(item, granularity) {
+      if (!item) return "";
+      if (granularity === "month") return item.label || "";
+      const start = item.start_date ? new Date(`${item.start_date}T00:00:00`) : null;
+      if (!start || Number.isNaN(start.getTime())) return item.label || "";
+      return `${start.getMonth() + 1}/${start.getDate()}`;
+    }
+
+    function svgLinePath(points) {
+      return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
+    }
+
+    function formatTrendValue(key, value) {
+      if (key.endsWith("_percentage")) return formatPercent(value);
+      return String(Math.round(Number(value || 0)));
+    }
+
+    function currentTrendWindowQuery(forceRefresh = false) {
+      const resolvedWindow = getSelectedWindow();
+      const parts = [];
+      if (["this_year", "last_year", "all_time"].includes(resolvedWindow)) {
+        parts.push(`window=${encodeURIComponent(resolvedWindow)}`);
+      } else {
+        parts.push(`days=${Number(resolvedWindow || "7")}`);
+      }
+      parts.push(`granularity=${encodeURIComponent(trendGranularity)}`);
+      if (forceRefresh) parts.push("refresh=true");
+      return parts.join("&");
+    }
+
+    function visibleTrendSeries() {
+      return trendSeries.filter((series) => visibleTrendKeys.has(series.key));
+    }
+
+    function renderTrendLegend() {
+      trendLegend.innerHTML = "";
+      for (const series of trendSeries) {
+        const active = visibleTrendKeys.has(series.key);
+        trendLegend.insertAdjacentHTML("beforeend", `
+          <button class="trend-legend-item ${active ? "" : "is-hidden"}" type="button" data-series-key="${series.key}">
+            <span class="trend-swatch" style="background:${series.color}; ${series.dashed ? "height: 0; border-top: 4px dashed " + series.color + ";" : ""}"></span>
+            <span>${series.label}</span>
+          </button>
+        `);
+      }
+    }
+
+    function renderTrendSummaryCards(payload) {
+      const totals = payload?.totals || {};
+      const cards = [
+        ["Total Leads", totals.leads || 0],
+        ["Check-ins", totals.checked_in || 0],
+        ["Check-in %", formatPercent(totals.checkin_percentage || 0)],
+        ["Packs", totals.packs || 0],
+        ["Pack %", formatPercent(totals.pack_percentage || 0)],
+      ];
+      trendSummary.innerHTML = cards.map(([label, value]) => `
+        <div class="trend-stat">
+          <strong>${value}</strong>
+          <span>${label}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderTrendTable(payload) {
+      const rows = payload?.items || [];
+      if (!rows.length) {
+        trendTableBody.innerHTML = `<tr><td colspan="6" class="empty">No trend data for this window yet.</td></tr>`;
+        return;
+      }
+      trendTableBody.innerHTML = rows.map((item) => `
+        <tr>
+          <td>${item.label || "--"}</td>
+          <td>${item.leads || 0}</td>
+          <td>${item.checked_in || 0}</td>
+          <td>${formatPercent(item.checkin_percentage || 0)}</td>
+          <td>${item.packs || 0}</td>
+          <td>${formatPercent(item.pack_percentage || 0)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderTrendChartSvg(payload) {
+      const items = payload?.items || [];
+      const activeSeries = visibleTrendSeries();
+      if (!items.length || !activeSeries.length) {
+        trendChart.innerHTML = `<text x="600" y="184" text-anchor="middle" fill="#5f7481" font-size="20" font-weight="700">No trend data yet</text>`;
+        return;
+      }
+
+      const width = 1200;
+      const height = 360;
+      const margin = { top: 26, right: 84, bottom: 54, left: 72 };
+      const innerWidth = width - margin.left - margin.right;
+      const innerHeight = height - margin.top - margin.bottom;
+      const xStep = items.length > 1 ? innerWidth / (items.length - 1) : 0;
+      const countMax = Math.max(1, ...items.flatMap((item) => activeSeries.filter((series) => series.axis === "count").map((series) => Number(item[series.key] || 0))));
+      const pctMax = Math.max(100, ...items.flatMap((item) => activeSeries.filter((series) => series.axis === "pct").map((series) => Number(item[series.key] || 0))));
+      const yFor = (value, axis) => {
+        const max = axis === "pct" ? pctMax : countMax;
+        return margin.top + innerHeight - (Number(value || 0) / max) * innerHeight;
+      };
+      const xFor = (index) => margin.left + (items.length > 1 ? index * xStep : innerWidth / 2);
+      const grid = [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+        const y = margin.top + innerHeight - ratio * innerHeight;
+        const countLabel = Math.round(countMax * ratio);
+        const pctLabel = Math.round(pctMax * ratio);
+        return `
+          <line x1="${margin.left}" x2="${width - margin.right}" y1="${y}" y2="${y}" stroke="rgba(19,36,47,0.10)" />
+          <text x="${margin.left - 14}" y="${y + 4}" text-anchor="end" fill="#5f7481" font-size="12">${countLabel}</text>
+          <text x="${width - margin.right + 14}" y="${y + 4}" fill="#5f7481" font-size="12">${pctLabel}%</text>
+        `;
+      }).join("");
+      const xLabels = items.map((item, index) => {
+        const x = xFor(index);
+        return `
+          <line x1="${x}" x2="${x}" y1="${height - margin.bottom}" y2="${height - margin.bottom + 6}" stroke="rgba(19,36,47,0.22)" />
+          <text x="${x}" y="${height - 22}" text-anchor="middle" fill="#5f7481" font-size="12">${shortPeriodLabel(item, payload.granularity)}</text>
+        `;
+      }).join("");
+      const paths = activeSeries.map((series) => {
+        const points = items.map((item, index) => ({
+          x: xFor(index),
+          y: yFor(item[series.key], series.axis),
+          item,
+          value: item[series.key],
+        }));
+        const circles = points.map((point, index) => `
+          <circle cx="${point.x}" cy="${point.y}" r="5.5" fill="#fffaf0" stroke="${series.color}" stroke-width="3"
+            data-period-index="${index}" data-series-key="${series.key}" />
+        `).join("");
+        return `
+          <path d="${svgLinePath(points)}" fill="none" stroke="${series.color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" ${series.dashed ? 'stroke-dasharray="10 10"' : ""} />
+          ${circles}
+        `;
+      }).join("");
+
+      trendChart.innerHTML = `
+        <defs>
+          <linearGradient id="adultTrendWash" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stop-color="#fff8e7" />
+            <stop offset="100%" stop-color="#eef6f2" />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="${width}" height="${height}" fill="url(#adultTrendWash)" />
+        ${grid}
+        <line x1="${margin.left}" x2="${width - margin.right}" y1="${height - margin.bottom}" y2="${height - margin.bottom}" stroke="rgba(19,36,47,0.22)" />
+        <text x="${margin.left}" y="18" fill="#5f7481" font-size="12" font-family="IBM Plex Mono">COUNT</text>
+        <text x="${width - margin.right}" y="18" text-anchor="end" fill="#5f7481" font-size="12" font-family="IBM Plex Mono">RATE</text>
+        ${xLabels}
+        ${paths}
+      `;
+    }
+
+    function renderTrend(payload) {
+      latestTrendPayload = payload;
+      trendTitle.textContent = `${payload.window_label || currentWindowLabel()} Trend`;
+      trendMeta.textContent = `${payload.granularity === "month" ? "Monthly" : "Weekly"} view from ${payload.window_start_date || "--"} to ${payload.window_end_date || "--"}`;
+      trendMonthButton.classList.toggle("active", payload.granularity === "month");
+      trendWeekButton.classList.toggle("active", payload.granularity === "week");
+      renderTrendSummaryCards(payload);
+      renderTrendChartSvg(payload);
+      renderTrendTable(payload);
+    }
+
+    async function refreshTrend(forceRefresh = false) {
+      const token = ++trendToken;
+      trendMeta.textContent = "Loading trend...";
+      const data = await getJson(`/dashboard/adult-kpis/timeseries?${currentTrendWindowQuery(forceRefresh)}`);
+      if (token !== trendToken) return;
+      renderTrend(data);
+    }
+
+    async function setTrendGranularity(nextGranularity) {
+      trendGranularity = nextGranularity === "week" ? "week" : "month";
+      trendMonthButton.classList.toggle("active", trendGranularity === "month");
+      trendWeekButton.classList.toggle("active", trendGranularity === "week");
+      await refreshTrend();
+    }
+
+    function showTrendTooltip(target, clientX, clientY) {
+      if (!latestTrendPayload || !target?.dataset?.periodIndex) {
+        trendTooltip.classList.remove("visible");
+        return;
+      }
+      const item = latestTrendPayload.items[Number(target.dataset.periodIndex)];
+      if (!item) {
+        trendTooltip.classList.remove("visible");
+        return;
+      }
+      trendTooltip.innerHTML = `
+        <div class="trend-tooltip-period">${item.label || "--"}</div>
+        ${trendSeries.map((series) => `
+          <div class="trend-tooltip-row">
+            <span>${series.label}</span>
+            <strong>${formatTrendValue(series.key, item[series.key])}</strong>
+          </div>
+        `).join("")}
+      `;
+      const wrapRect = trendTooltip.parentElement.getBoundingClientRect();
+      trendTooltip.style.left = `${Math.min(Math.max(12, clientX - wrapRect.left + 14), wrapRect.width - 276)}px`;
+      trendTooltip.style.top = `${Math.max(12, clientY - wrapRect.top - 18)}px`;
+      trendTooltip.classList.add("visible");
+    }
+
+    function buildDashboardUrl(windowValue = null, detailLevel = "full", forceRefresh = false) {
+      const resolvedWindow = windowValue || getSelectedWindow();
+      const detailQuery = `detail_level=${encodeURIComponent(detailLevel)}`;
+      const refreshQuery = forceRefresh ? "&refresh=true" : "";
+      if (["this_year", "last_year", "all_time"].includes(resolvedWindow)) {
+        return `/dashboard/adult-kpis?window=${encodeURIComponent(resolvedWindow)}&${detailQuery}${refreshQuery}`;
+      }
+      const days = Number(resolvedWindow || "7");
+      return `/dashboard/adult-kpis?days=${days}&${detailQuery}${refreshQuery}`;
+    }
+
+    function currentWindowLabel(windowValue = null) {
+      const resolvedWindow = windowValue || getSelectedWindow();
+      if (resolvedWindow === "this_year") return "This Year";
+      if (resolvedWindow === "last_year") return "Last Year";
+      if (resolvedWindow === "all_time") return "All Time";
+      return `Last ${Number(resolvedWindow || "7")} Days`;
+    }
+
+    async function refreshDashboard(windowValue = null, detailLevel = "full", forceRefresh = false) {
+      const requestedWindow = windowValue || getSelectedWindow();
+      const requestId = ++refreshRequestId;
+      const data = await getJson(buildDashboardUrl(requestedWindow, detailLevel, forceRefresh));
+      if (requestId !== refreshRequestId) {
+        return;
+      }
+      renderMetrics(data.summary_cards || []);
+      renderDetail(data.items || []);
+
+      q("windowLabel").textContent = data.window?.label || currentWindowLabel(requestedWindow);
+      q("lastRefreshed").textContent = `Last refresh: ${timestamp()}`;
+      q("headlineLeadCount").textContent = String(data.summary?.lead_conversations ?? 0);
+      q("headlineAttendance").textContent = String(data.summary?.checked_in_trials ?? 0);
+    }
+
+    async function refreshDashboardProgressive(windowValue = null, forceRefresh = false) {
+      const requestedWindow = windowValue || getSelectedWindow();
+      q("windowLabel").textContent = currentWindowLabel(requestedWindow);
+      q("lastRefreshed").textContent = "Last refresh: loading...";
+      await refreshDashboard(requestedWindow, "base", forceRefresh);
+      if (getSelectedWindow() !== requestedWindow) {
+        return;
+      }
+      const syncState = await getJson("/sync/status");
+      if (syncState.running) {
+        setStatus(`DaySmart sync in progress: ${syncStageLabel(syncState.stage)}...`);
+        return;
+      }
+      setStatus("Loading DaySmart details...");
+      refreshDashboard(requestedWindow, "full", forceRefresh)
+        .then(async () => {
+          if (getSelectedWindow() === requestedWindow) {
+            await refreshTrend(false);
+            setStatus("Adult KPI page ready.");
+          }
+        })
+        .catch((error) => {
+          if (getSelectedWindow() === requestedWindow) {
+            setStatus(`DaySmart details unavailable: ${error.message}`, true);
+          }
+        });
+    }
+
+    async function withButton(button, fn) {
+      button.disabled = true;
+      try { await fn(); } finally { button.disabled = false; }
+    }
+
+    async function wait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+
+    function syncStageLabel(stage) {
+      if (stage === "syncing_salesmessage") return "loading leads";
+      if (stage === "syncing_daysmart") return "syncing DaySmart";
+      return (stage || "idle").replaceAll("_", " ");
+    }
+
+    async function handleSyncStatus() {
+      const data = await getJson("/sync/status");
+      const stage = data.stage || "idle";
+      if (data.running) {
+        setStatus(`Refresh in progress: ${syncStageLabel(stage)}...`);
+        return;
+      }
+      if (syncPollHandle) {
+        clearInterval(syncPollHandle);
+        syncPollHandle = null;
+      }
+      if (stage === "failed") {
+        setStatus(`Last sync failed: ${data.last_error || "Sync failed."}`, true);
+        return;
+      }
+      if (stage === "completed") {
+        setStatus("Background sync complete. Reloading page...");
+        await refreshDashboardProgressive(getSelectedWindow(), false);
+        return;
+      }
+      setStatus("Adult KPI page ready.");
+    }
+
+    function ensureSyncPolling() {
+      if (syncPollHandle) return;
+      syncPollHandle = setInterval(() => {
+        handleSyncStatus().catch((error) => setStatus(`Refresh failed: ${error.message}`, true));
+      }, 3000);
+      handleSyncStatus().catch((error) => setStatus(`Refresh failed: ${error.message}`, true));
+    }
+
+    q("btnRefreshAll").addEventListener("click", () => withButton(q("btnRefreshAll"), async () => {
+      setStatus("Refreshing page...");
+      await refreshDashboardProgressive(getSelectedWindow(), false);
+      const syncState = await getJson("/sync/status");
+      if (syncState.running) {
+        setStatus(`Background sync already running: ${syncStageLabel(syncState.stage)}...`);
+        ensureSyncPolling();
+        return;
+      }
+      setStatus("Starting background sync...");
+      await sendJson("/sync/start", "POST", {
+        daysmart_max_pages: 25,
+        daysmart_page_size: 100,
+      });
+      ensureSyncPolling();
+    }));
+
+    q("btnLogout").addEventListener("click", () => withButton(q("btnLogout"), logout));
+
+    trendLegend.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-series-key]");
+      if (!button) return;
+      const key = button.getAttribute("data-series-key");
+      if (!visibleTrendKeys.has(key)) {
+        visibleTrendKeys.add(key);
+      } else if (visibleTrendKeys.size > 1) {
+        visibleTrendKeys.delete(key);
+      }
+      renderTrendLegend();
+      if (latestTrendPayload) renderTrendChartSvg(latestTrendPayload);
+    });
+
+    trendMonthButton.addEventListener("click", () => {
+      setTrendGranularity("month").catch((error) => setStatus(`Trend failed: ${error.message}`, true));
+    });
+
+    trendWeekButton.addEventListener("click", () => {
+      setTrendGranularity("week").catch((error) => setStatus(`Trend failed: ${error.message}`, true));
+    });
+
+    trendChart.addEventListener("mousemove", (event) => {
+      if (event.target?.tagName?.toLowerCase() === "circle") {
+        showTrendTooltip(event.target, event.clientX, event.clientY);
+      } else {
+        trendTooltip.classList.remove("visible");
+      }
+    });
+
+    trendChart.addEventListener("mouseleave", () => trendTooltip.classList.remove("visible"));
+
+    daysSelect.addEventListener("change", () => {
+      const selectedWindow = getSelectedWindow();
+      saveSelectedWindow(selectedWindow);
+      refreshDashboardProgressive(selectedWindow)
+        .then(() => setStatus("Window updated."))
+        .catch((error) => setStatus(`Refresh failed: ${error.message}`, true));
+    });
+
+    authForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      authSubmitButton.disabled = true;
+      try {
+        await login(authPassword.value);
+        authPassword.value = "";
+      } catch (error) {
+        setAuthMessage(error.message || String(error), true);
+      } finally {
+        authSubmitButton.disabled = false;
+      }
+    });
+
+    restoreSelectedWindow();
+    renderTrendLegend();
+
+    getJson("/api/auth/status")
+      .then((data) => {
+        if (data.authenticated) {
+          hideAuthGate();
+          return new Promise((resolve) => setTimeout(resolve, 50))
+            .then(() => refreshDashboardProgressive(getSelectedWindow()))
+            .then(() => handleSyncStatus())
+            .catch((error) => setStatus(`Load failed: ${error.message}`, true));
+        }
+        showAuthGate();
+        setStatus("Enter password to continue.");
+      })
+      .catch((error) => {
+        showAuthGate();
+        setStatus(`Load failed: ${error.message}`, true);
+      });
+  </script>
+</body>
+</html>
