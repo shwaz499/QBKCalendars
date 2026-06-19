@@ -23,10 +23,36 @@
             />
           </label>
 
+          <div class="setup-meta">
+            <label class="field-block team-count-field" for="teamCountInput">
+              <span>Number of teams</span>
+              <input
+                id="teamCountInput"
+                type="number"
+                min="3"
+                max="8"
+                step="1"
+                inputmode="numeric"
+              />
+            </label>
+
+            <label class="field-block team-count-field" for="gamesPerMatchInput">
+              <span>Games per match</span>
+              <input
+                id="gamesPerMatchInput"
+                type="number"
+                min="1"
+                max="3"
+                step="1"
+                inputmode="numeric"
+              />
+            </label>
+          </div>
+
           <section class="teams-section" aria-label="Team names">
             <div class="section-heading">
               <h2>Teams</h2>
-              <p id="setupStatus">Enter five unique team names.</p>
+              <p id="setupStatus">Enter unique team names.</p>
             </div>
             <div class="team-grid" id="teamGrid"></div>
           </section>
@@ -41,10 +67,9 @@
 
       <section class="tv-view" id="tvView" aria-label="Tournament TV page">
         <header class="tv-header">
-          <img class="tv-logo" src="./assets/serving-man-logo-transparent.png" alt="Serving Man Coed 4s Beach Volleyball Tournament" />
+          <img class="tv-logo" src="./assets/qbk-toc-2026-transparent.png" alt="QBK Tournament of Champions 2026" />
+          <div class="tv-tournament-name" id="tvTournamentName">Round Robin Tournament</div>
           <div class="tv-actions">
-            <span class="summary-pill" id="matchSummary">0 matches</span>
-            <span class="summary-pill" id="gamesSummary">0 games</span>
             <button class="secondary" id="generatePlayoffBtn" type="button">Generate Playoff</button>
             <button class="secondary" id="fullScreenBtn" type="button">Full Screen</button>
             <button class="secondary" id="backToSetupBtn" type="button">Edit Teams</button>
@@ -60,7 +85,6 @@
               Set up the tournament first.
             </div>
             <div class="match-list" id="matchList" aria-live="polite"></div>
-            <div class="playoff-bracket" id="playoffBracket" hidden aria-live="polite"></div>
           </section>
 
           <aside class="standings-panel" aria-labelledby="standingsTitle">
@@ -81,6 +105,7 @@
               </thead>
               <tbody id="standingsBody"></tbody>
             </table>
+            <div class="playoff-bracket" id="playoffBracket" hidden aria-live="polite"></div>
           </aside>
         </section>
       </section>

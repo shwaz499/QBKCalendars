@@ -143,6 +143,17 @@ h2 {
   margin-top: 26px;
 }
 
+.setup-meta {
+  margin-top: 18px;
+  display: flex;
+  gap: 14px;
+  align-items: end;
+}
+
+.team-count-field {
+  width: min(240px, 100%);
+}
+
 .section-heading {
   display: flex;
   justify-content: space-between;
@@ -160,7 +171,7 @@ h2 {
 
 .team-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
   gap: 12px;
 }
 
@@ -237,8 +248,8 @@ h2 {
 
 .tv-header {
   min-height: 138px;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(260px, 620px) minmax(220px, 1fr) auto;
   gap: 20px;
   align-items: center;
   padding: 8px 18px;
@@ -253,6 +264,18 @@ h2 {
   max-height: 122px;
   object-fit: contain;
   object-position: left center;
+}
+
+.tv-tournament-name {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 10px;
+  font-size: clamp(28px, 2.2vw, 52px);
+  font-weight: 950;
+  line-height: 1;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .summary-pill {
@@ -320,9 +343,10 @@ h2 {
 .match-list {
   min-height: 0;
   height: 100%;
+  overflow: auto;
   padding-top: 10px;
   display: grid;
-  grid-template-rows: repeat(10, minmax(0, 1fr));
+  grid-auto-rows: minmax(84px, auto);
   gap: 7px;
 }
 
@@ -347,8 +371,6 @@ h2 {
 
 .match-number {
   display: grid;
-  grid-template-rows: 1fr auto;
-  gap: 2px;
   place-items: center;
   color: var(--accent-ink);
   background: var(--accent);
@@ -361,15 +383,6 @@ h2 {
 .match-ordinal {
   font-size: clamp(20px, 1.8vw, 30px);
   line-height: 0.95;
-}
-
-.court-label {
-  max-width: 100%;
-  font-size: clamp(6px, 0.44vw, 8px);
-  font-weight: 950;
-  line-height: 0.92;
-  text-transform: uppercase;
-  white-space: pre-line;
 }
 
 .match-main {
@@ -395,7 +408,7 @@ h2 {
 .games {
   min-height: 0;
   display: grid;
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
   gap: 5px;
   align-items: center;
 }
@@ -435,12 +448,12 @@ h2 {
 }
 
 .playoff-bracket {
-  min-height: 0;
-  height: 100%;
-  padding-top: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
   display: grid;
-  grid-template-rows: minmax(0, 0.88fr) minmax(0, 1.12fr);
-  gap: 14px;
+  grid-template-rows: auto;
+  gap: 12px;
+  border-top: 1px solid var(--line);
 }
 
 .playoff-card {
@@ -459,25 +472,17 @@ h2 {
 }
 
 .playoff-heading {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-  color: var(--muted);
-  font-size: clamp(16px, 1.3vw, 24px);
+  color: var(--amber);
+  font-size: clamp(14px, 1vw, 18px);
   font-weight: 950;
   text-transform: uppercase;
-}
-
-.playoff-card.final .playoff-heading {
-  color: var(--amber);
 }
 
 .playoff-body {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 188px minmax(0, 1fr);
-  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr);
+  gap: 18px;
   align-items: center;
 }
 
@@ -485,10 +490,22 @@ h2 {
   min-width: 0;
   overflow: hidden;
   color: var(--text);
-  font-size: clamp(34px, 3.6vw, 72px);
+  display: grid;
+  gap: 4px;
   font-weight: 950;
   line-height: 1.02;
   text-align: center;
+}
+
+.playoff-seed {
+  color: var(--accent);
+  font-size: clamp(14px, 1vw, 18px);
+  font-weight: 950;
+}
+
+.playoff-team-name {
+  overflow: hidden;
+  font-size: clamp(20px, 1.8vw, 34px);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -499,12 +516,16 @@ h2 {
 }
 
 .playoff-game-row {
-  grid-template-columns: 72px 16px 72px;
+  grid-template-columns: 54px 14px 54px;
 }
 
 .playoff-game-row .score-input {
-  height: 34px;
-  font-size: clamp(20px, 1.7vw, 30px);
+  height: 28px;
+  font-size: clamp(17px, 1.4vw, 24px);
+}
+
+.playoff-game-row .score-input:disabled {
+  opacity: 0.45;
 }
 
 .reorder-controls {
@@ -605,8 +626,9 @@ h2 {
     grid-template-columns: 1fr;
   }
 
-  .match-list {
-    grid-template-rows: none;
+  .setup-meta {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 
@@ -622,6 +644,14 @@ h2 {
   .tv-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .tv-header {
+    display: flex;
+  }
+
+  .tv-tournament-name {
+    white-space: normal;
   }
 
   .game-row {

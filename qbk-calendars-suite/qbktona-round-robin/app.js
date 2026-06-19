@@ -1,9 +1,15 @@
-const STATE_KEY = "roundRobinTournament:v2";
+const STATE_KEY = "roundRobinTournament:v4";
 const LEGACY_STATE_KEY = "roundRobinTournament:v1";
+const TEAM_COUNT_MIN = 3;
+const TEAM_COUNT_MAX = 8;
+const GAMES_PER_MATCH_MIN = 1;
+const GAMES_PER_MATCH_MAX = 3;
 
 const setupView = document.querySelector("#setupView");
 const tvView = document.querySelector("#tvView");
 const tournamentNameInput = document.querySelector("#tournamentNameInput");
+const teamCountInput = document.querySelector("#teamCountInput");
+const gamesPerMatchInput = document.querySelector("#gamesPerMatchInput");
 const setupStatus = document.querySelector("#setupStatus");
 const teamGrid = document.querySelector("#teamGrid");
 const generateBtn = document.querySelector("#generateBtn");
@@ -19,13 +25,7 @@ const playoffBracket = document.querySelector("#playoffBracket");
 const emptyMatches = document.querySelector("#emptyMatches");
 const standingsBody = document.querySelector("#standingsBody");
 const standingsPanel = document.querySelector(".standings-panel");
-const matchSummary = document.querySelector("#matchSummary");
-const gamesSummary = document.querySelector("#gamesSummary");
-
-const defaultTeams = Array.from({ length: 5 }, (_, index) => ({
-  id: `team-${index + 1}`,
-  name: "",
-}));
+const tvTournamentName = document.querySelector("#tvTournamentName");
 
 let state = loadState();
 let draggedMatchId = null;
@@ -34,17 +34,20 @@ function loadState() {
   const saved = readStoredState(STATE_KEY) || readStoredState(LEGACY_STATE_KEY);
 
   if (saved && Array.isArray(saved.teams) && Array.isArray(saved.matches)) {
+    const gamesPerMatch = clampGamesPerMatch(saved.gamesPerMatch);
     return {
       tournamentName: String(saved.tournamentName || "Round Robin Tournament"),
       teams: normalizeTeams(saved.teams),
-      matches: normalizeMatches(saved.matches),
+      gamesPerMatch,
+      matches: normalizeMatches(saved.matches, gamesPerMatch),
       playoff: normalizePlayoff(saved.playoff),
     };
   }
 
   return {
     tournamentName: "Round Robin Tournament",
-    teams: defaultTeams,
+    teams: buildTeams(5),
+    gamesPerMatch: 2,
     matches: [],
     playoff: null,
   };
@@ -59,26 +62,28 @@ function readStoredState(key) {
   }
 }
 
-function normalizeTeams(teams) {
-  return defaultTeams.map((team, index) => ({
-    id: team.id,
-    name: String(teams[index]?.name || ""),
+function buildTeams(count, existingTeams = []) {
+  const safeCount = clampTeamCount(count);
+  return Array.from({ length: safeCount }, (_, index) => ({
+    id: existingTeams[index]?.id || `team-${index + 1}`,
+    name: String(existingTeams[index]?.name || ""),
   }));
 }
 
-function normalizeMatches(matches) {
+function clampTeamCount(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 5;
+  return Math.max(TEAM_COUNT_MIN, Math.min(TEAM_COUNT_MAX, Math.round(number)));
+}
+
+function normalizeTeams(teams) {
+  return buildTeams(teams.length || 5, teams);
+}
+
+function normalizeMatches(matches, gameCount = 2) {
   return matches
     .filter((match) => match?.teamA && match?.teamB)
-    .map((match) => ({
-      id: match.id || `${match.teamA}-${match.teamB}`,
-      teamA: match.teamA,
-      teamB: match.teamB,
-      round: Number(match.round) || 1,
-      games: [0, 1].map((gameIndex) => ({
-        a: cleanScore(match.games?.[gameIndex]?.a ?? ""),
-        b: cleanScore(match.games?.[gameIndex]?.b ?? ""),
-      })),
-    }));
+    .map((match) => normalizeMatch(match, gameCount));
 }
 
 function normalizePlayoff(playoff) {
@@ -87,12 +92,14 @@ function normalizePlayoff(playoff) {
   const matches = playoff.matches.map((match, index) => ({
     id: match.id || `playoff-${index + 1}`,
     label: String(match.label || (index === 0 ? "Semifinal" : "Final")),
+    seedA: match.seedA ?? (index === 0 ? 2 : 1),
+    seedB: match.seedB ?? (index === 0 ? 3 : null),
     teamA: match.teamA || null,
     teamB: match.teamB || null,
     teamAName: String(match.teamAName || ""),
     teamBName: String(match.teamBName || ""),
-    placeholderA: String(match.placeholderA || ""),
-    placeholderB: String(match.placeholderB || ""),
+    placeholderA: String(match.placeholderA || "Seed"),
+    placeholderB: String(match.placeholderB || (index === 0 ? "Seed" : "Winner of #2 vs #3")),
     court: String(match.court || (index === 0 ? "Middle Court" : "Right Court")),
     games: Array.from({ length: playoffGameCount }, (_, gameIndex) => ({
       a: cleanScore(match.games?.[gameIndex]?.a ?? ""),
@@ -113,6 +120,38 @@ function cleanScore(value) {
   return Number.isFinite(number) && number >= 0 ? String(number) : "";
 }
 
+function clampGamesPerMatch(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 2;
+  return Math.max(GAMES_PER_MATCH_MIN, Math.min(GAMES_PER_MATCH_MAX, Math.round(number)));
+}
+
+function buildGames(count, existingGames = []) {
+  const safeCount = clampGamesPerMatch(count);
+  return Array.from({ length: safeCount }, (_, gameIndex) => ({
+    a: cleanScore(existingGames[gameIndex]?.a ?? ""),
+    b: cleanScore(existingGames[gameIndex]?.b ?? ""),
+  }));
+}
+
+function normalizeMatch(match, gameCount = currentGamesPerMatch()) {
+  return {
+    id: match.id || `${match.teamA}-${match.teamB}`,
+    teamA: match.teamA,
+    teamB: match.teamB,
+    round: Number(match.round) || 1,
+    games: buildGames(gameCount, match.games),
+  };
+}
+
+function currentTeamCount() {
+  return clampTeamCount(state.teams.length);
+}
+
+function currentGamesPerMatch() {
+  return clampGamesPerMatch(state.gamesPerMatch);
+}
+
 function teamName(teamId) {
   return state.teams.find((team) => team.id === teamId)?.name.trim() || "Unnamed";
 }
@@ -124,6 +163,7 @@ function allTeamNamesValid() {
 
 function renderTeamInputs() {
   teamGrid.innerHTML = "";
+  teamGrid.style.gridTemplateColumns = `repeat(${Math.min(currentTeamCount(), 4)}, minmax(140px, 1fr))`;
 
   state.teams.forEach((team, index) => {
     const field = document.createElement("label");
@@ -150,6 +190,63 @@ function renderTeamInputs() {
   });
 }
 
+function setTeamCount(nextCount) {
+  const count = clampTeamCount(nextCount);
+  const previousCount = currentTeamCount();
+  if (count === previousCount) return;
+
+  const removedTeams = state.teams.slice(count);
+  const removingNamedTeams = removedTeams.some((team) => team.name.trim());
+  const removingScheduledTeams =
+    state.matches.some(
+      (match) => removedTeams.some((team) => team.id === match.teamA || team.id === match.teamB)
+    ) || Boolean(state.playoff);
+
+  if (count < previousCount && (removingNamedTeams || removingScheduledTeams)) {
+    const keepGoing = window.confirm(
+      "Reducing the number of teams will remove some team names, matchups, and playoff results. Continue?"
+    );
+    if (!keepGoing) {
+      teamCountInput.value = String(previousCount);
+      return;
+    }
+  }
+
+  state.teams = buildTeams(count, state.teams);
+  state.matches = [];
+  state.playoff = null;
+  saveState();
+  renderTeamInputs();
+  render();
+}
+
+function setGamesPerMatch(nextCount) {
+  const count = clampGamesPerMatch(nextCount);
+  const previousCount = currentGamesPerMatch();
+  if (count === previousCount) return;
+
+  const removingScoredGames =
+    count < previousCount &&
+    state.matches.some((match) =>
+      match.games.slice(count).some((game) => game.a !== "" || game.b !== "")
+    );
+
+  if (removingScoredGames) {
+    const keepGoing = window.confirm(
+      "Reducing games per match will remove scores from the extra games. Continue?"
+    );
+    if (!keepGoing) {
+      gamesPerMatchInput.value = String(previousCount);
+      return;
+    }
+  }
+
+  state.gamesPerMatch = count;
+  state.matches = state.matches.map((match) => normalizeMatch(match, count));
+  saveState();
+  render();
+}
+
 function generateRoundRobin() {
   if (!allTeamNamesValid()) return;
 
@@ -161,7 +258,7 @@ function generateRoundRobin() {
   }
 
   const ids = state.teams.map((team) => team.id);
-  const slots = [...ids, "bye"];
+  const slots = ids.length % 2 === 0 ? [...ids] : [...ids, "bye"];
   const rounds = [];
 
   for (let round = 1; round < slots.length; round += 1) {
@@ -175,10 +272,7 @@ function generateRoundRobin() {
           teamA,
           teamB,
           round,
-          games: [
-            { a: "", b: "" },
-            { a: "", b: "" },
-          ],
+          games: buildGames(currentGamesPerMatch()),
         });
       }
     }
@@ -227,7 +321,6 @@ function updatePlayoffScore(matchId, gameIndex, side, value) {
   const match = state.playoff?.matches.find((item) => item.id === matchId);
   if (!match) return;
   match.games[gameIndex][side] = cleanScore(value);
-  updateFinalParticipantFromSemifinal();
   saveState();
   renderPlayoff();
 }
@@ -242,7 +335,6 @@ function clearScores() {
       ...match,
       games: match.games.map(() => ({ a: "", b: "" })),
     }));
-    updateFinalParticipantFromSemifinal();
   }
   saveState();
   render();
@@ -250,16 +342,9 @@ function clearScores() {
 
 function renderMatches() {
   matchList.innerHTML = "";
-  playoffBracket.hidden = true;
-  matchList.hidden = state.matches.length === 0 || Boolean(state.playoff);
-  emptyMatches.hidden = state.matches.length > 0 || Boolean(state.playoff);
-  matchSummary.textContent = `${state.matches.length} matches`;
+  matchList.hidden = state.matches.length === 0;
+  emptyMatches.hidden = state.matches.length > 0;
   matchTitle.textContent = "Matchups";
-
-  if (state.playoff) {
-    renderPlayoff();
-    return;
-  }
 
   state.matches.forEach((match, index) => {
     const card = document.createElement("article");
@@ -298,11 +383,7 @@ function renderMatches() {
     matchOrdinal.className = "match-ordinal";
     matchOrdinal.textContent = String(index + 1);
 
-    const court = document.createElement("span");
-    court.className = "court-label";
-    court.textContent = (index + 1) % 2 === 1 ? "Middle\nCourt" : "Right\nCourt";
-
-    number.append(matchOrdinal, court);
+    number.append(matchOrdinal);
 
     const main = document.createElement("div");
     main.className = "match-main";
@@ -313,6 +394,7 @@ function renderMatches() {
 
     const games = document.createElement("div");
     games.className = "games";
+    games.style.gridTemplateRows = `repeat(${match.games.length}, minmax(0, 1fr))`;
     match.games.forEach((game, gameIndex) => {
       games.append(renderGameRow(match, game, gameIndex));
     });
@@ -339,32 +421,30 @@ function generatePlayoff() {
   const standings = calculateStandings();
   if (standings.length < 3 || standings.slice(0, 3).some((team) => !team.name.trim())) return;
 
-  const [seedOne, seedTwo, seedThree] = standings;
+  const hasExistingScores = state.playoff?.matches?.some((match) =>
+    match.games.some((game) => game.a !== "" || game.b !== "")
+  );
+
+  if (hasExistingScores) {
+    const keepGoing = window.confirm(
+      "Generating the playoff again will replace the seeded teams and clear playoff scores. Continue?"
+    );
+    if (!keepGoing) return;
+  }
+
+  const [seedOne, seedTwo] = standings;
   state.playoff = {
     matches: [
       {
-        id: "playoff-semifinal",
-        label: "Semifinal",
-        teamA: seedTwo.id,
-        teamB: seedThree.id,
-        teamAName: seedTwo.name,
-        teamBName: seedThree.name,
-        court: "Middle Court",
-        games: [
-          { a: "", b: "" },
-          { a: "", b: "" },
-          { a: "", b: "" },
-        ],
-      },
-      {
         id: "playoff-final",
         label: "Final",
+        seedA: 1,
+        seedB: 2,
         teamA: seedOne.id,
-        teamB: null,
+        teamB: seedTwo.id,
         teamAName: seedOne.name,
-        teamBName: "",
-        placeholderB: "Winner of 2 vs 3",
-        court: "Right Court",
+        teamBName: seedTwo.name,
+        placeholderB: "Seed",
         games: [
           { a: "", b: "" },
           { a: "", b: "" },
@@ -378,44 +458,47 @@ function generatePlayoff() {
   render();
 }
 
-function togglePlayoff() {
-  if (state.playoff) {
-    state.playoff = null;
-    saveState();
-    render();
-    return;
-  }
-
-  generatePlayoff();
+function defaultPlayoffMatches() {
+  return [
+    {
+      id: "playoff-final",
+      label: "Final",
+      seedA: 1,
+      seedB: 2,
+      teamA: null,
+      teamB: null,
+      teamAName: "",
+      teamBName: "",
+      placeholderA: "Seed",
+      placeholderB: "Seed",
+      games: [
+        { a: "", b: "" },
+        { a: "", b: "" },
+        { a: "", b: "" },
+      ],
+    },
+  ];
 }
 
 function renderPlayoff() {
-  if (!state.playoff) return;
-  updateFinalParticipantFromSemifinal();
-  matchList.hidden = true;
-  emptyMatches.hidden = true;
+  const playoffMatches = state.playoff?.matches || defaultPlayoffMatches();
   playoffBracket.hidden = false;
   playoffBracket.innerHTML = "";
-  matchSummary.textContent = "Playoffs";
-  matchTitle.textContent = "Playoff Bracket";
 
-  state.playoff.matches.forEach((match, index) => {
+  playoffMatches.forEach((match, index) => {
     const card = document.createElement("article");
-    card.className = `playoff-card ${index === 1 ? "final" : ""}`;
+    card.className = "playoff-card final";
 
     const heading = document.createElement("div");
     heading.className = "playoff-heading";
-    heading.innerHTML = `
-      <span>${escapeHtml(match.label)}</span>
-      <span>${escapeHtml(match.court)}</span>
-    `;
+    heading.textContent = match.label;
 
     const body = document.createElement("div");
     body.className = "playoff-body";
 
     const teamA = document.createElement("div");
     teamA.className = "playoff-team";
-    teamA.textContent = playoffTeamName(match, "A");
+    teamA.innerHTML = playoffTeamMarkup(match, "A");
 
     const scores = document.createElement("div");
     scores.className = "playoff-scores";
@@ -425,7 +508,7 @@ function renderPlayoff() {
 
     const teamB = document.createElement("div");
     teamB.className = "playoff-team";
-    teamB.textContent = playoffTeamName(match, "B");
+    teamB.innerHTML = playoffTeamMarkup(match, "B");
 
     body.append(teamA, scores, teamB);
     card.append(heading, body);
@@ -443,23 +526,27 @@ function renderPlayoffGameRow(match, game, gameIndex) {
   const aWon = complete && scoreA > scoreB;
   const bWon = complete && scoreB > scoreA;
 
-  const inputA = playoffScoreInput(match.id, gameIndex, "a", game.a);
+  const inputA = playoffScoreInput(match, gameIndex, "a", game.a);
   if (aWon) inputA.classList.add("winner");
 
   const separator = document.createElement("div");
   separator.className = "score-separator";
   separator.textContent = "-";
 
-  const inputB = playoffScoreInput(match.id, gameIndex, "b", game.b);
+  const inputB = playoffScoreInput(match, gameIndex, "b", game.b);
   if (bWon) inputB.classList.add("winner");
 
   row.append(inputA, separator, inputB);
   return row;
 }
 
-function playoffScoreInput(matchId, gameIndex, side, value) {
-  const input = scoreInput(matchId, gameIndex, side, value);
-  input.addEventListener("input", () => updatePlayoffScore(matchId, gameIndex, side, input.value));
+function playoffScoreInput(match, gameIndex, side, value) {
+  const input = scoreInput(match.id, gameIndex, side, value);
+  const activePlayoffMatch = Boolean(state.playoff) && (match.teamA || match.teamB);
+  input.disabled = !activePlayoffMatch;
+  if (activePlayoffMatch) {
+    input.addEventListener("input", () => updatePlayoffScore(match.id, gameIndex, side, input.value));
+  }
   return input;
 }
 
@@ -472,45 +559,14 @@ function playoffTeamName(match, side) {
   return placeholder || "TBD";
 }
 
-function updateFinalParticipantFromSemifinal() {
-  if (!state.playoff?.matches?.length) return;
-  const semifinal = state.playoff.matches[0];
-  const final = state.playoff.matches[1];
-  if (!semifinal || !final) return;
-
-  const winner = playoffMatchWinner(semifinal);
-  if (!winner) {
-    final.teamB = null;
-    final.teamBName = "";
-    final.placeholderB = "Winner of 2 vs 3";
-    return;
-  }
-
-  final.teamB = winner.id;
-  final.teamBName = winner.name;
-  final.placeholderB = "";
-}
-
-function playoffMatchWinner(match) {
-  let aWins = 0;
-  let bWins = 0;
-
-  match.games.forEach((game) => {
-    if (game.a === "" || game.b === "") return;
-    const scoreA = Number(game.a);
-    const scoreB = Number(game.b);
-    if (!Number.isFinite(scoreA) || !Number.isFinite(scoreB) || scoreA === scoreB) return;
-    if (scoreA > scoreB) aWins += 1;
-    if (scoreB > scoreA) bWins += 1;
-  });
-
-  if (aWins < 2 && bWins < 2) return null;
-  const winnerIsA = aWins > bWins;
-  const winnerId = winnerIsA ? match.teamA : match.teamB;
-  return {
-    id: winnerId,
-    name: winnerId ? teamName(winnerId) : winnerIsA ? match.teamAName : match.teamBName,
-  };
+function playoffTeamMarkup(match, side) {
+  const seed = side === "A" ? match.seedA : match.seedB;
+  const name = playoffTeamName(match, side);
+  const seedLabel = seed ? `#${seed}` : "";
+  return `
+    <span class="playoff-seed">${escapeHtml(seedLabel)}</span>
+    <span class="playoff-team-name">${escapeHtml(name)}</span>
+  `;
 }
 
 function renderGameRow(match, game, gameIndex) {
@@ -613,8 +669,6 @@ function calculateStandings() {
 
 function renderStandings() {
   const standings = calculateStandings();
-  const completeGames = standings.reduce((total, team) => total + team.wins, 0);
-  gamesSummary.textContent = `${completeGames} games`;
   standingsBody.innerHTML = "";
 
   standings.forEach((team, index) => {
@@ -652,9 +706,10 @@ function fitStandingsTeamNames() {
 function renderSetupStatus() {
   const names = state.teams.map((team) => team.name.trim()).filter(Boolean);
   const duplicateCount = names.length - new Set(names.map((name) => name.toLowerCase())).size;
+  const remaining = currentTeamCount() - names.length;
 
-  if (names.length < 5) {
-    setupStatus.textContent = `Enter ${5 - names.length} more team name${5 - names.length === 1 ? "" : "s"}.`;
+  if (remaining > 0) {
+    setupStatus.textContent = `Enter ${remaining} more team name${remaining === 1 ? "" : "s"}.`;
   } else if (duplicateCount > 0) {
     setupStatus.textContent = "Team names must be unique.";
   } else {
@@ -674,19 +729,23 @@ function escapeHtml(value) {
 function render() {
   const screen = window.location.hash === "#tv" && state.matches.length ? "tv" : "setup";
   tournamentNameInput.value = state.tournamentName;
+  tvTournamentName.textContent = state.tournamentName.trim() || "Round Robin Tournament";
+  teamCountInput.value = String(currentTeamCount());
+  gamesPerMatchInput.value = String(currentGamesPerMatch());
   setupView.hidden = screen !== "setup";
   tvView.hidden = screen !== "tv";
   generateBtn.disabled = !allTeamNamesValid();
   viewTvBtn.disabled = state.matches.length === 0;
   clearScoresBtn.disabled = state.matches.length === 0;
   generatePlayoffBtn.disabled = state.matches.length === 0;
-  generatePlayoffBtn.textContent = state.playoff ? "Show Matchups" : "Generate Playoff";
+  generatePlayoffBtn.textContent = "Generate Playoff";
   fullScreenBtn.textContent = document.fullscreenElement ? "Exit Full Screen" : "Full Screen";
-  standingsPanel.hidden = Boolean(state.playoff);
-  tvBoard.classList.toggle("playoff-mode", Boolean(state.playoff));
+  standingsPanel.hidden = false;
+  tvBoard.classList.remove("playoff-mode");
   renderSetupStatus();
   renderMatches();
   renderStandings();
+  renderPlayoff();
 }
 
 async function toggleFullScreen() {
@@ -707,10 +766,28 @@ tournamentNameInput.addEventListener("input", () => {
   render();
 });
 
+teamCountInput.addEventListener("change", () => {
+  setTeamCount(teamCountInput.value);
+});
+
+teamCountInput.addEventListener("input", () => {
+  if (teamCountInput.value === "") return;
+  teamCountInput.value = String(clampTeamCount(teamCountInput.value));
+});
+
+gamesPerMatchInput.addEventListener("change", () => {
+  setGamesPerMatch(gamesPerMatchInput.value);
+});
+
+gamesPerMatchInput.addEventListener("input", () => {
+  if (gamesPerMatchInput.value === "") return;
+  gamesPerMatchInput.value = String(clampGamesPerMatch(gamesPerMatchInput.value));
+});
+
 generateBtn.addEventListener("click", generateRoundRobin);
 viewTvBtn.addEventListener("click", showTv);
 clearScoresBtn.addEventListener("click", clearScores);
-generatePlayoffBtn.addEventListener("click", togglePlayoff);
+generatePlayoffBtn.addEventListener("click", generatePlayoff);
 fullScreenBtn.addEventListener("click", toggleFullScreen);
 backToSetupBtn.addEventListener("click", showSetup);
 window.addEventListener("hashchange", render);
