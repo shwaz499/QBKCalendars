@@ -57,6 +57,7 @@ const modalTime = document.getElementById("modal-time");
 const modalPosition = document.getElementById("modal-position");
 const modalPrev = document.getElementById("modal-prev");
 const modalNext = document.getElementById("modal-next");
+const modalDownload = document.getElementById("modal-download");
 
 function updateModal() {
   const clip = currentClips[activeClipIndex];
@@ -69,6 +70,27 @@ function updateModal() {
   modalPrev.disabled = activeClipIndex === 0;
   modalNext.disabled = activeClipIndex === currentClips.length - 1;
   modalVideo.play().catch(() => {});
+}
+
+async function downloadCurrentClip() {
+  const clip = currentClips[activeClipIndex];
+  if (!clip) return;
+
+  try {
+    const response = await fetch(clip.url);
+    if (!response.ok) throw new Error(`Download failed (${response.status})`);
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = `${clip.file || "qbk-replay"}.mp4`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 function openModal(index) {
@@ -96,6 +118,7 @@ document.addEventListener("click", (event) => {
 document.querySelectorAll("[data-modal-close]").forEach((button) => button.addEventListener("click", closeModal));
 modalPrev.addEventListener("click", () => openModal(activeClipIndex - 1));
 modalNext.addEventListener("click", () => openModal(activeClipIndex + 1));
+modalDownload.addEventListener("click", downloadCurrentClip);
 document.addEventListener("keydown", (event) => {
   if (modal.hidden) return;
   if (event.key === "Escape") closeModal();
