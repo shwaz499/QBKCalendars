@@ -82,6 +82,7 @@
   let lastSelectedDate = "";
   let lastIsMobile = null;
   let mobileFiltersOpen = false;
+  let hourlyVideoRefreshTimer = null;
   const clientEventsCache = new Map();
   const clientEventsInflight = new Map();
   const eventVideoAvailabilityCache = new Map();
@@ -1359,6 +1360,40 @@
       });
   }
 
+  function refreshCurrentVideoAvailability() {
+    const selectedDate = els.date.value;
+    if (!selectedDate) return;
+
+    eventVideoAvailabilityCache.delete(selectedDate);
+    fetchEventVideoAvailability(selectedDate)
+      .then((eventIds) => {
+        if (selectedDate !== els.date.value) return;
+        const availableIds = new Set(eventIds);
+        lastDayEvents.forEach((event) => {
+          event.videoAvailable = availableIds.has(String(event.id));
+        });
+        renderDayView(lastDayEvents, selectedDate);
+      })
+      .catch((error) => console.warn("Hourly event video refresh unavailable", error));
+  }
+
+  function scheduleHourlyVideoRefresh() {
+    if (hourlyVideoRefreshTimer) {
+      window.clearTimeout(hourlyVideoRefreshTimer);
+    }
+
+    const now = new Date();
+    const nextHour = new Date(now);
+    nextHour.setMinutes(0, 0, 0);
+    nextHour.setHours(nextHour.getHours() + 1);
+    const delay = Math.max(1000, nextHour.getTime() - now.getTime());
+
+    hourlyVideoRefreshTimer = window.setTimeout(() => {
+      refreshCurrentVideoAvailability();
+      scheduleHourlyVideoRefresh();
+    }, delay);
+  }
+
   function getTodayISO() {
     const now = new Date();
     const yyyy = now.getFullYear();
@@ -1462,6 +1497,7 @@
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(reportEmbedHeight).catch(() => {});
     }
+    scheduleHourlyVideoRefresh();
     loadAndRender();
   }
 
