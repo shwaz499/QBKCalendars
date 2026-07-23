@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QBK Event Videos</title>
+    <meta name="description" content="Push It replay clips matched to a QBK event." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="site-header">
+      <a class="brand" href="?eventId=27158" aria-label="QBK event videos home">
+        <img class="brand-avatar" src="assets/qbk-logo.png" alt="QBK Sports logo" />
+        <span>QBK Sports</span>
+      </a>
+      <div class="header-context"><span class="pulse"></span> Push It replay archive</div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <h1 id="page-title">Private Event</h1>
+          <div class="hero-event-meta" id="hero-event-meta"></div>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="Event replay workspace">
+        <div class="replay-column">
+          <div id="session-list"></div>
+          <div id="empty-state" class="empty-state" hidden>
+            <span class="empty-icon">—</span>
+            <h2>No exact replays found</h2>
+            <p>There are no clips on the booked court during this event’s time window. The matcher will keep the event link useful as soon as clips appear.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="video-modal" id="video-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
+      <div class="modal-backdrop" data-modal-close></div>
+      <section class="modal-panel">
+        <div class="modal-topline">
+          <div>
+            <span class="modal-label">Event replay</span>
+            <h2 id="modal-title">Private Event</h2>
+          </div>
+          <button class="modal-close" type="button" data-modal-close aria-label="Close video">×</button>
+        </div>
+        <div class="modal-player-wrap">
+          <button class="modal-nav modal-prev" type="button" id="modal-prev" aria-label="Previous video">‹</button>
+          <video id="modal-video" controls playsinline></video>
+          <button class="modal-nav modal-next" type="button" id="modal-next" aria-label="Next video">›</button>
+        </div>
+        <div class="modal-footer">
+          <span id="modal-time">—</span>
+          <span id="modal-position">1 / 1</span>
+        </div>
+      </section>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -38,6 +38,7 @@ APP_DIR_NAMES = {
     "/teen-upcoming": "qbk-teen-upcoming-widget",
     "/league-page": "qbk-league-page",
     "/qbktona-round-robin": "qbktona-round-robin",
+    "/event-videos": "qbk-event-videos",
 }
 
 
@@ -1613,7 +1614,10 @@ class CalendarHandler(SimpleHTTPRequestHandler):
         if parsed.path in {"", "/"}:
             return self._redirect("/daily/")
         if parsed.path in APP_ROUTE_DIRS:
-            return self._redirect(f"{parsed.path}/")
+            location = f"{parsed.path}/"
+            if parsed.query:
+                location = f"{location}?{parsed.query}"
+            return self._redirect(location)
 
         static_path = self._resolve_static_path(parsed.path)
         if static_path is not None:
