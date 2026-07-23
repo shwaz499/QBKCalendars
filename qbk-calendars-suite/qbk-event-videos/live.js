@@ -57,6 +57,18 @@ const modalTime = document.getElementById("modal-time");
 const modalPosition = document.getElementById("modal-position");
 const modalPrev = document.getElementById("modal-prev");
 const modalNext = document.getElementById("modal-next");
+const modalShare = document.getElementById("modal-share");
+const modalDownload = document.getElementById("modal-download");
+const modalShareStatus = document.getElementById("modal-share-status");
+
+const fileSafe = (value) => String(value || "replay")
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-|-$/g, "") || "replay";
+
+function setShareStatus(message) {
+  modalShareStatus.textContent = message;
+}
 
 function updateModal() {
   const clip = currentClips[activeClipIndex];
@@ -66,9 +78,55 @@ function updateModal() {
   modalTitle.textContent = currentDisplayTitle;
   modalTime.textContent = `${clip.court} · ${clip.time}`;
   modalPosition.textContent = `${activeClipIndex + 1} / ${currentClips.length}`;
+  modalDownload.href = clip.url;
+  modalDownload.download = `${fileSafe(currentDisplayTitle)}-${fileSafe(clip.time)}.mp4`;
+  setShareStatus("");
   modalPrev.disabled = activeClipIndex === 0;
   modalNext.disabled = activeClipIndex === currentClips.length - 1;
   modalVideo.play().catch(() => {});
+}
+
+async function shareCurrentClip() {
+  const clip = currentClips[activeClipIndex];
+  if (!clip) return;
+
+  const shareData = {
+    title: currentDisplayTitle,
+    text: `${currentDisplayTitle} · ${clip.court} · ${clip.time}`,
+    url: clip.url,
+  };
+
+  try {
+    if (typeof navigator.share === "function") {
+      setShareStatus("Choose Instagram in the share sheet.");
+      await navigator.share(shareData);
+      setShareStatus("Shared.");
+      return;
+    }
+
+    await navigator.clipboard.writeText(clip.url);
+    setShareStatus("Video link copied.");
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      setShareStatus("");
+      return;
+    }
+
+    try {
+      const fallback = document.createElement("textarea");
+      fallback.value = clip.url;
+      fallback.setAttribute("readonly", "");
+      fallback.style.position = "fixed";
+      fallback.style.opacity = "0";
+      document.body.appendChild(fallback);
+      fallback.select();
+      document.execCommand("copy");
+      fallback.remove();
+      setShareStatus("Video link copied.");
+    } catch {
+      setShareStatus("Use DOWNLOAD, then share it from Instagram.");
+    }
+  }
 }
 
 function openModal(index) {
@@ -96,6 +154,7 @@ document.addEventListener("click", (event) => {
 document.querySelectorAll("[data-modal-close]").forEach((button) => button.addEventListener("click", closeModal));
 modalPrev.addEventListener("click", () => openModal(activeClipIndex - 1));
 modalNext.addEventListener("click", () => openModal(activeClipIndex + 1));
+modalShare.addEventListener("click", shareCurrentClip);
 document.addEventListener("keydown", (event) => {
   if (modal.hidden) return;
   if (event.key === "Escape") closeModal();
