@@ -11,6 +11,8 @@
   }
 
   const LIVE_FEED_BASE = "/api/events";
+  const EVENT_VIDEO_AVAILABILITY_BASE = "/api/event-video-availability";
+  const EVENT_VIDEOS_URL = "https://qbk-calendars-suite.onrender.com/event-videos/";
   const TRACK_CLICK_URL = "/api/track-click";
   const RENT_URL = "https://www.catchcorner.com/qbksports";
   const CLIENT_EVENTS_CACHE_MS = 120000;
@@ -82,6 +84,8 @@
   let mobileFiltersOpen = false;
   const clientEventsCache = new Map();
   const clientEventsInflight = new Map();
+  const eventVideoAvailabilityCache = new Map();
+  const eventVideoAvailabilityInflight = new Map();
 
   function isLocalAnalyticsSource() {
     const host = (window.location.hostname || "").toLowerCase();
@@ -244,7 +248,7 @@
     const categoryText = String(event.category || "").toLowerCase();
     const titleText = String(event.title || "").toLowerCase();
     const isAdultClass = event.adultProgram || (titleText.includes("adult") && titleText.includes("class"));
-    const isFreeTrialClass = titleText.includes("free trial class");
+    const isFreeTrialClass = titleText.includes("free trial class") || titleText.includes("trial at qbk queens");
     const is4sGlowParty = /\b4s\b/.test(titleText) && /glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party/.test(titleText);
     const isTeenDropIn = titleText === "teen drop in"
       || (/\bteens?\b/.test(titleText) && /drop[\s-]*in/.test(titleText));
@@ -304,7 +308,8 @@
 
   function shouldShowCapacity(classification, event) {
     if (!event.capacityText) return false;
-    if (String(event.title || "").toLowerCase().includes("free trial class")) return false;
+    const titleText = String(event.title || "").toLowerCase();
+    if (titleText.includes("free trial class") || titleText.includes("trial at qbk queens")) return false;
     return classification.filterCategory === "adultClasses"
       || classification.filterCategory === "adultDropIns";
   }
@@ -312,7 +317,8 @@
   function appendEventMeta(card, event, classification, classPrefix) {
     const showCapacity = shouldShowCapacity(classification, event);
     const hideCoach = classification.filterCategory === "youthClasses"
-      || String(event.title || "").toLowerCase().includes("free trial class");
+      || String(event.title || "").toLowerCase().includes("free trial class")
+      || String(event.title || "").toLowerCase().includes("trial at qbk queens");
     const coachText = hideCoach
       ? ""
       : event.coachText;
@@ -333,6 +339,54 @@
       meta.appendChild(capacity);
     }
     card.appendChild(meta);
+  }
+
+  function canShowEventVideo(event, classification) {
+    if (!event.videoAvailable) return false;
+    if (["youthClasses", "teenDropIns"].includes(classification.filterCategory)) return false;
+    return ["adultClasses", "adultDropIns", "leagues", "privateEventsRentals"]
+      .includes(classification.filterCategory);
+  }
+
+  function formatEventVideoTitle(event) {
+    const start = new Date(event.start);
+    const month = start.getMonth() + 1;
+    const day = start.getDate();
+    const hours = start.getHours();
+    const minutes = start.getMinutes();
+    const hour = hours % 12 || 12;
+    const minuteText = minutes ? `:${String(minutes).padStart(2, "0")}` : "";
+    const meridiem = hours >= 12 ? "PM" : "AM";
+    return `${event.title} (${month}/${day} ${hour}${minuteText} ${meridiem})`;
+  }
+
+  function getEventVideoUrl(event) {
+    const params = new URLSearchParams({
+      eventId: String(event.id),
+      title: formatEventVideoTitle(event),
+      category: String(event.category || ""),
+    });
+    return `${EVENT_VIDEOS_URL}?${params.toString()}`;
+  }
+
+  function appendEventVideoButton(card, event, classification) {
+    if (!canShowEventVideo(event, classification)) return;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "event-video-button";
+    button.title = "Watch event videos";
+    button.setAttribute("aria-label", "Watch event videos");
+    const icon = document.createElement("span");
+    icon.className = "event-video-icon";
+    icon.setAttribute("aria-hidden", "true");
+    button.appendChild(icon);
+    button.addEventListener("click", (click) => {
+      click.preventDefault();
+      click.stopPropagation();
+      window.open(getEventVideoUrl(event), "_blank", "noopener,noreferrer");
+    });
+    card.appendChild(button);
   }
 
   function updateMobileCourtTabs() {
@@ -473,7 +527,7 @@
 
   function formatAdultProgramTitle(title, lowerTitle) {
     const isSundaySkills = /sunday[\s-]*skills/.test(lowerTitle);
-    const isFreeTrialClass = /free[\s-]*trial[\s-]*class/.test(lowerTitle);
+    const isFreeTrialClass = /(free[\s-]*trial[\s-]*class|trial\s+at\s+qbk\s+queens)/.test(lowerTitle);
     const isAdultClass = /\badult\b/.test(lowerTitle) && /\bclass\b/.test(lowerTitle);
     const isAdultCampOrClinic = /\badult\b/.test(lowerTitle) && (lowerTitle.includes("camp") || lowerTitle.includes("clinic"));
     const isKnownAdultProgram = ADULT_TITLE_TERMS.some((term) => lowerTitle.includes(term));
@@ -490,7 +544,7 @@
 
   function isAdultProgramTitle(lowerTitle) {
     const isSundaySkills = /sunday[\s-]*skills/.test(lowerTitle);
-    const isFreeTrialClass = /free[\s-]*trial[\s-]*class/.test(lowerTitle);
+    const isFreeTrialClass = /(free[\s-]*trial[\s-]*class|trial\s+at\s+qbk\s+queens)/.test(lowerTitle);
     const isAdultClass = /\badult\b/.test(lowerTitle) && /\bclass\b/.test(lowerTitle);
     const isAdultCampOrClinic = /\badult\b/.test(lowerTitle) && (lowerTitle.includes("camp") || lowerTitle.includes("clinic"));
     const isKnownAdultProgram = ADULT_TITLE_TERMS.some((term) => lowerTitle.includes(term));
@@ -957,6 +1011,7 @@
         card.appendChild(time);
       }
       appendEventMeta(card, event, classification, "mobile-item");
+      appendEventVideoButton(card, event, classification);
       els.mobileEventsList.appendChild(card);
     }
 
@@ -1125,6 +1180,7 @@
         card.appendChild(time);
       }
       appendEventMeta(card, event, classification, "day-event");
+      appendEventVideoButton(card, event, classification);
       els.eventsOverlay.appendChild(card);
     }
 
@@ -1231,6 +1287,36 @@
     return `${LIVE_FEED_BASE}?date=${encodeURIComponent(selectedDate)}`;
   }
 
+  function fetchEventVideoAvailability(selectedDate) {
+    const now = Date.now();
+    const cached = eventVideoAvailabilityCache.get(selectedDate);
+    if (cached && now - cached.ts < CLIENT_EVENTS_CACHE_MS) {
+      return Promise.resolve(cached.eventIds);
+    }
+
+    const inflight = eventVideoAvailabilityInflight.get(selectedDate);
+    if (inflight) return inflight;
+
+    const url = `${EVENT_VIDEO_AVAILABILITY_BASE}?date=${encodeURIComponent(selectedDate)}`;
+    const request = fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`Video availability request failed (${response.status})`);
+        return response.json();
+      })
+      .then((payload) => {
+        const eventIds = Array.isArray(payload?.event_ids)
+          ? payload.event_ids.map((eventId) => String(eventId))
+          : [];
+        eventVideoAvailabilityCache.set(selectedDate, { ts: Date.now(), eventIds });
+        return eventIds;
+      })
+      .finally(() => {
+        eventVideoAvailabilityInflight.delete(selectedDate);
+      });
+    eventVideoAvailabilityInflight.set(selectedDate, request);
+    return request;
+  }
+
   function shiftISODate(isoDate, days) {
     const base = new Date(`${isoDate}T00:00:00`);
     base.setDate(base.getDate() + days);
@@ -1255,6 +1341,16 @@
       .then((raw) => {
         const events = getDayEvents(raw, selectedDate);
         renderDayView(events, selectedDate);
+        fetchEventVideoAvailability(selectedDate)
+          .then((eventIds) => {
+            if (selectedDate !== els.date.value) return;
+            const availableIds = new Set(eventIds);
+            events.forEach((event) => {
+              event.videoAvailable = availableIds.has(String(event.id));
+            });
+            renderDayView(events, selectedDate);
+          })
+          .catch((error) => console.warn("Event video availability unavailable", error));
         setTimeout(() => prefetchAdjacentDates(selectedDate), 0);
       })
       .catch((error) => {
