@@ -542,7 +542,6 @@ class DashClient:
         self._events_inflight: dict[str, threading.Event] = {}
         self._events_inflight_lock = threading.Lock()
         self._event_video_cache: dict[str, tuple[float, set[str]]] = {}
-        self._event_video_cache_ttl = int(os.getenv("QBK_EVENT_VIDEO_CACHE_TTL", "3600"))
         self._prefetch_adjacent_days = max(0, int(os.getenv("QBK_PREFETCH_ADJ_DAYS", "1")))
         self._prefetch_pool = ThreadPoolExecutor(max_workers=2)
         self._teen_upcoming_cache_lock = threading.Lock()
@@ -1462,14 +1461,21 @@ class DashClient:
     def get_event_video_availability(self, selected_date: date) -> list[str]:
         selected_key = selected_date.isoformat()
         cached = self._event_video_cache.get(selected_key)
-        if cached and time.time() - cached[0] < self._event_video_cache_ttl:
+        if cached and time.time() < cached[0]:
             return sorted(cached[1])
+
+        next_hour = datetime.now(LOCAL_TIMEZONE).replace(
+            minute=0,
+            second=0,
+            microsecond=0,
+        ) + timedelta(hours=1)
+        cache_expires_at = next_hour.timestamp()
 
         try:
             events = self.get_events_for_date(selected_date, schedule_prefetch=False)
             clips = self._fetch_pushit_clips_for_date(selected_date)
         except Exception:
-            self._event_video_cache[selected_key] = (time.time(), set())
+            self._event_video_cache[selected_key] = (cache_expires_at, set())
             return []
 
         available: set[str] = set()
@@ -1493,7 +1499,7 @@ class DashClient:
                     available.add(str(event.get("id")))
                     break
 
-        self._event_video_cache[selected_key] = (time.time(), available)
+        self._event_video_cache[selected_key] = (cache_expires_at, available)
         return sorted(available)
 
     def get_adult_class_events_for_week(self, selected_date: date) -> dict:
