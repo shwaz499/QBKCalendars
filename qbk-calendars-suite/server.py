@@ -60,6 +60,13 @@ SLING_CALENDAR_URL = os.getenv(
     "https://calendar.getsling.com/874141/884d00d05b4e56e711926848e172d42c75f4a9d4e4f8478aba9e4af6/Sling_Calendar_all.ics",
 )
 API_BASE = os.getenv("DASH_API_BASE", "https://api.dashplatform.com").rstrip("/")
+PUSHIT_CLIPS_URL = os.getenv(
+    "QBK_PUSHIT_CLIPS_URL",
+    "https://api.pushitreplays.com/api/clips/cursor",
+)
+PUSHIT_FIELD_ID = os.getenv("QBK_PUSHIT_FIELD_ID", "15")
+PUSHIT_PAGE_LIMIT = 100
+PUSHIT_MAX_PAGES = 40
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 EVENTS_PAGE_SIZE = 1000
 LOOKUP_PAGE_SIZE = 500
@@ -136,6 +143,44 @@ def strip_html(text) -> str:
     without_tags = re.sub(r"<[^>]+>", " ", text)
     condensed = re.sub(r"\s+", " ", without_tags).strip()
     return condensed
+
+
+def _utc_datetime(raw: object) -> datetime | None:
+    value = parse_iso8601(str(raw or ""))
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=ZoneInfo("UTC"))
+    return value.astimezone(ZoneInfo("UTC"))
+
+
+def _clock_text(value: datetime) -> str:
+    return value.astimezone(LOCAL_TZ).strftime("%I:%M:%S %p").lstrip("0")
+
+
+def _event_time_text(start: datetime, end: datetime) -> str:
+    left = start.astimezone(LOCAL_TZ).strftime("%I:%M %p").lstrip("0")
+    right = end.astimezone(LOCAL_TZ).strftime("%I:%M %p").lstrip("0")
+    return f"{left}–{right}"
+
+
+def _safe_event_title(title: str, category: str, fallback: str = "Event Video") -> str:
+    source = strip_html(title or category or fallback).strip()
+    lower = source.lower()
+    category_lower = strip_html(category).lower()
+    if (
+        "private event" in lower
+        or "private event" in category_lower
+        or re.search(r"staff[\s-]*court|pro[\s-]*court", lower)
+    ):
+        return "Private Event"
+    if (
+        "private rental" in lower
+        or "rental" in category_lower
+        or re.search(r"pro[\s-]*drop[\s-]*in", lower)
+    ):
+        return "Private Rental"
+    return source or fallback
 
 
 class ClickAnalyticsStoreBase:
@@ -973,6 +1018,123 @@ class DashClient:
             return value
         return None
 
+    def get_event_videos(self, event_id: str, title: str = "", category: str = "") -> dict:
+        response = self._request_json("GET", f"/v1/events/{event_id}")
+        data = response.get("data") or {}
+        attrs = data.get("attributes") or {}
+        if not attrs:
+            raise RuntimeError("DaySmart returned no event details.")
+
+        start = _utc_datetime(attrs.get("start_gmt") or attrs.get("start"))
+        end = _utc_datetime(attrs.get("end_gmt") or attrs.get("end"))
+        if not start or not end:
+            raise RuntimeError("DaySmart event has no usable start and end time.")
+
+        resources = self._cached_lookup("resources")
+        resource_areas = self._cached_lookup("resource_areas")
+        resource_name = resources.get(str(attrs.get("resource_id") or ""))
+        resource_area_name = resource_areas.get(str(attrs.get("resource_area_id") or ""))
+        court_key, court_name = self._court_info(resource_name, resource_area_name)
+        court_name = court_name or "Court"
+
+        clips = self._fetch_pushit_clips(start, end, court_key, court_name)
+        local_start = start.astimezone(LOCAL_TZ)
+        local_end = end.astimezone(LOCAL_TZ)
+        return {
+            "event": {
+                "id": str(event_id),
+                "title": _safe_event_title(title, category, f"Event {event_id}"),
+                "category": strip_html(category),
+                "date": local_start.strftime("%A, %B %-d, %Y"),
+                "time": _event_time_text(start, end),
+                "court": court_name,
+                "court_key": court_key or "",
+                "start_time": local_start.isoformat(),
+                "end_time": local_end.isoformat(),
+            },
+            "clips": clips,
+        }
+
+    def _fetch_pushit_clips(
+        self,
+        start: datetime,
+        end: datetime,
+        court_key: str | None,
+        court_name: str,
+    ) -> list[dict]:
+        params_base = [
+            ("fieldId", PUSHIT_FIELD_ID),
+            ("sortBy", "date"),
+            ("sortDirection", "desc"),
+            ("limit", str(PUSHIT_PAGE_LIMIT)),
+            ("additionalFields", "session"),
+            ("additionalFields", "camera"),
+            ("additionalFields", "pitch"),
+            ("additionalFields", "field"),
+        ]
+        clips: list[dict] = []
+        cursor = None
+        client_kwargs = {"timeout": 30.0, "follow_redirects": True}
+        try:
+            import certifi  # type: ignore
+
+            client_kwargs["verify"] = certifi.where()
+        except Exception:
+            pass
+
+        for _ in range(PUSHIT_MAX_PAGES):
+            params = list(params_base)
+            if cursor:
+                params.append(("cursor", cursor))
+            response = httpx.get(PUSHIT_CLIPS_URL, params=params, **client_kwargs)
+            response.raise_for_status()
+            payload = response.json()
+            items = payload.get("items") or []
+            if not items:
+                break
+
+            oldest = None
+            for item in items:
+                created = _utc_datetime(item.get("clipCreationTime"))
+                if created:
+                    oldest = created if oldest is None else min(oldest, created)
+                if not created or created < start or created > end:
+                    continue
+
+                pitch = ((item.get("camera") or {}).get("pitch") or {})
+                pitch_name = str(pitch.get("name") or "").strip()
+                normalized_pitch = pitch_name.lower()
+                if court_key and court_key != "all" and normalized_pitch != court_name.lower():
+                    continue
+
+                file_name = str(item.get("fileName") or "").strip()
+                if not file_name:
+                    continue
+                session = item.get("session") or {}
+                clips.append(
+                    {
+                        "id": str(item.get("id") or file_name),
+                        "time": _clock_text(created),
+                        "file": file_name,
+                        "url": str(item.get("url") or f"https://pushitreplays.com/assets/videos/clips_overlay/{file_name}.mp4"),
+                        "poster": str(item.get("thumbnail") or f"https://pushitreplays.com/assets/images/clips/{file_name}.jpg"),
+                        "court": pitch_name or court_name,
+                        "session": str(session.get("name") or ""),
+                        "clipCreationTime": created.isoformat(),
+                        "duration": item.get("duration"),
+                    }
+                )
+
+            if not payload.get("hasMore") or not oldest or oldest < start:
+                break
+            next_cursor = payload.get("nextCursor")
+            if not next_cursor or next_cursor == cursor:
+                break
+            cursor = next_cursor
+
+        clips.sort(key=lambda item: item.get("clipCreationTime") or "")
+        return clips
+
     def _fetch_lookup(self, path: str) -> dict[str, str]:
         lookup: dict[str, str] = {}
         page = 1
@@ -1602,6 +1764,8 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             return self._handle_events_week_api(parsed)
         if parsed.path == "/api/events":
             return self._handle_events_api(parsed)
+        if parsed.path == "/api/event-videos":
+            return self._handle_event_videos_api(parsed)
         if parsed.path == "/api/click-analytics":
             return self._handle_click_analytics_api(parsed)
         if parsed.path == "/api/league-click-analytics":
@@ -1710,6 +1874,28 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             )
 
         return self._send_json(events)
+
+    def _handle_event_videos_api(self, parsed: urllib.parse.ParseResult):
+        query = urllib.parse.parse_qs(parsed.query)
+        event_id = (query.get("eventId") or [""])[0].strip()
+        if not event_id.isdigit():
+            return self._send_json({"error": "A valid eventId is required."}, status=400, cache_control="no-store")
+
+        title = (query.get("title") or query.get("eventTitle") or [""])[0]
+        category = (query.get("category") or [""])[0]
+        try:
+            payload = CLIENT.get_event_videos(event_id, title=title, category=category)
+        except Exception as exc:
+            return self._send_json(
+                {
+                    "error": "Could not load event videos.",
+                    "details": str(exc),
+                },
+                status=502,
+                cache_control="no-store",
+            )
+
+        return self._send_json(payload, cache_control=API_JSON_CACHE_CONTROL)
 
     def _handle_teen_upcoming_api(self, parsed: urllib.parse.ParseResult):
         query = urllib.parse.parse_qs(parsed.query)
