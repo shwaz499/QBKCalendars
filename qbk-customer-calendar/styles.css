@@ -574,6 +574,7 @@ h2 {
 }
 
 .mobile-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -581,7 +582,7 @@ h2 {
   background: #effbf5;
   border-radius: 12px;
   text-decoration: none;
-  padding: 0.62rem 0.7rem;
+  padding: 0.62rem 1.8rem 0.62rem 0.7rem;
 }
 
 .mobile-item-title {
@@ -605,6 +606,46 @@ h2 {
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 1.1;
+}
+
+.event-video-button {
+  position: absolute;
+  right: 0.35rem;
+  top: 0.35rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 1.18rem;
+  height: 1.18rem;
+  border: 0;
+  border-radius: 3px;
+  padding: 0;
+  background: transparent;
+  color: #26343d;
+  cursor: pointer;
+}
+
+.event-video-button:hover,
+.event-video-button:focus-visible {
+  background: rgb(255 255 255 / 55%);
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+.event-video-icon {
+  position: relative;
+  display: block;
+  width: 1.1rem;
+  height: 0.72rem;
+  background: url("./video-camera-18.png") center / contain no-repeat;
+}
+
+.event-video-icon::before {
+  content: none;
+}
+
+.event-video-icon::after {
+  content: none;
 }
 
 .mobile-rent-slot {
@@ -833,7 +874,7 @@ h2 {
   border: 1px solid #b6d7c8;
   background: #effbf5;
   border-radius: 10px;
-  padding: 0.35rem 0.4rem;
+  padding: 0.35rem 1.55rem 0.35rem 0.4rem;
   text-decoration: none;
   overflow: hidden;
   pointer-events: auto;
@@ -844,6 +885,8 @@ h2 {
   font-size: 0.8rem;
   font-weight: 700;
   line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .day-event-time {
@@ -1137,7 +1180,7 @@ h2 {
 
   .day-event {
     border-radius: 8px;
-    padding: 0.24rem 0.25rem;
+    padding: 0.24rem 1.2rem 0.24rem 0.25rem;
     gap: 0.1rem;
   }
 
@@ -1149,6 +1192,18 @@ h2 {
   .day-event-time {
     font-size: 0.58rem;
     line-height: 1.12;
+  }
+
+  .event-video-button {
+    right: 0.2rem;
+    top: 0.2rem;
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+
+  .event-video-icon {
+    width: 0.82rem;
+    height: 0.54rem;
   }
 
   .rent-slot {

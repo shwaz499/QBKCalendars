@@ -11,9 +11,10 @@ import threading
 import time
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime, time as dtime, timedelta
+from datetime import date, datetime, time as dtime, timedelta, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -30,6 +31,10 @@ API_BASE = os.getenv("DASH_API_BASE", "https://api.dashplatform.com").rstrip("/"
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 EVENTS_PAGE_SIZE = 1000
 LOOKUP_PAGE_SIZE = 500
+PUSHIT_CLIPS_URL = "https://api.pushitreplays.com/api/clips/cursor"
+PUSHIT_FIELD_ID = "15"
+PUSHIT_PITCH_IDS = {"left": "78", "middle": "79", "right": "80"}
+LOCAL_TIMEZONE = ZoneInfo("America/New_York")
 
 
 def parse_iso8601(raw: str | None) -> datetime | None:
@@ -66,6 +71,8 @@ class DashClient:
         self._page_hint_by_date: dict[str, tuple[float, int]] = {}
         self._events_inflight: dict[str, threading.Event] = {}
         self._events_inflight_lock = threading.Lock()
+        self._event_video_cache: dict[str, tuple[float, set[str]]] = {}
+        self._event_video_cache_ttl = int(os.getenv("QBK_EVENT_VIDEO_CACHE_TTL", "3600"))
 
     def _build_http_client(self) -> httpx.Client:
         verify: bool | str = True
@@ -233,6 +240,9 @@ class DashClient:
             x for x in [event_type_id or "", category or "", league_name or "", description or ""] if x
         ).lower()
 
+        if "ymca" in haystack and "camp" in haystack:
+            return "private_event"
+
         if (
             event_type_id.lower() == "r"
             or "rental" in haystack
@@ -384,13 +394,13 @@ class DashClient:
                 league_id = str(attrs.get("league_id")) if attrs.get("league_id") is not None else ""
                 resource_id = str(attrs.get("resource_id")) if attrs.get("resource_id") is not None else ""
                 resource_area_id = str(attrs.get("resource_area_id")) if attrs.get("resource_area_id") is not None else ""
-                team_id = (
-                    attrs.get("hteam_id")
-                    or attrs.get("vteam_id")
-                    or attrs.get("rteam_id")
-                )
+                home_team_id = attrs.get("hteam_id")
+                away_team_id = attrs.get("vteam_id")
+                team_id = home_team_id or away_team_id or attrs.get("rteam_id")
                 team_id = str(team_id) if team_id is not None else None
-                vteam_id = attrs.get("vteam_id")
+                home_team_id = str(home_team_id) if home_team_id is not None else None
+                away_team_id = str(away_team_id) if away_team_id is not None else None
+                vteam_id = away_team_id
 
                 category = event_types.get(event_type_id)
                 league_name = leagues.get(league_id)
@@ -403,6 +413,8 @@ class DashClient:
                         "id": str(row.get("id")),
                         "event_kind": event_kind,
                         "team_id": team_id,
+                        "home_team_id": home_team_id,
+                        "away_team_id": away_team_id,
                         "league_name": league_name,
                         "description": description,
                         "category": category,
@@ -417,12 +429,13 @@ class DashClient:
                 break
             page += 1
 
-        bookable_team_ids = {
-            str(item["team_id"])
+        team_ids = {
+            team_id
             for item in parsed_events
-            if item["event_kind"] == "bookable" and item["team_id"]
+            for team_id in (item["team_id"], item["home_team_id"], item["away_team_id"])
+            if team_id
         }
-        team_names = self._prefetch_team_names(bookable_team_ids)
+        team_names = self._prefetch_team_names(team_ids)
 
         events = []
         for item in parsed_events:
@@ -434,7 +447,9 @@ class DashClient:
             category = item["category"]
 
             if event_kind == "league":
-                title = league_name or "League Match"
+                home_name = team_names.get(item["home_team_id"]) if item["home_team_id"] else None
+                away_name = team_names.get(item["away_team_id"]) if item["away_team_id"] else None
+                title = f"{home_name} vs. {away_name}" if home_name and away_name else league_name or "League Match"
                 program_category = "League"
                 booking_url = None
                 clickable = False
@@ -534,6 +549,96 @@ class DashClient:
                 if done_event is not None:
                     done_event.set()
 
+    @staticmethod
+    def _event_time_as_utc(raw: str | None) -> datetime | None:
+        parsed = parse_iso8601(raw)
+        if parsed is None:
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=LOCAL_TIMEZONE)
+        return parsed.astimezone(timezone.utc)
+
+    def _fetch_pushit_clips_for_date(self, selected_date: date) -> list[dict]:
+        local_start = datetime.combine(selected_date, dtime.min).replace(tzinfo=LOCAL_TIMEZONE)
+        day_start = local_start.astimezone(timezone.utc)
+        day_end = (local_start + timedelta(days=1)).astimezone(timezone.utc)
+        cursor = None
+        matching_day_clips: list[dict] = []
+
+        for _ in range(12):
+            params = [
+                ("fieldId", PUSHIT_FIELD_ID),
+                ("additionalFields", "session"),
+                ("additionalFields", "pitch"),
+                ("sortBy", "date"),
+                ("sortDirection", "desc"),
+                ("limit", "100"),
+            ]
+            if cursor:
+                params.append(("cursor", cursor))
+            response = httpx.get(
+                PUSHIT_CLIPS_URL,
+                params=params,
+                headers={"disable-token": "1"},
+                timeout=20.0,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            items = payload.get("items") or []
+            oldest_clip = None
+            for item in items:
+                clip_time = self._event_time_as_utc(item.get("clipCreationTime"))
+                if clip_time is None:
+                    continue
+                if oldest_clip is None or clip_time < oldest_clip:
+                    oldest_clip = clip_time
+                if day_start <= clip_time < day_end:
+                    matching_day_clips.append(item)
+            if oldest_clip is not None and oldest_clip < day_start:
+                break
+            cursor = payload.get("nextCursor")
+            if not cursor or not payload.get("hasMore"):
+                break
+
+        return matching_day_clips
+
+    def get_event_video_availability(self, selected_date: date) -> list[str]:
+        selected_key = selected_date.isoformat()
+        cached = self._event_video_cache.get(selected_key)
+        if cached and time.time() - cached[0] < self._event_video_cache_ttl:
+            return sorted(cached[1])
+
+        try:
+            events = self.get_events_for_date(selected_date)
+            clips = self._fetch_pushit_clips_for_date(selected_date)
+        except Exception:
+            self._event_video_cache[selected_key] = (time.time(), set())
+            return []
+
+        available: set[str] = set()
+        for event in events:
+            court_key = str(event.get("court_key") or "").lower()
+            if court_key == "all":
+                pitch_ids = set(PUSHIT_PITCH_IDS.values())
+            elif court_key in PUSHIT_PITCH_IDS:
+                pitch_ids = {PUSHIT_PITCH_IDS[court_key]}
+            else:
+                continue
+            start = self._event_time_as_utc(event.get("start_time"))
+            end = self._event_time_as_utc(event.get("end_time"))
+            if start is None or end is None:
+                continue
+            for clip in clips:
+                session = clip.get("session") or {}
+                pitch_id = str(session.get("pitchId") or "")
+                clip_time = self._event_time_as_utc(clip.get("clipCreationTime"))
+                if pitch_id in pitch_ids and clip_time is not None and start <= clip_time <= end:
+                    available.add(str(event.get("id")))
+                    break
+
+        self._event_video_cache[selected_key] = (time.time(), available)
+        return sorted(available)
+
 
 CLIENT = DashClient()
 
@@ -546,6 +651,8 @@ class CalendarHandler(SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path == "/api/events":
             return self._handle_events_api(parsed)
+        if parsed.path == "/api/event-video-availability":
+            return self._handle_event_video_availability_api(parsed)
         return super().do_GET()
 
     def _handle_events_api(self, parsed: urllib.parse.ParseResult):
@@ -572,6 +679,17 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             )
 
         return self._send_json(events)
+
+    def _handle_event_video_availability_api(self, parsed: urllib.parse.ParseResult):
+        query = urllib.parse.parse_qs(parsed.query)
+        raw_date = (query.get("date") or [date.today().isoformat()])[0]
+        if not DATE_RE.match(raw_date):
+            return self._send_json({"error": "Invalid date. Use YYYY-MM-DD."}, status=400)
+        try:
+            selected = datetime.strptime(raw_date, "%Y-%m-%d").date()
+        except ValueError:
+            return self._send_json({"error": "Invalid calendar date."}, status=400)
+        return self._send_json({"event_ids": CLIENT.get_event_video_availability(selected)})
 
     def _send_json(self, payload: dict | list, status: int = 200):
         data = json.dumps(payload).encode("utf-8")
