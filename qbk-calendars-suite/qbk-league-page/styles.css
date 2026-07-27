@@ -103,6 +103,7 @@ p {
   line-height: 0.84;
   font-weight: 800;
   letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .season-copy h1 span {
@@ -206,6 +207,7 @@ p {
   font-size: 0.86rem;
   font-weight: 800;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .league-title {
@@ -495,7 +497,7 @@ p {
   }
 
   .season-copy h1 {
-    font-size: 3.35rem;
+    font-size: 2.65rem;
   }
 
   .deadline-banner {
@@ -512,8 +514,8 @@ p {
   }
 
   .league-labels {
-    top: 18px;
-    right: 17px;
+    top: 11px;
+    right: 11px;
   }
 
   .league-title {
@@ -566,6 +568,36 @@ p {
   .league-actions {
     grid-template-columns: 1fr;
     padding: 0 17px 17px;
+  }
+}
+
+@media (max-width: 360px) {
+  .season-copy h1 {
+    font-size: 2.25rem;
+  }
+
+  .title-day {
+    font-size: 1.9rem;
+  }
+
+  .title-rest {
+    font-size: 1.72rem;
+  }
+
+  .option-label {
+    font-size: 0.52rem;
+    white-space: nowrap;
+  }
+
+  .option-price {
+    font-size: 1.1rem;
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+
+  .discount-highlight {
+    font-size: 0.5rem;
+    white-space: nowrap;
   }
 }
 
