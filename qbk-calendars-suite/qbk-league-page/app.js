@@ -8,22 +8,68 @@
   }
   const LEAGUES = [
     {
-      day: "Thursday",
-      format: "6v6",
-      title: "Thursday All Abilities Coed 6x6",
-      leagueStarts: "July 16, 2026",
-      teamPrice: "$1,195/team",
-      teamNote: "Unlimited roster. $100 off if signed up by June 21st, 2026.",
-      freeAgentPrice: "$120/player",
-      freeAgentNote: "Placed onto a team. Expect roughly 10 players per team.",
+      day: "Monday",
+      format: "4x4",
+      title: "Monday Intermediate League",
+      leagueStarts: "September 14, 2026",
+      teamPrice: "$1,095.00/team",
+      freeAgentPrice: "$150/player",
       startTimes: "6:00 PM and later",
       season: "6 weeks",
       schedule: "5 weeks regular play + 1 week playoffs",
-      playoffDate: "August 20, 2026",
+      playoffDate: "October 26, 2026",
+      playoffNote: "Playoff night.",
+      notes: ["No games October 12, 2026 for Columbus/Indigenous Peoples' Day."],
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/qbksports/programs/level/384?facility_ids=1",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9746"
+    },
+    {
+      day: "Tuesday",
+      format: "6x6",
+      title: "Tuesday All-Abilities Rec League",
+      leagueStarts: "September 8, 2026",
+      teamPrice: "$1,195/team",
+      freeAgentPrice: "$120/player",
+      startTimes: "6:00 PM and later",
+      season: "6 weeks",
+      schedule: "5 weeks regular play + 1 week playoffs",
+      playoffDate: "October 13, 2026",
       playoffNote: "Playoff night.",
       notes: [],
-      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/activity-finder/programs/1/levels/380?&&registrantType=manager",
-      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9496"
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/qbksports/programs/level/383?facility_ids=1",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9745"
+    },
+    {
+      day: "Wednesday",
+      format: "4x4",
+      title: "Wednesday Intermediate League",
+      leagueStarts: "September 9, 2026",
+      teamPrice: "$1,095.00/team",
+      freeAgentPrice: "$150/player",
+      startTimes: "6:00 PM and later",
+      season: "6 weeks",
+      schedule: "5 weeks regular play + 1 week playoffs",
+      playoffDate: "October 14, 2026",
+      playoffNote: "Playoff night.",
+      notes: [],
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/qbksports/programs/level/386?facility_ids=1",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9748"
+    },
+    {
+      day: "Thursday",
+      format: "6x6",
+      title: "Thursday All-Abilities Rec League",
+      leagueStarts: "September 10, 2026",
+      teamPrice: "$1,195/team",
+      freeAgentPrice: "$120/player",
+      startTimes: "6:00 PM and later",
+      season: "6 weeks",
+      schedule: "5 weeks regular play + 1 week playoffs",
+      playoffDate: "October 15, 2026",
+      playoffNote: "Playoff night.",
+      notes: [],
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/qbksports/programs/level/385?facility_ids=1",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9747"
     }
   ];
 
@@ -73,31 +119,51 @@
   }
 
   function buildCard(league) {
+    const titleRest = league.title.startsWith(`${league.day} `)
+      ? league.title.slice(league.day.length + 1)
+      : league.title;
     const notesHtml = league.notes.length
-      ? `<div class="league-note">${league.notes.join("<br />")}</div>`
+      ? `<div class="league-note"><span>Schedule note</span><strong>${league.notes.join("<br />")}</strong></div>`
       : "";
-    const teamNoteHtml = league.teamNote.replace(
-      "$100 off if signed up by June 21st, 2026.",
-      `<span class="discount-highlight">$100 off if signed up by June 21st, 2026.</span>`
-    );
-
     return `
-      <article class="league-card">
-        <div class="league-top">
-          <h2 class="league-title">${league.title}</h2>
-          <div class="league-meta"><strong>League starts:</strong> ${league.leagueStarts}</div>
+      <article class="league-card" data-day="${league.day.toLowerCase()}">
+        <header class="league-top">
+          <div class="league-labels">
+            <span class="format-label">${league.format} Coed</span>
+          </div>
+          <h2 class="league-title">
+            <span class="title-day">${league.day}</span>
+            <span class="title-rest">${titleRest}</span>
+          </h2>
+          <p class="start-time">Games start ${league.startTimes}. 6-week season.</p>
+        </header>
+
+        <div class="season-path${league.notes.length ? " has-note" : ""}" aria-label="${league.day} league season dates">
+          <div class="date-block">
+            <span>Starts</span>
+            <strong>${league.leagueStarts}</strong>
+          </div>
+          <div class="path-line" aria-hidden="true">
+            <span></span>
+          </div>
+          <div class="date-block date-block-end">
+            <span>Playoffs</span>
+            <strong>${league.playoffDate}</strong>
+          </div>
+          ${notesHtml}
         </div>
 
-        <ul class="league-facts">
-          <li><strong>${league.teamPrice}</strong> — ${teamNoteHtml}</li>
-          <li><strong>${league.freeAgentPrice}</strong> — ${league.freeAgentNote}</li>
-          <li><strong>Start times:</strong> ${league.startTimes}</li>
-          <li><strong>Season:</strong> ${league.season}</li>
-          <li><strong>Format:</strong> ${league.schedule}</li>
-          <li><strong>Playoffs:</strong> ${league.playoffDate} — ${league.playoffNote}</li>
-        </ul>
-
-        ${notesHtml}
+        <div class="registration-options">
+          <div class="registration-option">
+            <div class="option-label">Bring a team</div>
+            <div class="option-price">${league.teamPrice}</div>
+            <div class="discount-highlight">Save $100 by August 16</div>
+          </div>
+          <div class="registration-option">
+            <div class="option-label">Join as a free agent</div>
+            <div class="option-price">${league.freeAgentPrice}</div>
+          </div>
+        </div>
 
         <div class="league-actions">
           <a
@@ -109,7 +175,7 @@
             data-button-label="${league.title} — Team Sign Up"
             data-destination-url="${league.signUpUrl}"
             data-category="${league.title}"
-          >Team Sign Up</a>
+          ><span>Register a Team</span><span class="cta-arrow" aria-hidden="true">-&gt;</span></a>
           <a
             class="cta cta-secondary"
             href="${league.freeAgentUrl}"
@@ -119,7 +185,7 @@
             data-button-label="${league.title} — Free Agent Sign Up"
             data-destination-url="${league.freeAgentUrl}"
             data-category="${league.title}"
-          >Free Agent Sign Up</a>
+          ><span>Join as a Free Agent</span><span class="cta-arrow" aria-hidden="true">-&gt;</span></a>
         </div>
       </article>
     `;
