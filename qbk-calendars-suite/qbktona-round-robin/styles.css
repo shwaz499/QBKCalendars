@@ -247,7 +247,7 @@ h2 {
 }
 
 .tv-header {
-  min-height: 138px;
+  min-height: 160px;
   display: grid;
   grid-template-columns: minmax(260px, 620px) minmax(220px, 1fr) auto;
   gap: 20px;
@@ -261,7 +261,7 @@ h2 {
 
 .tv-logo {
   width: min(620px, 54vw);
-  max-height: 122px;
+  max-height: 142px;
   object-fit: contain;
   object-position: left center;
 }
@@ -353,7 +353,7 @@ h2 {
 .match-card {
   min-height: 0;
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) 34px;
+  grid-template-columns: 92px minmax(0, 1fr) 34px;
   gap: 8px;
   align-items: stretch;
   padding: 6px;
@@ -371,6 +371,7 @@ h2 {
 
 .match-number {
   display: grid;
+  grid-template-rows: 1fr auto;
   place-items: center;
   color: var(--accent-ink);
   background: var(--accent);
@@ -383,6 +384,16 @@ h2 {
 .match-ordinal {
   font-size: clamp(20px, 1.8vw, 30px);
   line-height: 0.95;
+}
+
+.match-court {
+  width: 100%;
+  padding: 0 2px 2px;
+  font-size: clamp(9px, 0.72vw, 14px);
+  font-weight: 950;
+  line-height: 0.95;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .match-main {
@@ -471,11 +482,26 @@ h2 {
   border-color: rgba(247, 201, 72, 0.42);
 }
 
+.playoff-card.semifinal {
+  border-color: rgba(122, 183, 255, 0.34);
+}
+
 .playoff-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
   color: var(--amber);
   font-size: clamp(14px, 1vw, 18px);
   font-weight: 950;
   text-transform: uppercase;
+}
+
+.playoff-court {
+  color: var(--muted);
+  font-size: clamp(9px, 0.72vw, 13px);
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .playoff-body {
@@ -648,6 +674,12 @@ h2 {
 
   .tv-header {
     display: flex;
+    min-height: 160px;
+  }
+
+  .tv-logo {
+    width: min(620px, 100%);
+    max-height: 142px;
   }
 
   .tv-tournament-name {
