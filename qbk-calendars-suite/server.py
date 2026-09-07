@@ -1249,8 +1249,11 @@ class DashClient:
         birthday_events = []
         other_events = []
         for event in events:
-            if event.pop("_private_event_reason", None) == "birthday":
-                birthday_events.append(event)
+            private_event_reason = event.pop("_private_event_reason", None)
+            if private_event_reason == "birthday":
+                if event.get("court_key") in {"left", "middle", "right", "all"}:
+                    birthday_events.append(event)
+                continue
             else:
                 other_events.append(event)
 
