@@ -1244,6 +1244,45 @@ class DashClient:
             }
         ]
 
+    @staticmethod
+    def _merge_overlapping_birthday_private_events(events: list[dict]) -> list[dict]:
+        birthday_events = []
+        other_events = []
+        for event in events:
+            if event.pop("_private_event_reason", None) == "birthday":
+                birthday_events.append(event)
+            else:
+                other_events.append(event)
+
+        birthday_events.sort(key=lambda event: event["start_time"])
+        merged: list[dict] = []
+        for event in birthday_events:
+            if not merged or event["start_time"] >= merged[-1]["end_time"]:
+                merged.append(dict(event))
+                continue
+
+            current = merged[-1]
+            if event["end_time"] > current["end_time"]:
+                current["end_time"] = event["end_time"]
+
+            court_keys = {
+                str(value)
+                for value in (current.get("court_key"), event.get("court_key"))
+                if value in {"left", "middle", "right"}
+            }
+            if len(court_keys) == 1:
+                court_key = next(iter(court_keys))
+                court_label = f"{court_key.title()} Court"
+                current["court_key"] = court_key
+                current["location"] = court_label
+                current["sub_resource"] = f"{court_label} (sub)"
+            else:
+                current["court_key"] = "all"
+                current["location"] = "All Courts"
+                current["sub_resource"] = "All Courts"
+
+        return sorted(other_events + merged, key=lambda event: event["start_time"])
+
     def _compute_events_for_date(self, selected_date: date) -> tuple[list[dict], int | None]:
         if selected_date.isoformat() in PRIVATE_EVENT_CLOSED_DATES:
             return self._private_event_closed_events(selected_date), 1
@@ -1505,6 +1544,12 @@ class DashClient:
             if court_label:
                 location = court_label
 
+            private_event_reason = None
+            if event_kind == "private_event" and "birthday" in " ".join(
+                x for x in [category or "", league_name or "", description or ""] if x
+            ).lower():
+                private_event_reason = "birthday"
+
             events.append(
                 {
                     "id": str(item["id"]),
@@ -1521,10 +1566,11 @@ class DashClient:
                     "registered_count": registered_count,
                     "remaining_registration_slots": remaining_registration_slots,
                     "registration_status": registration_status,
+                    "_private_event_reason": private_event_reason,
                 }
             )
 
-        events.sort(key=lambda e: e["start_time"])
+        events = self._merge_overlapping_birthday_private_events(events)
         return events, 1 if events else None
 
     def get_events_for_date(self, selected_date: date, *, schedule_prefetch: bool = True) -> list[dict]:
