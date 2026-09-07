@@ -976,6 +976,9 @@ class DashClient:
             x for x in [event_type_id or "", category or "", league_name or "", description or ""] if x
         ).lower()
 
+        if "battle royale" in haystack:
+            return "private_event"
+
         if "ymca" in haystack and "camp" in haystack:
             return "private_event"
 
