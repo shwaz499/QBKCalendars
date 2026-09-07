@@ -979,6 +979,9 @@ class DashClient:
         if "battle royale" in haystack:
             return "private_event"
 
+        if "birthday" in haystack:
+            return "private_event"
+
         if "ymca" in haystack and "camp" in haystack:
             return "private_event"
 
