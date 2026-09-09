@@ -1909,7 +1909,15 @@ LEAGUE_CLICK_ANALYTICS = _build_analytics_store("league", LEAGUE_CLICK_ANALYTICS
 
 class CalendarHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
+        self._cache_control = None
         super().__init__(*args, directory=str(REPO_ROOT), **kwargs)
+
+    def end_headers(self):
+        if self._cache_control:
+            self.send_header("Cache-Control", self._cache_control)
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+        super().end_headers()
 
     def _is_local_request(self) -> bool:
         host = (self.headers.get("Host") or "").lower()
@@ -1949,6 +1957,13 @@ class CalendarHandler(SimpleHTTPRequestHandler):
         if static_path is not None:
             if not static_path.is_file():
                 return self.send_error(404, "File not found")
+            league_root = APP_ROUTE_DIRS["/league-page"].resolve()
+            try:
+                static_path.relative_to(league_root)
+            except ValueError:
+                pass
+            else:
+                self._cache_control = "no-store, max-age=0, must-revalidate"
             self.path = "/" + static_path.relative_to(REPO_ROOT).as_posix()
             return super().do_GET()
 
