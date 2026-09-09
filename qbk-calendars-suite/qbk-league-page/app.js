@@ -24,38 +24,6 @@
       freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9746"
     },
     {
-      day: "Tuesday",
-      format: "6x6",
-      title: "Tuesday All-Abilities Rec League",
-      leagueStarts: "September 8, 2026",
-      teamPrice: "$1,195/team",
-      freeAgentPrice: "$120/player",
-      startTimes: "6:00 PM and later",
-      season: "6 weeks",
-      schedule: "5 weeks regular play + 1 week playoffs",
-      playoffDate: "October 13, 2026",
-      playoffNote: "Playoff night.",
-      notes: [],
-      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/qbksports/programs/level/383?facility_ids=1",
-      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9745"
-    },
-    {
-      day: "Wednesday",
-      format: "4x4",
-      title: "Wednesday Intermediate League",
-      leagueStarts: "September 9, 2026",
-      teamPrice: "$1,095.00/team",
-      freeAgentPrice: "$150/player",
-      startTimes: "6:00 PM and later",
-      season: "6 weeks",
-      schedule: "5 weeks regular play + 1 week playoffs",
-      playoffDate: "October 14, 2026",
-      playoffNote: "Playoff night.",
-      notes: [],
-      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/qbksports/programs/level/386?facility_ids=1",
-      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9748"
-    },
-    {
       day: "Thursday",
       format: "6x6",
       title: "Thursday All-Abilities Rec League",

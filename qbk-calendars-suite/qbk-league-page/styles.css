@@ -56,9 +56,9 @@ p {
   isolation: isolate;
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(230px, 0.7fr);
-  grid-template-areas: "copy deadline";
-  gap: 30px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "copy";
+  gap: 0;
   padding: 34px 38px;
   border-radius: 8px;
   color: #ffffff;
@@ -472,9 +472,7 @@ p {
 @media (max-width: 880px) {
   .season-banner {
     grid-template-columns: 1fr;
-    grid-template-areas:
-      "copy"
-      "deadline";
+    grid-template-areas: "copy";
   }
 
   .league-grid {
