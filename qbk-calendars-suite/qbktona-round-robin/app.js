@@ -35,15 +35,26 @@ const courtPicker = document.querySelector("#courtPicker");
 
 let state = loadState();
 let draggedMatchId = null;
-let serverStateAvailable = null;
+let serverStateAvailable = Boolean(window.__QBK_TOURNAMENT_STATE_SERVER__);
 let serverSaveTimer = null;
 let serverSaveQueue = Promise.resolve();
 let serverSavePending = false;
 
 function loadState() {
   const saved = readStoredState(STATE_KEY) || readStoredState(LEGACY_STATE_KEY);
+  const localState = normalizeStoredState(saved);
+  const serverState = normalizeStoredState(window.__QBK_TOURNAMENT_STATE__);
 
-  return normalizeStoredState(saved) || {
+  if (
+    serverState &&
+    (!localState ||
+      !localState.matches.length ||
+      (serverState.updatedAt && serverState.updatedAt >= localState.updatedAt))
+  ) {
+    return serverState;
+  }
+
+  return localState || {
     updatedAt: 0,
     tournamentName: "Round Robin Tournament",
     teams: buildTeams(5),
@@ -253,6 +264,16 @@ function flushServerSave(keepalive = false) {
       return true;
     })
     .catch(() => {
+      try {
+        const queued = navigator.sendBeacon(
+          TOURNAMENT_STATE_API,
+          new Blob([snapshot], { type: "application/json" })
+        );
+        if (queued) return true;
+      } catch {
+        serverSavePending = true;
+        return false;
+      }
       serverSavePending = true;
       return false;
     });

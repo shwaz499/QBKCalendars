@@ -2040,6 +2040,9 @@ class CalendarHandler(SimpleHTTPRequestHandler):
         if static_path is not None:
             if not static_path.is_file():
                 return self.send_error(404, "File not found")
+            qbk_root = APP_ROUTE_DIRS["/qbktona-round-robin"].resolve()
+            if static_path == qbk_root / "index.html":
+                return self._serve_tournament_page(static_path)
             league_root = APP_ROUTE_DIRS["/league-page"].resolve()
             try:
                 static_path.relative_to(league_root)
@@ -2093,6 +2096,38 @@ class CalendarHandler(SimpleHTTPRequestHandler):
         self.send_response(302)
         self.send_header("Location", location)
         self.end_headers()
+        return None
+
+    def _serve_tournament_page(self, path: Path):
+        try:
+            html = path.read_text(encoding="utf-8")
+        except OSError:
+            return self.send_error(404, "File not found")
+
+        seeded_state = json.dumps(
+            TOURNAMENT_STATE.read(),
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+        seeded_state = (
+            seeded_state.replace("<", "\\u003c")
+            .replace(">", "\\u003e")
+            .replace("&", "\\u0026")
+        )
+        injection = (
+            "<script>window.__QBK_TOURNAMENT_STATE_SERVER__=true;"
+            f"window.__QBK_TOURNAMENT_STATE__={seeded_state};</script>\n"
+        )
+        marker = '<script src="./app.js'
+        html = html.replace(marker, injection + marker, 1)
+        data = html.encode("utf-8")
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store, max-age=0, must-revalidate")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
         return None
 
     def _handle_tournament_state_get(self):
