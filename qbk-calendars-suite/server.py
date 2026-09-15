@@ -314,6 +314,8 @@ def _default_tournament_data_dir() -> Path:
         return Path(configured)
 
     render_disk = Path("/var/data")
+    if os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID"):
+        return render_disk
     if render_disk.is_dir() and os.access(render_disk, os.W_OK):
         return render_disk
     return PROJECT_DIR / ".runtime-cache"
