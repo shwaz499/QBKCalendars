@@ -328,6 +328,10 @@ TOURNAMENT_STATE_PATH = Path(
         str(TOURNAMENT_DATA_DIR / "qbktona-round-robin-state.json"),
     )
 )
+TOURNAMENT_STATE_ROUTES = {
+    "/qbktona-round-robin/tournament-state",
+    "/api/qbktona-round-robin/state",
+}
 
 
 class TournamentStateStore:
@@ -2008,7 +2012,7 @@ class CalendarHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/api/qbktona-round-robin/state":
+        if parsed.path in TOURNAMENT_STATE_ROUTES:
             return self._handle_tournament_state_get()
         if parsed.path == "/api/events-week":
             return self._handle_events_week_api(parsed)
@@ -2050,7 +2054,7 @@ class CalendarHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/api/qbktona-round-robin/state":
+        if parsed.path in TOURNAMENT_STATE_ROUTES:
             return self._handle_tournament_state_write()
         if parsed.path == "/api/booking-requests":
             return self._handle_booking_request_api()
@@ -2062,7 +2066,7 @@ class CalendarHandler(SimpleHTTPRequestHandler):
 
     def do_PUT(self):
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/api/qbktona-round-robin/state":
+        if parsed.path in TOURNAMENT_STATE_ROUTES:
             return self._handle_tournament_state_write()
         return self.send_error(404, "Not found")
 

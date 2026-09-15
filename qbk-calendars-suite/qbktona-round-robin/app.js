@@ -6,7 +6,7 @@ const GAMES_PER_MATCH_MIN = 1;
 const GAMES_PER_MATCH_MAX = 3;
 const MATCHES_PER_TEAM_MIN = 1;
 const PLAYOFF_TEAM_MIN = 2;
-const TOURNAMENT_STATE_API = "/api/qbktona-round-robin/state";
+const TOURNAMENT_STATE_API = "/qbktona-round-robin/tournament-state";
 
 const setupView = document.querySelector("#setupView");
 const tvView = document.querySelector("#tvView");
