@@ -4,13 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Round Robin Tournament Manager</title>
-    <link rel="stylesheet" href="./styles.css?v=20260808-7" />
+    <link rel="stylesheet" href="./styles.css?v=20260915-01" />
   </head>
   <body>
     <main class="app-shell">
       <section class="setup-view" id="setupView" aria-labelledby="setupTitle">
         <div class="setup-panel">
-          <p class="eyebrow">Round Robin Setup</p>
+          <p class="eyebrow">QBK Tourney Creator</p>
           <h1 id="setupTitle">Build the tournament</h1>
 
           <label class="field-block" for="tournamentNameInput">
@@ -36,6 +36,18 @@
               />
             </label>
 
+            <label class="field-block team-count-field" for="matchesPerTeamInput">
+              <span>Matchups per team</span>
+              <input
+                id="matchesPerTeamInput"
+                type="number"
+                min="1"
+                max="7"
+                step="1"
+                inputmode="numeric"
+              />
+            </label>
+
             <label class="field-block team-count-field" for="gamesPerMatchInput">
               <span>Games per match</span>
               <input
@@ -43,6 +55,18 @@
                 type="number"
                 min="1"
                 max="3"
+                step="1"
+                inputmode="numeric"
+              />
+            </label>
+
+            <label class="field-block team-count-field" for="playoffTeamCountInput">
+              <span>Teams in playoffs</span>
+              <input
+                id="playoffTeamCountInput"
+                type="number"
+                min="2"
+                max="8"
                 step="1"
                 inputmode="numeric"
               />
@@ -67,7 +91,6 @@
 
       <section class="tv-view" id="tvView" aria-label="Tournament TV page">
         <header class="tv-header">
-          <img class="tv-logo" src="./assets/volleypalooza.png" alt="Volleypalooza" />
           <div class="tv-tournament-name" id="tvTournamentName">Round Robin Tournament</div>
           <div class="tv-actions">
             <button class="secondary" id="generatePlayoffBtn" type="button">Generate Playoff</button>
@@ -111,6 +134,18 @@
       </section>
     </main>
 
-    <script src="./app.js?v=20260808-7"></script>
+    <dialog class="court-picker" id="courtPicker" aria-labelledby="courtPickerTitle">
+      <form method="dialog">
+        <h2 id="courtPickerTitle">Choose a court</h2>
+        <div class="court-options">
+          <button class="court-option" type="button" data-court="Left Court">LEFT</button>
+          <button class="court-option" type="button" data-court="Middle Court">MIDDLE</button>
+          <button class="court-option" type="button" data-court="Right Court">RIGHT</button>
+        </div>
+        <button class="secondary" type="submit">Cancel</button>
+      </form>
+    </dialog>
+
+    <script src="./app.js?v=20260808-24"></script>
   </body>
 </html>

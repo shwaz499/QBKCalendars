@@ -248,10 +248,11 @@ h2 {
 
 .tv-header {
   min-height: 160px;
-  display: grid;
-  grid-template-columns: minmax(260px, 620px) minmax(220px, 1fr) auto;
+  position: relative;
+  display: flex;
   gap: 20px;
   align-items: center;
+  justify-content: flex-end;
   padding: 8px 18px;
   background: rgba(24, 27, 31, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.09);
@@ -259,23 +260,34 @@ h2 {
   box-shadow: var(--shadow);
 }
 
-.tv-logo {
-  width: min(620px, 54vw);
-  max-height: 142px;
-  object-fit: contain;
-  object-position: left center;
-}
-
 .tv-tournament-name {
+  position: absolute;
+  left: 50%;
+  width: min(calc(50% - 180px), 760px);
+  transform: translateX(-50%);
   min-width: 0;
   overflow: hidden;
   padding: 0 10px;
-  font-size: clamp(28px, 2.2vw, 52px);
+  font-size: clamp(34px, 3vw, 64px);
   font-weight: 950;
   line-height: 1;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+:fullscreen .tv-tournament-name {
+  width: min(calc(50% + 40px), 1000px);
+  font-size: clamp(52px, 5vw, 104px);
+}
+
+:fullscreen #backToSetupBtn {
+  display: none;
+}
+
+.tv-actions {
+  position: relative;
+  z-index: 1;
 }
 
 .summary-pill {
@@ -342,12 +354,71 @@ h2 {
 
 .match-list {
   min-height: 0;
-  height: 100%;
+  flex: 1 1 auto;
+  height: auto;
   overflow: auto;
   padding-top: 10px;
   display: grid;
   grid-auto-rows: minmax(84px, auto);
   gap: 7px;
+}
+
+.match-list.fit-all-matches {
+  overflow: hidden;
+  grid-auto-rows: minmax(0, 1fr);
+}
+
+.match-list.compact-matches {
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.match-list.compact-matches .match-card {
+  grid-template-columns: 74px minmax(0, 1fr) 28px;
+  gap: 4px;
+  padding: 3px;
+}
+
+.match-list.compact-matches .match-number {
+  padding: 2px 1px;
+}
+
+.match-list.compact-matches .match-ordinal {
+  font-size: clamp(14px, 1.35vw, 22px);
+}
+
+.match-list.compact-matches .match-court {
+  min-height: 16px;
+  padding-bottom: 1px;
+  font-size: clamp(8px, 0.8vw, 12px);
+}
+
+.match-list.compact-matches .match-main {
+  grid-template-columns: minmax(0, 1fr) 120px minmax(0, 1fr);
+  gap: 4px;
+}
+
+.match-list.compact-matches .match-side {
+  font-size: clamp(14px, 1.45vw, 22.5px);
+}
+
+.match-list.compact-matches .games,
+.match-list.compact-matches .reorder-controls {
+  gap: 2px;
+}
+
+.match-list.compact-matches .game-row {
+  grid-template-columns: 47px 9px 47px;
+  gap: 2px;
+}
+
+.match-list.compact-matches .score-input {
+  height: 23.5px;
+  font-size: 19.25px;
+}
+
+.match-list.compact-matches .icon-button {
+  font-size: 12px;
 }
 
 .match-card {
@@ -370,15 +441,18 @@ h2 {
 }
 
 .match-number {
-  display: grid;
-  grid-template-rows: 1fr auto;
-  place-items: center;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--accent-ink);
   background: var(--accent);
   border-radius: 6px;
   font-weight: 950;
   padding: 5px 2px;
   text-align: center;
+  cursor: pointer;
+  user-select: none;
 }
 
 .match-ordinal {
@@ -387,9 +461,16 @@ h2 {
 }
 
 .match-court {
-  width: 100%;
-  padding: 0 2px 2px;
-  font-size: clamp(9px, 0.72vw, 14px);
+  position: absolute;
+  right: 2px;
+  bottom: 3px;
+  left: 2px;
+  width: auto;
+  min-height: 24px;
+  display: grid;
+  place-items: end center;
+  padding: 0 2px 3px;
+  font-size: clamp(12px, 1.15vw, 18px);
   font-weight: 950;
   line-height: 0.95;
   text-align: center;
@@ -465,6 +546,9 @@ h2 {
   grid-template-rows: auto;
   gap: 12px;
   border-top: 1px solid var(--line);
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
 }
 
 .playoff-card {
@@ -502,6 +586,50 @@ h2 {
   font-size: clamp(9px, 0.72vw, 13px);
   font-weight: 900;
   white-space: nowrap;
+}
+
+.court-picker {
+  width: min(420px, calc(100vw - 32px));
+  padding: 0;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.court-picker::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.court-picker form {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.court-picker h2 {
+  font-size: 26px;
+}
+
+.court-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.court-option {
+  min-height: 54px;
+  padding: 0 8px;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.court-option:hover {
+  background: #5ee89a;
 }
 
 .playoff-body {
@@ -594,6 +722,20 @@ h2 {
   font-weight: 950;
 }
 
+.standings-panel.compact-standings .standings-table th,
+.standings-panel.compact-standings .standings-table td {
+  padding-top: clamp(5px, 0.6vh, 8px);
+  padding-bottom: clamp(5px, 0.6vh, 8px);
+}
+
+.standings-panel.compact-standings .standings-table th {
+  font-size: 11px;
+}
+
+.standings-panel.compact-standings .standings-table td {
+  font-size: clamp(20px, 2vw, 32px);
+}
+
 .standings-table th:nth-child(2),
 .standings-table td:nth-child(2) {
   width: 42%;
@@ -677,13 +819,16 @@ h2 {
     min-height: 160px;
   }
 
-  .tv-logo {
-    width: min(620px, 100%);
-    max-height: 142px;
+  .tv-tournament-name {
+    position: static;
+    width: 100%;
+    transform: none;
+    white-space: normal;
   }
 
-  .tv-tournament-name {
-    white-space: normal;
+  :fullscreen .tv-tournament-name {
+    width: 100%;
+    font-size: clamp(34px, 8vw, 64px);
   }
 
   .game-row {
