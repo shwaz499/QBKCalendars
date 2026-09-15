@@ -308,6 +308,73 @@ class ClickAnalyticsStore(ClickAnalyticsStoreBase):
         }
 
 
+def _default_tournament_data_dir() -> Path:
+    configured = os.getenv("QBK_TOURNAMENT_DATA_DIR")
+    if configured:
+        return Path(configured)
+
+    render_disk = Path("/var/data")
+    if render_disk.is_dir() and os.access(render_disk, os.W_OK):
+        return render_disk
+    return PROJECT_DIR / ".runtime-cache"
+
+
+TOURNAMENT_DATA_DIR = _default_tournament_data_dir()
+TOURNAMENT_STATE_PATH = Path(
+    os.getenv(
+        "QBK_TOURNAMENT_STATE_PATH",
+        str(TOURNAMENT_DATA_DIR / "qbktona-round-robin-state.json"),
+    )
+)
+
+
+class TournamentStateStore:
+    MAX_BYTES = 65536
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self._lock = threading.Lock()
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass
+
+    def read(self) -> dict[str, object] | None:
+        with self._lock:
+            if not self.path.is_file():
+                return None
+            try:
+                payload = json.loads(self.path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                return None
+            return payload if isinstance(payload, dict) else None
+
+    def write(self, payload: dict[str, object]) -> None:
+        if not isinstance(payload.get("teams"), list) or not isinstance(payload.get("matches"), list):
+            raise ValueError("Tournament state must include teams and matches.")
+
+        encoded = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        if len(encoded) > self.MAX_BYTES:
+            raise ValueError("Tournament state is too large.")
+
+        with self._lock:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            temporary = self.path.with_name(
+                f".{self.path.name}.{os.getpid()}.{threading.get_ident()}.tmp"
+            )
+            try:
+                with temporary.open("wb") as fh:
+                    fh.write(encoded)
+                    fh.flush()
+                    os.fsync(fh.fileno())
+                os.replace(temporary, self.path)
+            finally:
+                try:
+                    temporary.unlink()
+                except FileNotFoundError:
+                    pass
+
+
 class PostgresClickAnalyticsStore(ClickAnalyticsStoreBase):
     def __init__(self, database_url: str, channel: str, fallback_path: Path) -> None:
         self.database_url = database_url
@@ -1900,6 +1967,11 @@ class DashClient:
 
 
 CLIENT = DashClient()
+
+
+TOURNAMENT_STATE = TournamentStateStore(TOURNAMENT_STATE_PATH)
+
+
 def _build_analytics_store(channel: str, fallback_path: Path):
     if ANALYTICS_DATABASE_URL:
         return PostgresClickAnalyticsStore(ANALYTICS_DATABASE_URL, channel, fallback_path)
@@ -1934,6 +2006,8 @@ class CalendarHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/api/qbktona-round-robin/state":
+            return self._handle_tournament_state_get()
         if parsed.path == "/api/events-week":
             return self._handle_events_week_api(parsed)
         if parsed.path == "/api/events":
@@ -1974,12 +2048,20 @@ class CalendarHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/api/qbktona-round-robin/state":
+            return self._handle_tournament_state_write()
         if parsed.path == "/api/booking-requests":
             return self._handle_booking_request_api()
         if parsed.path == "/api/track-click":
             return self._handle_track_click_api()
         if parsed.path == "/api/track-league-click":
             return self._handle_track_league_click_api()
+        return self.send_error(404, "Not found")
+
+    def do_PUT(self):
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/api/qbktona-round-robin/state":
+            return self._handle_tournament_state_write()
         return self.send_error(404, "Not found")
 
     def _resolve_static_path(self, raw_path: str) -> Path | None:
@@ -2006,6 +2088,34 @@ class CalendarHandler(SimpleHTTPRequestHandler):
         self.send_header("Location", location)
         self.end_headers()
         return None
+
+    def _handle_tournament_state_get(self):
+        payload = TOURNAMENT_STATE.read()
+        if payload is None:
+            return self._send_json(
+                {"error": "No saved tournament state."},
+                status=404,
+                cache_control="no-store",
+            )
+        return self._send_json(payload, cache_control="no-store")
+
+    def _handle_tournament_state_write(self):
+        try:
+            payload = self._read_json_body()
+            TOURNAMENT_STATE.write(payload)
+        except ValueError as exc:
+            return self._send_json({"error": str(exc)}, status=400, cache_control="no-store")
+        except OSError:
+            return self._send_json(
+                {"error": "Tournament storage is unavailable."},
+                status=503,
+                cache_control="no-store",
+            )
+
+        return self._send_json(
+            {"ok": True, "updatedAt": payload.get("updatedAt")},
+            cache_control="no-store",
+        )
 
     def _handle_events_week_api(self, parsed: urllib.parse.ParseResult):
         query = urllib.parse.parse_qs(parsed.query)

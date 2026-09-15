@@ -6,6 +6,7 @@ const GAMES_PER_MATCH_MIN = 1;
 const GAMES_PER_MATCH_MAX = 3;
 const MATCHES_PER_TEAM_MIN = 1;
 const PLAYOFF_TEAM_MIN = 2;
+const TOURNAMENT_STATE_API = "/api/qbktona-round-robin/state";
 
 const setupView = document.querySelector("#setupView");
 const tvView = document.querySelector("#tvView");
@@ -34,30 +35,16 @@ const courtPicker = document.querySelector("#courtPicker");
 
 let state = loadState();
 let draggedMatchId = null;
+let serverStateAvailable = null;
+let serverSaveTimer = null;
+let serverSaveQueue = Promise.resolve();
+let serverSavePending = false;
 
 function loadState() {
   const saved = readStoredState(STATE_KEY) || readStoredState(LEGACY_STATE_KEY);
 
-  if (saved && Array.isArray(saved.teams) && Array.isArray(saved.matches)) {
-    const teams = normalizeTeams(saved.teams);
-    const gamesPerMatch = clampGamesPerMatch(saved.gamesPerMatch);
-    const matchesPerTeam = clampMatchesPerTeam(saved.matchesPerTeam, teams.length);
-    const playoffTeamCount = clampPlayoffTeamCount(
-      saved.playoffTeamCount ?? saved.playoff?.teamCount,
-      teams.length
-    );
-    return {
-      tournamentName: String(saved.tournamentName || "Round Robin Tournament"),
-      teams,
-      gamesPerMatch,
-      matchesPerTeam,
-      playoffTeamCount,
-      matches: normalizeMatches(saved.matches, gamesPerMatch),
-      playoff: normalizePlayoff(saved.playoff, playoffTeamCount, teams.length),
-    };
-  }
-
-  return {
+  return normalizeStoredState(saved) || {
+    updatedAt: 0,
     tournamentName: "Round Robin Tournament",
     teams: buildTeams(5),
     gamesPerMatch: 2,
@@ -68,11 +55,33 @@ function loadState() {
   };
 }
 
+function normalizeStoredState(saved) {
+  if (!saved || !Array.isArray(saved.teams) || !Array.isArray(saved.matches)) return null;
+
+  const teams = normalizeTeams(saved.teams);
+  const gamesPerMatch = clampGamesPerMatch(saved.gamesPerMatch);
+  const matchesPerTeam = clampMatchesPerTeam(saved.matchesPerTeam, teams.length);
+  const playoffTeamCount = clampPlayoffTeamCount(
+    saved.playoffTeamCount ?? saved.playoff?.teamCount,
+    teams.length
+  );
+
+  return {
+    updatedAt: Number.isFinite(Number(saved.updatedAt)) ? Number(saved.updatedAt) : 0,
+    tournamentName: String(saved.tournamentName || "Round Robin Tournament"),
+    teams,
+    gamesPerMatch,
+    matchesPerTeam,
+    playoffTeamCount,
+    matches: normalizeMatches(saved.matches, gamesPerMatch),
+    playoff: normalizePlayoff(saved.playoff, playoffTeamCount, teams.length),
+  };
+}
+
 function readStoredState(key) {
   try {
     return JSON.parse(localStorage.getItem(key));
   } catch {
-    localStorage.removeItem(key);
     return null;
   }
 }
@@ -196,8 +205,108 @@ function comparePlayoffMatches(a, b) {
   return a.round - b.round || a.position - b.position;
 }
 
+function writeLocalState() {
+  try {
+    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  } catch {
+    return;
+  }
+}
+
 function saveState() {
-  localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  state.updatedAt = Date.now();
+  writeLocalState();
+  serverSavePending = true;
+  queueServerSave();
+}
+
+function queueServerSave() {
+  if (serverStateAvailable !== true) return;
+  if (serverSaveTimer) clearTimeout(serverSaveTimer);
+  serverSaveTimer = setTimeout(() => {
+    serverSaveTimer = null;
+    flushServerSave();
+  }, 250);
+}
+
+function flushServerSave(keepalive = false) {
+  if (serverStateAvailable !== true || !serverSavePending) return Promise.resolve(false);
+
+  const snapshot = JSON.stringify(state);
+  serverSavePending = false;
+  serverSaveQueue = serverSaveQueue
+    .catch(() => false)
+    .then(async () => {
+      const response = await fetch(TOURNAMENT_STATE_API, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: snapshot,
+        cache: "no-store",
+        keepalive,
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) serverStateAvailable = false;
+        serverSavePending = true;
+        return false;
+      }
+      return true;
+    })
+    .catch(() => {
+      serverSavePending = true;
+      return false;
+    });
+  return serverSaveQueue;
+}
+
+async function hydrateServerState() {
+  const localChangedBeforeHydration = serverSavePending;
+
+  try {
+    const response = await fetch(`${TOURNAMENT_STATE_API}?t=${Date.now()}`, {
+      cache: "no-store",
+    });
+    const contentType = response.headers.get("content-type") || "";
+
+    if (response.status === 404 && !contentType.includes("application/json")) {
+      serverStateAvailable = false;
+      return;
+    }
+
+    if (response.status === 404) {
+      serverStateAvailable = true;
+      if (state.matches.length) {
+        serverSavePending = true;
+        queueServerSave();
+      }
+      return;
+    }
+
+    if (!response.ok) return;
+
+    const remoteState = normalizeStoredState(await response.json());
+    if (!remoteState) return;
+
+    serverStateAvailable = true;
+    const localUpdatedAt = Number(state.updatedAt) || 0;
+    const remoteUpdatedAt = Number(remoteState.updatedAt) || 0;
+    const useRemoteState =
+      !localChangedBeforeHydration &&
+      (!state.matches.length || !localUpdatedAt || remoteUpdatedAt >= localUpdatedAt);
+
+    if (useRemoteState) {
+      state = remoteState;
+      writeLocalState();
+      renderTeamInputs();
+      render();
+      serverSavePending = false;
+    } else {
+      serverSavePending = true;
+      queueServerSave();
+    }
+  } catch {
+    return;
+  }
 }
 
 function cleanScore(value) {
@@ -1262,7 +1371,7 @@ function escapeHtml(value) {
 }
 
 function render() {
-  const screen = window.location.hash === "#tv" && state.matches.length ? "tv" : "setup";
+  const screen = window.location.hash === "#setup" || !state.matches.length ? "setup" : "tv";
   tournamentNameInput.value = state.tournamentName;
   tvTournamentName.textContent = state.tournamentName.trim() || "Round Robin Tournament";
   teamCountInput.value = String(currentTeamCount());
@@ -1360,6 +1469,12 @@ window.addEventListener("resize", fitStandingsTeamNames);
 window.addEventListener("resize", fitTournamentName);
 document.addEventListener("fullscreenchange", render);
 
+window.addEventListener("pagehide", () => {
+  writeLocalState();
+  if (serverSaveTimer) clearTimeout(serverSaveTimer);
+  if (serverStateAvailable === true && serverSavePending) flushServerSave(true);
+});
+
 courtPicker.querySelectorAll("[data-court]").forEach((button) => {
   button.addEventListener("click", () => chooseCourt(button.dataset.court));
 });
@@ -1370,3 +1485,4 @@ courtPicker.addEventListener("click", (event) => {
 
 renderTeamInputs();
 render();
+hydrateServerState();
