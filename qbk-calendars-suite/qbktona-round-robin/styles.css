@@ -154,6 +154,51 @@ h2 {
   width: min(240px, 100%);
 }
 
+.mode-field {
+  width: min(240px, 100%);
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.mode-field > span:first-child {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.mode-control {
+  min-height: 64px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+  background: #0f1114;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.mode-control:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(51, 209, 122, 0.18);
+}
+
+.mode-control input {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+
+.mode-control > span {
+  font-size: 18px;
+  font-weight: 850;
+}
+
 .section-heading {
   display: flex;
   justify-content: space-between;
@@ -172,6 +217,32 @@ h2 {
 .team-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.team-grid.pool-team-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.pool-team-group {
+  min-width: 0;
+}
+
+.pool-team-group h3 {
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  color: var(--accent);
+  border-bottom: 1px solid var(--line);
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.pool-team-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -263,7 +334,7 @@ h2 {
 .tv-tournament-name {
   position: absolute;
   left: 50%;
-  width: min(calc(50% - 180px), 760px);
+  width: min(760px, max(360px, calc(100% - 920px)));
   transform: translateX(-50%);
   min-width: 0;
   overflow: hidden;
@@ -277,8 +348,12 @@ h2 {
 }
 
 :fullscreen .tv-tournament-name {
-  width: min(calc(50% + 40px), 1000px);
+  width: min(1000px, max(360px, calc(100% - 660px)));
   font-size: clamp(52px, 5vw, 104px);
+}
+
+:fullscreen .tv-header {
+  min-height: 128px;
 }
 
 :fullscreen #backToSetupBtn {
@@ -310,8 +385,115 @@ h2 {
   gap: 12px;
 }
 
+.tv-board.pool-mode {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pool-tv-board {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pool-tv-half {
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.pool-tv-half > .match-panel,
+.pool-tv-half > .standings-panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pool-tv-half .panel-heading h2 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pool-tv-half .standings-table th,
+.pool-tv-half .standings-table td {
+  padding-top: clamp(5px, 0.9vh, 12px);
+  padding-bottom: clamp(5px, 0.9vh, 12px);
+}
+
+.pool-tv-half .standings-table th {
+  font-size: 11px;
+}
+
+.pool-tv-half .standings-table td {
+  font-size: clamp(22px, 2.35vw, 38px);
+}
+
+.pool-tv-half .match-list.fit-all-matches {
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.pool-tv-half .match-list.fit-all-matches .match-card {
+  grid-template-columns: 74px minmax(0, 1fr) 28px;
+  gap: 4px;
+  padding: 3px;
+}
+
+.pool-tv-half .match-list.fit-all-matches .match-number {
+  padding: 2px 1px;
+}
+
+.pool-tv-half .match-list.fit-all-matches .match-ordinal {
+  font-size: clamp(14px, 1.35vw, 22px);
+}
+
+.pool-tv-half .match-list.fit-all-matches .match-court {
+  min-height: 16px;
+  padding-bottom: 1px;
+  font-size: clamp(8px, 0.8vw, 12px);
+}
+
+.pool-tv-half .match-list.fit-all-matches .match-main {
+  grid-template-columns: minmax(0, 1fr) 120px minmax(0, 1fr);
+  gap: 4px;
+}
+
+.pool-tv-half .match-list.fit-all-matches .match-side {
+  font-size: clamp(14px, 1.45vw, 22.5px);
+}
+
+.pool-tv-half .match-list.fit-all-matches .games,
+.pool-tv-half .match-list.fit-all-matches .reorder-controls {
+  gap: 2px;
+}
+
+.pool-tv-half .match-list.fit-all-matches .game-row {
+  grid-template-columns: 47px 9px 47px;
+  gap: 2px;
+}
+
+.pool-tv-half .match-list.fit-all-matches .score-input {
+  height: 23.5px;
+  font-size: 19.25px;
+}
+
+.pool-tv-half .match-list.fit-all-matches .icon-button {
+  font-size: 12px;
+}
+
 .tv-board.playoff-mode {
   grid-template-columns: minmax(0, 1fr);
+}
+
+.tv-board.playoff-mode .playoff-bracket {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .match-panel,
@@ -722,6 +904,18 @@ h2 {
   font-weight: 950;
 }
 
+.standings-table .standings-pool-row th {
+  padding-top: 12px;
+  padding-bottom: 6px;
+  color: var(--accent);
+  font-size: 12px;
+  text-align: left;
+}
+
+.standings-table .standings-pool-row:first-child th {
+  padding-top: 4px;
+}
+
 .standings-panel.compact-standings .standings-table th,
 .standings-panel.compact-standings .standings-table td {
   padding-top: clamp(5px, 0.6vh, 8px);
@@ -730,6 +924,12 @@ h2 {
 
 .standings-panel.compact-standings .standings-table th {
   font-size: 11px;
+}
+
+.standings-panel.compact-standings .standings-table .standings-pool-row th {
+  padding-top: 6px;
+  padding-bottom: 3px;
+  font-size: 10px;
 }
 
 .standings-panel.compact-standings .standings-table td {
@@ -794,9 +994,27 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+  .pool-tv-board {
+    height: auto;
+    grid-template-rows: auto;
+  }
+
+  .pool-tv-half {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+
+  .pool-team-fields {
+    grid-template-columns: 1fr;
+  }
+
   .setup-meta {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .mode-field {
+    width: 100%;
   }
 }
 
@@ -831,6 +1049,38 @@ h2 {
     font-size: clamp(34px, 8vw, 64px);
   }
 
+  .pool-tv-half .match-card,
+  .pool-tv-half .match-main,
+  .pool-tv-half .match-list {
+    min-width: 0;
+  }
+
+  .pool-tv-half .match-main {
+    grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .pool-tv-half .game-row {
+    grid-template-columns: minmax(0, 1fr) 10px minmax(0, 1fr);
+    gap: 3px;
+  }
+
+  .pool-tv-half .match-side {
+    font-size: 18px;
+  }
+
+  .pool-tv-half .panel-heading h2 {
+    white-space: normal;
+  }
+
+  .pool-tv-half .match-list {
+    overflow-x: hidden;
+  }
+
+  .pool-tv-half .standings-table {
+    table-layout: fixed;
+  }
+
   .game-row {
     grid-template-columns: 54px 12px 54px;
   }
@@ -841,5 +1091,15 @@ h2 {
 
   .standings-table td {
     font-size: 21px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pool-tv-half .reorder-controls {
+    display: none;
+  }
+
+  .pool-tv-half .match-card {
+    grid-template-columns: 88px minmax(0, 1fr);
   }
 }

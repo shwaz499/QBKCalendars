@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Round Robin Tournament Manager</title>
-    <link rel="stylesheet" href="./styles.css?v=20260915-01" />
+    <link rel="stylesheet" href="./styles.css?v=20260917-01" />
   </head>
   <body>
     <main class="app-shell">
@@ -73,10 +73,17 @@
             </label>
           </div>
 
+          <label class="mode-field" for="poolsModeInput">
+            <span>Format</span>
+            <span class="mode-control">
+              <input id="poolsModeInput" type="checkbox" />
+              <span>Two pools</span>
+            </span>
+          </label>
+
           <section class="teams-section" aria-label="Team names">
             <div class="section-heading">
               <h2>Teams</h2>
-              <p id="setupStatus">Enter unique team names.</p>
             </div>
             <div class="team-grid" id="teamGrid"></div>
           </section>
@@ -100,7 +107,69 @@
         </header>
 
         <section class="tv-board">
-          <section class="match-panel" aria-labelledby="matchTitle">
+          <div class="pool-tv-board" id="poolTvBoard" hidden aria-label="Pool matchups and standings">
+            <section class="pool-tv-half" aria-label="Pool A matchups and standings">
+              <section class="match-panel" aria-labelledby="poolAMatchTitle">
+                <div class="panel-heading compact">
+                  <h2 id="poolAMatchTitle">Pool A Matchups</h2>
+                </div>
+                <div class="empty-state" id="poolAEmptyMatches">Set up the tournament first.</div>
+                <div class="match-list" id="poolAMatchList" aria-live="polite"></div>
+              </section>
+
+              <aside class="standings-panel pool-standings-panel" aria-labelledby="poolAStandingsTitle">
+                <div class="panel-heading compact">
+                  <h2 id="poolAStandingsTitle">Pool A Standings</h2>
+                </div>
+                <table class="standings-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Team</th>
+                      <th>W</th>
+                      <th>L</th>
+                      <th>PF</th>
+                      <th>PA</th>
+                      <th>+/-</th>
+                    </tr>
+                  </thead>
+                  <tbody id="poolAStandingsBody"></tbody>
+                </table>
+              </aside>
+            </section>
+
+            <section class="pool-tv-half" aria-label="Pool B matchups and standings">
+              <section class="match-panel" aria-labelledby="poolBMatchTitle">
+                <div class="panel-heading compact">
+                  <h2 id="poolBMatchTitle">Pool B Matchups</h2>
+                </div>
+                <div class="empty-state" id="poolBEmptyMatches">Set up the tournament first.</div>
+                <div class="match-list" id="poolBMatchList" aria-live="polite"></div>
+              </section>
+
+              <aside class="standings-panel pool-standings-panel" aria-labelledby="poolBStandingsTitle">
+                <div class="panel-heading compact">
+                  <h2 id="poolBStandingsTitle">Pool B Standings</h2>
+                </div>
+                <table class="standings-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Team</th>
+                      <th>W</th>
+                      <th>L</th>
+                      <th>PF</th>
+                      <th>PA</th>
+                      <th>+/-</th>
+                    </tr>
+                  </thead>
+                  <tbody id="poolBStandingsBody"></tbody>
+                </table>
+              </aside>
+            </section>
+          </div>
+
+          <section class="match-panel" id="globalMatchPanel" aria-labelledby="matchTitle">
             <div class="panel-heading compact">
               <h2 id="matchTitle">Matchups</h2>
             </div>
@@ -110,7 +179,7 @@
             <div class="match-list" id="matchList" aria-live="polite"></div>
           </section>
 
-          <aside class="standings-panel" aria-labelledby="standingsTitle">
+          <aside class="standings-panel" id="globalStandingsPanel" aria-labelledby="standingsTitle">
             <div class="panel-heading compact">
               <h2 id="standingsTitle">Standings</h2>
             </div>
@@ -146,6 +215,6 @@
       </form>
     </dialog>
 
-    <script src="./app.js?v=20260915-04"></script>
+    <script src="./app.js?v=20260917-01"></script>
   </body>
 </html>
