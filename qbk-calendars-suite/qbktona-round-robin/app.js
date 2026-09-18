@@ -1692,6 +1692,14 @@ function appendStandingRow(body, team, rank) {
   body.append(row);
 }
 
+function appendStandingSpacerRow(body) {
+  const row = document.createElement("tr");
+  row.className = "standings-spacer-row";
+  row.setAttribute("aria-hidden", "true");
+  row.innerHTML = '<td colspan="7"></td>';
+  body.append(row);
+}
+
 function renderStandings() {
   if (isPlayoffWindow()) {
     standingsPanel.classList.remove("compact-standings", "pool-standings");
@@ -1730,6 +1738,9 @@ function renderPoolStandings() {
     pool.teams.forEach((team, teamIndex) => {
       appendStandingRow(view.standingsBody, team, teamIndex + 1);
     });
+    for (let slot = pool.teams.length; slot < 5; slot += 1) {
+      appendStandingSpacerRow(view.standingsBody);
+    }
   });
 
   fitStandingsTeamNames();

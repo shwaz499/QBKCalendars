@@ -433,6 +433,24 @@ h2 {
   font-size: clamp(22px, 2.35vw, 38px);
 }
 
+.pool-standings-panel .standings-table {
+  flex: 1 1 auto;
+  height: 0;
+  margin-bottom: 0;
+}
+
+.pool-standings-panel .standings-table tbody {
+  height: 100%;
+}
+
+.pool-standings-panel .standings-table tbody tr {
+  height: 20%;
+}
+
+.pool-standings-panel .standings-table .standings-spacer-row td {
+  border-bottom-color: transparent;
+}
+
 .pool-tv-half .match-list.fit-all-matches {
   gap: 4px;
   padding-top: 4px;
