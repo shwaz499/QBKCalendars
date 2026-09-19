@@ -1,7 +1,7 @@
 const STATE_KEY = "roundRobinTournament:v4";
 const LEGACY_STATE_KEY = "roundRobinTournament:v1";
 const TEAM_COUNT_MIN = 3;
-const TEAM_COUNT_MAX = 8;
+const TEAM_COUNT_MAX = 9;
 const GAMES_PER_MATCH_MIN = 1;
 const GAMES_PER_MATCH_MAX = 3;
 const MATCHES_PER_TEAM_MIN = 1;
@@ -97,7 +97,9 @@ function normalizeStoredState(saved) {
   if (!saved || !Array.isArray(saved.teams) || !Array.isArray(saved.matches)) return null;
 
   const teams = normalizeTeams(saved.teams);
-  const poolsMode = Boolean(saved.poolsMode || saved.format === "pools");
+  const format = saved.format === "pools-9" ? "pools-9" :
+    (saved.poolsMode || saved.format === "pools" ? "pools" : "single");
+  const poolsMode = format !== "single";
   const gamesPerMatch = clampGamesPerMatch(saved.gamesPerMatch);
   const matchesPerTeam = clampMatchesPerTeam(saved.matchesPerTeam, teams.length, poolsMode);
   const playoffTeamCount = poolsMode
@@ -112,7 +114,8 @@ function normalizeStoredState(saved) {
     matchesPerTeam,
     playoffTeamCount,
     poolsMode,
-    matches: normalizeMatches(saved.matches, gamesPerMatch),
+    format,
+    matches: normalizeMatches(saved.matches, gamesPerMatch, format),
     playoff: normalizePlayoff(saved.playoff, playoffTeamCount, teams.length),
   };
 }
@@ -168,10 +171,11 @@ function normalizeTeams(teams) {
   return buildTeams(teams.length || 5, teams);
 }
 
-function normalizeMatches(matches, gameCount = 2) {
+function normalizeMatches(matches, gameCount = 2, format = "single") {
   return matches
     .filter((match) => match?.teamA && match?.teamB)
-    .map((match, index) => normalizeMatch(match, gameCount, index));
+    .map((match, index) => normalizeMatch(match,
+      format === "pools-9" ? (match.pool === "Pool A" ? 1 : 2) : gameCount, index));
 }
 
 function normalizePlayoff(playoff, fallbackTeamCount = 3, totalTeamCount = fallbackTeamCount) {
@@ -467,6 +471,14 @@ function isPoolsMode() {
   return Boolean(state.poolsMode);
 }
 
+function currentFormat() {
+  return state.format === "pools-9" ? "pools-9" : (isPoolsMode() ? "pools" : "single");
+}
+
+function isNineTeamFormat() {
+  return currentFormat() === "pools-9";
+}
+
 function isPlayoffWindow() {
   return new URLSearchParams(window.location.search).get("view") === "playoff";
 }
@@ -481,6 +493,7 @@ function allTeamNamesValid() {
 }
 
 function poolConfigurationIsValid() {
+  if (isNineTeamFormat()) return currentTeamCount() === 9;
   return (
     !isPoolsMode() ||
     (currentTeamCount() >= POOLS_MIN_TEAM_COUNT && currentTeamCount() % 2 === 0)
@@ -505,6 +518,14 @@ function renderTeamInputs() {
 
       const heading = document.createElement("h3");
       heading.textContent = pool.label;
+      if (isNineTeamFormat()) {
+        const detail = document.createElement("p");
+        detail.className = "pool-format-detail";
+        detail.textContent = pool.label === "Pool A"
+          ? "5 teams · 4 matchups each · 1 longer game per match"
+          : "4 teams · 3 matchups each · 2 games per match";
+        group.append(heading, detail);
+      }
 
       const fields = document.createElement("div");
       fields.className = "pool-team-fields";
@@ -515,7 +536,8 @@ function renderTeamInputs() {
         }
       });
 
-      group.append(heading, fields);
+      if (!isNineTeamFormat()) group.append(heading);
+      group.append(fields);
       teamGrid.append(group);
     });
     return;
@@ -664,8 +686,9 @@ function setPlayoffTeamCount(nextCount) {
 }
 
 function setPoolsMode(nextValue) {
-  const enabled = Boolean(nextValue);
-  if (enabled === isPoolsMode()) return;
+  const format = ["single", "pools", "pools-9"].includes(nextValue) ? nextValue : "single";
+  const enabled = format !== "single";
+  if (format === currentFormat()) return;
 
   const hasScores =
     state.matches.some((match) => match.games.some((game) => game.a || game.b)) ||
@@ -678,12 +701,14 @@ function setPoolsMode(nextValue) {
       "Changing the tournament format will clear the current match and playoff scores. Continue?"
     );
     if (!keepGoing) {
-      poolsModeInput.checked = isPoolsMode();
+      poolsModeInput.value = currentFormat();
       return;
     }
   }
 
   state.poolsMode = enabled;
+  state.format = format;
+  if (isNineTeamFormat()) state.teams = buildTeams(9, state.teams);
   state.matchesPerTeam = clampMatchesPerTeam(
     state.matchesPerTeam,
     currentTeamCount(),
@@ -699,7 +724,7 @@ function setPoolsMode(nextValue) {
   render();
 }
 
-function buildScheduleRounds(teamIds, matchesPerTeam) {
+function buildScheduleRounds(teamIds, matchesPerTeam, gameCount = currentGamesPerMatch()) {
   const rounds = [];
   const target = clampMatchesPerTeam(matchesPerTeam, teamIds.length);
 
@@ -714,7 +739,7 @@ function buildScheduleRounds(teamIds, matchesPerTeam) {
           teamA: slots[index],
           teamB: slots[slots.length - 1 - index],
           round,
-          games: buildGames(currentGamesPerMatch()),
+          games: buildGames(gameCount),
         });
       }
 
@@ -734,7 +759,7 @@ function buildScheduleRounds(teamIds, matchesPerTeam) {
           teamA: teamId,
           teamB: opponent,
           round: distance,
-          games: buildGames(currentGamesPerMatch()),
+          games: buildGames(gameCount),
         };
       })
     );
@@ -745,7 +770,10 @@ function buildScheduleRounds(teamIds, matchesPerTeam) {
 
 function buildPoolScheduleRounds(teamIds, matchesPerTeam) {
   const poolRounds = splitTeamIdsIntoPools(teamIds).map((pool) =>
-    buildScheduleRounds(pool.teamIds, matchesPerTeam).map((round) =>
+    buildScheduleRounds(pool.teamIds,
+      isNineTeamFormat() ? pool.teamIds.length - 1 : matchesPerTeam,
+      isNineTeamFormat() ? (pool.label === "Pool A" ? 1 : 2) : currentGamesPerMatch()
+    ).map((round) =>
       round.map((match) => ({ ...match, pool: pool.label }))
     )
   );
@@ -782,7 +810,9 @@ function generateRoundRobin() {
 
   state.matches = rounds.flat().map((match, index) => ({
     ...match,
-    court: defaultCourtName(index),
+    court: isPoolsMode()
+      ? (match.pool === "Pool A" ? "Middle Court" : "Left Court")
+      : defaultCourtName(index),
   }));
   state.playoff = null;
   saveState();
@@ -1769,6 +1799,8 @@ function syncMatchesPerTeamInput() {
 
 function syncTeamCountInput() {
   const poolsMode = isPoolsMode();
+  teamCountInput.max = String(TEAM_COUNT_MAX);
+  teamCountInput.disabled = isNineTeamFormat();
   teamCountInput.min = String(poolsMode ? POOLS_MIN_TEAM_COUNT : TEAM_COUNT_MIN);
   teamCountInput.step = String(poolsMode ? 2 : 1);
   teamCountInput.setCustomValidity(
@@ -1798,7 +1830,9 @@ function render() {
   const screen = window.location.hash === "#setup" || !state.matches.length ? "setup" : "tv";
   tournamentNameInput.value = state.tournamentName;
   tvTournamentName.textContent = state.tournamentName.trim() || "Round Robin Tournament";
-  poolsModeInput.checked = isPoolsMode();
+  poolsModeInput.value = currentFormat();
+  gamesPerMatchInput.closest("label").hidden = isNineTeamFormat();
+  matchesPerTeamInput.closest("label").hidden = isNineTeamFormat();
   teamCountInput.value = String(currentTeamCount());
   syncTeamCountInput();
   gamesPerMatchInput.value = String(currentGamesPerMatch());
@@ -1888,7 +1922,7 @@ playoffTeamCountInput.addEventListener("input", () => {
 });
 
 poolsModeInput.addEventListener("change", () => {
-  setPoolsMode(poolsModeInput.checked);
+  setPoolsMode(poolsModeInput.value);
 });
 
 generateBtn.addEventListener("click", generateRoundRobin);

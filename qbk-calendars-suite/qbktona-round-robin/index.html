@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Round Robin Tournament Manager</title>
-    <link rel="stylesheet" href="./styles.css?v=20260918-01" />
+    <link rel="stylesheet" href="./styles.css?v=20260919-01" />
   </head>
   <body>
     <main class="app-shell">
@@ -75,10 +75,11 @@
 
           <label class="mode-field" for="poolsModeInput">
             <span>Format</span>
-            <span class="mode-control">
-              <input id="poolsModeInput" type="checkbox" />
-              <span>Two pools</span>
-            </span>
+            <select id="poolsModeInput" class="mode-control">
+              <option value="single">Single pool</option>
+              <option value="pools">Two equal pools</option>
+              <option value="pools-9">Two pools: 5 + 4 teams</option>
+            </select>
           </label>
 
           <section class="teams-section" aria-label="Team names">
@@ -215,6 +216,6 @@
       </form>
     </dialog>
 
-    <script src="./app.js?v=20260918-01"></script>
+    <script src="./app.js?v=20260919-01"></script>
   </body>
 </html>
