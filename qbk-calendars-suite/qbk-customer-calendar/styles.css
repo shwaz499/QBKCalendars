@@ -840,6 +840,32 @@ h2 {
   color: #87551a;
 }
 
+.mobile-item.day-event-volley-royale {
+  background: linear-gradient(118deg, #fff8d5 0%, #f9d969 13%, #d6a300 28%, #ffec8b 47%, #c89300 62%, #ffe28a 79%, #b98100 100%);
+  border-color: #976900;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.82), inset 0 -3px 0 rgba(128, 82, 0, 0.3), 0 1px 2px rgba(128, 82, 0, 0.18);
+}
+
+.mobile-item.day-event-volley-royale .mobile-item-title {
+  color: #fff;
+  font-size: 1.08rem;
+  font-weight: 900;
+  -webkit-text-stroke: 1px #101010;
+  paint-order: stroke fill;
+  text-shadow: -1px -1px 0 #101010, 0 -1px 0 #101010, 1px -1px 0 #101010, -1px 0 0 #101010, 1px 0 0 #101010, -1px 1px 0 #101010, 0 1px 0 #101010, 1px 1px 0 #101010, 0 2px 2px rgba(0, 0, 0, 0.9);
+}
+
+.mobile-item.day-event-volley-royale .mobile-item-time,
+.mobile-item.day-event-volley-royale .mobile-item-coach,
+.mobile-item.day-event-volley-royale .mobile-item-capacity {
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 800;
+  -webkit-text-stroke: 0.8px #101010;
+  paint-order: stroke fill;
+  text-shadow: -1px -1px 0 #101010, 0 -1px 0 #101010, 1px -1px 0 #101010, -1px 0 0 #101010, 1px 0 0 #101010, -1px 1px 0 #101010, 0 1px 0 #101010, 1px 1px 0 #101010, 0 2px 2px rgba(0, 0, 0, 0.9);
+}
+
 .mobile-empty {
   border: 1px dashed var(--line);
   border-radius: 12px;
@@ -1222,6 +1248,32 @@ h2 {
 
 .day-event-junior .day-event-capacity {
   color: #87551a;
+}
+
+.day-event-volley-royale {
+  background: linear-gradient(118deg, #fff8d5 0%, #f9d969 13%, #d6a300 28%, #ffec8b 47%, #c89300 62%, #ffe28a 79%, #b98100 100%);
+  border-color: #976900;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.82), inset 0 -3px 0 rgba(128, 82, 0, 0.3), 0 1px 2px rgba(128, 82, 0, 0.18);
+}
+
+.day-event-volley-royale .day-event-title {
+  color: #fff;
+  font-size: 0.98rem;
+  font-weight: 900;
+  -webkit-text-stroke: 1px #101010;
+  paint-order: stroke fill;
+  text-shadow: -1px -1px 0 #101010, 0 -1px 0 #101010, 1px -1px 0 #101010, -1px 0 0 #101010, 1px 0 0 #101010, -1px 1px 0 #101010, 0 1px 0 #101010, 1px 1px 0 #101010, 0 2px 2px rgba(0, 0, 0, 0.9);
+}
+
+.day-event-volley-royale .day-event-time,
+.day-event-volley-royale .day-event-coach,
+.day-event-volley-royale .day-event-capacity {
+  color: #fff;
+  font-size: 0.84rem;
+  font-weight: 800;
+  -webkit-text-stroke: 0.8px #101010;
+  paint-order: stroke fill;
+  text-shadow: -1px -1px 0 #101010, 0 -1px 0 #101010, 1px -1px 0 #101010, -1px 0 0 #101010, 1px 0 0 #101010, -1px 1px 0 #101010, 0 1px 0 #101010, 1px 1px 0 #101010, 0 2px 2px rgba(0, 0, 0, 0.9);
 }
 
 @media (max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse) {

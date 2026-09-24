@@ -60,6 +60,7 @@ SLING_CALENDAR_URL = os.getenv(
     "https://calendar.getsling.com/874141/884d00d05b4e56e711926848e172d42c75f4a9d4e4f8478aba9e4af6/Sling_Calendar_all.ics",
 )
 PRIVATE_EVENT_CLOSED_DATES = {"2026-05-30", "2026-05-31"}
+VOLLEY_ROYALE_BOOKABLE_START_DATE = date(2026, 10, 1)
 API_BASE = os.getenv("DASH_API_BASE", "https://api.dashplatform.com").rstrip("/")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 EVENTS_PAGE_SIZE = 1000
@@ -1044,6 +1045,7 @@ class DashClient:
         league_name: str | None,
         description: str,
         vteam_id: object,
+        selected_date: date | None = None,
     ) -> str:
         haystack = " ".join(
             x for x in [event_type_id or "", category or "", league_name or "", description or ""] if x
@@ -1053,6 +1055,8 @@ class DashClient:
             return "private_event"
 
         if "volley royale" in haystack:
+            if selected_date is not None and selected_date >= VOLLEY_ROYALE_BOOKABLE_START_DATE:
+                return "bookable"
             return "private_event"
 
         if "birthday" in haystack:
@@ -1536,6 +1540,7 @@ class DashClient:
                 league_name,
                 item["description"],
                 item["vteam_id"],
+                selected_date,
             )
             if event_kind == "bookable" and team_id:
                 needed_team_ids.add(str(team_id))
@@ -1562,6 +1567,7 @@ class DashClient:
                 league_name,
                 item["description"],
                 item["vteam_id"],
+                selected_date,
             )
             team_id = str(item["team_id"]) if item["team_id"] else None
             team_name = team_names.get(team_id) if team_id else None

@@ -245,9 +245,16 @@
       : courtsForLocation(event.subResource || event.location);
   }
 
+  function isVolleyRoyaleEvent(event) {
+    const titleText = String(event.title || "").toLowerCase();
+    const categoryText = String(event.category || "").toLowerCase();
+    return titleText.includes("volley royale") || categoryText.includes("volley royale");
+  }
+
   function getEventClassification(event) {
     const categoryText = String(event.category || "").toLowerCase();
     const titleText = String(event.title || "").toLowerCase();
+    const isVolleyRoyale = isVolleyRoyaleEvent(event);
     const isAdultClass = event.adultProgram || (titleText.includes("adult") && titleText.includes("class"));
     const isFreeTrialClass = titleText.includes("free trial class") || titleText.includes("trial at qbk queens");
     const is4sGlowParty = /\b4s\b/.test(titleText) && /glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party/.test(titleText);
@@ -295,6 +302,7 @@
     if (titleText.includes("junior classes") || titleText.includes("youth class") || titleText.includes("beach lions")) {
       classes.push("day-event-junior");
     }
+    if (isVolleyRoyale) classes.push("day-event-volley-royale");
     if (!event.clickable) classes.push("day-event-static");
 
     return { classes, filterCategory };
@@ -412,8 +420,43 @@
         grouped.set(key, { event, courts: new Set(eventCourts) });
       }
     }
-    return Array.from(grouped.values())
+    const groupedEvents = Array.from(grouped.values())
       .sort((a, b) => new Date(a.event.start) - new Date(b.event.start));
+
+    for (const groupedEvent of groupedEvents) {
+      if (!isVolleyRoyaleEvent(groupedEvent.event) || groupedEvent.courts.size === COURTS.length) continue;
+
+      const start = new Date(groupedEvent.event.start);
+      const end = new Date(groupedEvent.event.end);
+      const startMs = start.getTime();
+      const endMs = end.getTime();
+      if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) continue;
+
+      const dayStart = new Date(start);
+      dayStart.setHours(0, 0, 0, 0);
+      const startMinute = (startMs - dayStart.getTime()) / 60000;
+      const endMinute = (endMs - dayStart.getTime()) / 60000;
+      const lastsAtLeastOneRentalHour = endMs - startMs >= SLOT_MINUTES * 2 * 60000;
+      if (startMinute < RENT_START_MIN || endMinute > RENT_END_MIN || !lastsAtLeastOneRentalHour) continue;
+
+      const otherCourtsHaveOnlyRentals = COURTS
+        .filter((court) => !groupedEvent.courts.has(court.key))
+        .every((court) => groupedEvents.every((otherEvent) => {
+          if (otherEvent === groupedEvent || !otherEvent.courts.has(court.key)) return true;
+          const otherStart = new Date(otherEvent.event.start).getTime();
+          const otherEnd = new Date(otherEvent.event.end).getTime();
+          return !Number.isFinite(otherStart)
+            || !Number.isFinite(otherEnd)
+            || startMs >= otherEnd
+            || otherStart >= endMs;
+        }));
+
+      if (otherCourtsHaveOnlyRentals) {
+        groupedEvent.courts = new Set(COURTS.map((court) => court.key));
+      }
+    }
+
+    return groupedEvents;
   }
 
   function formatShortDate(dateString) {
