@@ -11,33 +11,69 @@
       day: "Monday",
       format: "4x4",
       title: "Monday Intermediate League",
-      leagueStarts: "September 14, 2026",
-      teamPrice: "$1,095.00/team",
-      freeAgentPrice: "$150/player",
+      leagueStarts: "November 2, 2026",
+      teamPrice: "$1,390.00/team",
+      freeAgentPrice: "$200/player",
       startTimes: "6:00 PM and later",
-      season: "6 weeks",
-      schedule: "5 weeks regular play + 1 week playoffs",
-      playoffDate: "October 26, 2026",
+      season: "8 weeks",
+      schedule: "7 weeks regular play + 1 week playoffs",
+      playoffDate: "December 21, 2026",
       playoffNote: "Playoff night.",
-      notes: ["No games October 12, 2026 for Columbus/Indigenous Peoples' Day."],
-      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/qbksports/programs/level/384?facility_ids=1",
-      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9746"
+      notes: [],
+      discountText: "$100 off for returning teams",
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/391?facility_ids=1",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/10198"
+    },
+    {
+      day: "Tuesday",
+      format: "6x6",
+      title: "Tuesday All-Abilities Rec League",
+      leagueStarts: "October 27, 2026",
+      teamPrice: "$1,590/team",
+      freeAgentPrice: "$160/player",
+      startTimes: "6:00 PM and later",
+      season: "8 weeks",
+      schedule: "7 weeks regular play + 1 week playoffs",
+      playoffDate: "December 15, 2026",
+      playoffNote: "Playoff night.",
+      notes: [],
+      discountText: "$100 off for returning teams",
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/390?facility_ids=1",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/10197"
+    },
+    {
+      day: "Wednesday",
+      format: "4x4",
+      title: "Wednesday Intermediate League",
+      leagueStarts: "October 21, 2026",
+      teamPrice: "$1,390.00/team",
+      freeAgentPrice: "$200/player",
+      startTimes: "6:00 PM and later",
+      season: "8 weeks",
+      schedule: "7 weeks regular play + 1 week playoffs",
+      playoffDate: "December 16, 2026",
+      playoffNote: "Playoff night.",
+      notes: ["No games November 25, 2026 (day before Thanksgiving)."],
+      discountText: "$100 off for returning teams",
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/393?facility_ids=1",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/10200"
     },
     {
       day: "Thursday",
       format: "6x6",
       title: "Thursday All-Abilities Rec League",
-      leagueStarts: "September 10, 2026",
-      teamPrice: "$1,195/team",
-      freeAgentPrice: "$120/player",
+      leagueStarts: "October 22, 2026",
+      teamPrice: "$1,590/team",
+      freeAgentPrice: "$160/player",
       startTimes: "6:00 PM and later",
-      season: "6 weeks",
-      schedule: "5 weeks regular play + 1 week playoffs",
-      playoffDate: "October 15, 2026",
+      season: "8 weeks",
+      schedule: "7 weeks regular play + 1 week playoffs",
+      playoffDate: "December 17, 2026",
       playoffNote: "Playoff night.",
-      notes: [],
-      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/qbksports/programs/level/385?facility_ids=1",
-      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/9747"
+      notes: ["No games November 26, 2026 (Thanksgiving)."],
+      discountText: "$100 off for returning teams",
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/392?facility_ids=1",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/10199"
     }
   ];
 
@@ -103,7 +139,7 @@
             <span class="title-day">${league.day}</span>
             <span class="title-rest">${titleRest}</span>
           </h2>
-          <p class="start-time">Games start ${league.startTimes}. 6-week season.</p>
+          <p class="start-time">Games start ${league.startTimes}. ${league.season}.</p>
         </header>
 
         <div class="season-path${league.notes.length ? " has-note" : ""}" aria-label="${league.day} league season dates">
@@ -125,7 +161,7 @@
           <div class="registration-option">
             <div class="option-label">Bring a team</div>
             <div class="option-price">${league.teamPrice}</div>
-            <div class="discount-highlight">Save $100 by August 16</div>
+            <div class="discount-highlight">${league.discountText}</div>
           </div>
           <div class="registration-option">
             <div class="option-label">Join as a free agent</div>
