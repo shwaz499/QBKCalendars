@@ -1,5 +1,6 @@
 const params = new URLSearchParams(window.location.search);
 const eventId = params.get("eventId") || "";
+const requestedClipId = params.get("clipId") || "";
 const calendarTitle = (params.get("title") || params.get("eventTitle") || "").trim();
 const calendarCategory = (params.get("category") || "").trim();
 let currentClips = [];
@@ -134,6 +135,10 @@ async function loadEvent() {
   const response = await fetch(`/api/event-videos?${query.toString()}`, { headers: { Accept: "application/json" } });
   if (!response.ok) throw new Error(`Event videos request failed (${response.status})`);
   renderEvent(await response.json());
+  if (requestedClipId) {
+    const index = currentClips.findIndex((clip) => String(clip.id) === requestedClipId);
+    if (index >= 0) openModal(index);
+  }
 }
 
 loadEvent().catch((error) => {

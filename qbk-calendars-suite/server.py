@@ -73,6 +73,7 @@ PUSHIT_FIELD_ID = "15"
 PUSHIT_PAGE_LIMIT = 100
 PUSHIT_MAX_PAGES = 40
 PUSHIT_PITCH_IDS = {"left": "78", "middle": "79", "right": "80"}
+PUSHIT_MATCH_POST_END_MINUTES = 5
 LOCAL_TIMEZONE = ZoneInfo("America/New_York")
 API_JSON_CACHE_CONTROL = os.getenv(
     "QBK_API_CACHE_CONTROL",
@@ -1128,7 +1129,11 @@ class DashClient:
         court_key, court_name = self._court_info(resource_name, resource_area_name)
         court_name = court_name or "Court"
 
-        clips = self._fetch_pushit_clips(start, end, court_key, court_name)
+        clip_end = end
+        if (str(attrs.get("event_type_id")) == "g"
+                and attrs.get("hteam_id") and attrs.get("vteam_id")):
+            clip_end += timedelta(minutes=PUSHIT_MATCH_POST_END_MINUTES)
+        clips = self._fetch_pushit_clips(start, clip_end, court_key, court_name)
         local_start = start.astimezone(LOCAL_TZ)
         local_end = end.astimezone(LOCAL_TZ)
         return {
