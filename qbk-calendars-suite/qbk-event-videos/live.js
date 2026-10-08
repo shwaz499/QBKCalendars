@@ -3,6 +3,15 @@ const eventId = params.get("eventId") || "";
 const requestedClipId = params.get("clipId") || "";
 const calendarTitle = (params.get("title") || params.get("eventTitle") || "").trim();
 const calendarCategory = (params.get("category") || "").trim();
+const fromReplayEmail = params.get("source") === "league_replay_email";
+const trackingSession = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const playedClips = new Set();
+function trackReplay(action, clipId = "") {
+  if (!fromReplayEmail) return;
+  fetch("/api/track-replay", { method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
+    body: JSON.stringify({ action, eventId, clipId: String(clipId), title: calendarTitle,
+      date: params.get("date") || "", court: params.get("court") || "", session: trackingSession }) }).catch(() => {});
+}
 let currentClips = [];
 let currentDisplayTitle = "Event Video";
 let activeClipIndex = 0;
@@ -77,6 +86,7 @@ async function downloadCurrentClip() {
   const clip = currentClips[activeClipIndex];
   if (!clip) return;
 
+  trackReplay("download_click", clip.id);
   try {
     const response = await fetch(clip.url);
     if (!response.ok) throw new Error(`Download failed (${response.status})`);
@@ -87,9 +97,11 @@ async function downloadCurrentClip() {
     anchor.download = `${clip.file || "qbk-replay"}.mp4`;
     document.body.appendChild(anchor);
     anchor.click();
+    trackReplay("download_ready", clip.id);
     document.body.removeChild(anchor);
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   } catch (error) {
+    trackReplay("download_error", clip.id);
     console.error(error);
   }
 }
@@ -120,6 +132,12 @@ document.querySelectorAll("[data-modal-close]").forEach((button) => button.addEv
 modalPrev.addEventListener("click", () => openModal(activeClipIndex - 1));
 modalNext.addEventListener("click", () => openModal(activeClipIndex + 1));
 modalDownload.addEventListener("click", downloadCurrentClip);
+modalVideo.addEventListener("playing", () => {
+  const clip = currentClips[activeClipIndex];
+  if (!clip || playedClips.has(String(clip.id))) return;
+  playedClips.add(String(clip.id));
+  trackReplay("video_play", clip.id);
+});
 document.addEventListener("keydown", (event) => {
   if (modal.hidden) return;
   if (event.key === "Escape") closeModal();
@@ -135,6 +153,7 @@ async function loadEvent() {
   const response = await fetch(`/api/event-videos?${query.toString()}`, { headers: { Accept: "application/json" } });
   if (!response.ok) throw new Error(`Event videos request failed (${response.status})`);
   renderEvent(await response.json());
+  trackReplay("replay_visit", requestedClipId);
   if (requestedClipId) {
     const index = currentClips.findIndex((clip) => String(clip.id) === requestedClipId);
     if (index >= 0) openModal(index);
