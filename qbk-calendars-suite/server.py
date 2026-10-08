@@ -538,7 +538,7 @@ class PostgresClickAnalyticsStore(ClickAnalyticsStoreBase):
                 cur.execute("DELETE FROM analytics_click_events WHERE channel = %s", (self.channel,))
             conn.commit()
 
-    def _read_events(self, days: int, *, raw: bool = False) -> list[dict[str, object]]:
+    def _read_events(self, days: int) -> list[dict[str, object]]:
         self._ensure_ready()
         cutoff = datetime.now(LOCAL_TZ) - timedelta(days=max(1, days))
         with self._connect() as conn:
@@ -593,8 +593,6 @@ class PostgresClickAnalyticsStore(ClickAnalyticsStoreBase):
                     "user_agent": row[13] or "",
                 }
             )
-        if raw:
-            return events
         button_counts = Counter()
         type_counts = Counter()
         category_counts = Counter()
@@ -2002,7 +2000,7 @@ CLICK_ANALYTICS = _build_analytics_store("daily", CLICK_ANALYTICS_LOG_PATH)
 LEAGUE_CLICK_ANALYTICS = _build_analytics_store("league", LEAGUE_CLICK_ANALYTICS_LOG_PATH)
 
 
-REPLAY_ANALYTICS = _build_analytics_store("replay", TOURNAMENT_DATA_DIR / "replay-events.jsonl")
+REPLAY_ANALYTICS = ClickAnalyticsStore(TOURNAMENT_DATA_DIR / "replay-events.jsonl")
 REPLAY_TARGETS = {
     "logo": "https://www.qbksports.com/",
     "signup": "https://www.qbksports.com/volleyball-leagues",
@@ -2159,10 +2157,7 @@ class CalendarHandler(SimpleHTTPRequestHandler):
     def _handle_replay_analytics(self, parsed):
         try:
             days = max(1, min(365, int((urllib.parse.parse_qs(parsed.query).get("days") or ["30"])[0])))
-            if isinstance(REPLAY_ANALYTICS, PostgresClickAnalyticsStore):
-                events = REPLAY_ANALYTICS._read_events(days, raw=True)
-            else:
-                events = REPLAY_ANALYTICS._read_events(days)
+            events = REPLAY_ANALYTICS._read_events(days)
             matches = {}
             for event in events:
                 key = event["category"]
@@ -2178,7 +2173,7 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             for row in matches.values():
                 row["sessions"] = len(row["sessions"])
                 rows.append(row)
-            return self._send_json({"days": days, "storage": "postgres" if ANALYTICS_DATABASE_URL else ("persistent_file" if str(TOURNAMENT_DATA_DIR) == "/var/data" else "local_file"), "matches": sorted(rows, key=lambda r: int(r["event_id"]), reverse=True)}, cache_control="no-store")
+            return self._send_json({"days": days, "storage": "persistent_file" if str(TOURNAMENT_DATA_DIR) == "/var/data" else "local_file", "matches": sorted(rows, key=lambda r: int(r["event_id"]), reverse=True)}, cache_control="no-store")
         except Exception as exc:
             print("Replay analytics unavailable:", type(exc).__name__, flush=True)
             return self._send_json({"error": "Reporting unavailable"}, status=503, cache_control="no-store")
