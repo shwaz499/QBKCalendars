@@ -1130,11 +1130,62 @@ class DashClient:
         court_key, court_name = self._court_info(resource_name, resource_area_name)
         court_name = court_name or "Court"
 
+        court_keys = {court_key} if court_key in PUSHIT_PITCH_IDS else set()
+        try:
+            day_events = self.get_events_for_date(
+                start.astimezone(LOCAL_TZ).date(),
+                schedule_prefetch=False,
+            )
+        except Exception:
+            day_events = []
+        source_event = next(
+            (event for event in day_events if str(event.get("id")) == str(event_id)),
+            None,
+        )
+        if source_event:
+            source_title = str(source_event.get("title") or "").strip().casefold()
+            source_category = str(source_event.get("category") or "").strip().casefold()
+            source_booking_url = str(source_event.get("booking_url") or "").strip()
+            generic_titles = {"private event", "private rental", "rental"}
+            for candidate in day_events:
+                if candidate is source_event:
+                    continue
+                if str(candidate.get("title") or "").strip().casefold() != source_title:
+                    continue
+                if source_category and str(candidate.get("category") or "").strip().casefold() != source_category:
+                    continue
+                candidate_start = self._event_time_as_utc(candidate.get("start_time"))
+                candidate_end = self._event_time_as_utc(candidate.get("end_time"))
+                if candidate_start != start or candidate_end != end:
+                    continue
+                candidate_booking_url = str(candidate.get("booking_url") or "").strip()
+                if source_booking_url:
+                    if candidate_booking_url != source_booking_url:
+                        continue
+                elif source_title in generic_titles:
+                    continue
+                candidate_court = str(candidate.get("court_key") or "").lower()
+                if candidate_court in PUSHIT_PITCH_IDS:
+                    court_keys.add(candidate_court)
+
+        court_order = [key for key in PUSHIT_PITCH_IDS if key in court_keys]
+        display_court = court_name
+        if len(court_order) == len(PUSHIT_PITCH_IDS):
+            display_court = "All Courts"
+        elif len(court_order) > 1:
+            display_court = f"{' & '.join(key.title() for key in court_order)} Courts"
+
         clip_end = end
         if (str(attrs.get("event_type_id")) == "g"
                 and attrs.get("hteam_id") and attrs.get("vteam_id")):
             clip_end += timedelta(minutes=PUSHIT_MATCH_POST_END_MINUTES)
-        clips = self._fetch_pushit_clips(start, clip_end, court_key, court_name)
+        clips = self._fetch_pushit_clips(
+            start,
+            clip_end,
+            court_key,
+            court_name,
+            court_keys=court_keys,
+        )
         local_start = start.astimezone(LOCAL_TZ)
         local_end = end.astimezone(LOCAL_TZ)
         return {
@@ -1144,8 +1195,9 @@ class DashClient:
                 "category": strip_html(category),
                 "date": local_start.strftime("%A, %B %-d, %Y"),
                 "time": _event_time_text(start, end),
-                "court": court_name,
+                "court": display_court,
                 "court_key": court_key or "",
+                "court_keys": court_order,
                 "start_time": local_start.isoformat(),
                 "end_time": local_end.isoformat(),
             },
@@ -1158,6 +1210,8 @@ class DashClient:
         end: datetime,
         court_key: str | None,
         court_name: str,
+        *,
+        court_keys: set[str] | None = None,
     ) -> list[dict]:
         params_base = [
             ("fieldId", PUSHIT_FIELD_ID),
@@ -1171,6 +1225,12 @@ class DashClient:
         ]
         clips: list[dict] = []
         cursor = None
+        allowed_pitch_names = {court_name.casefold()}
+        allowed_pitch_names.update(
+            f"{key.title()} Court".casefold()
+            for key in (court_keys or set())
+            if key in PUSHIT_PITCH_IDS
+        )
         for _ in range(PUSHIT_MAX_PAGES):
             params = list(params_base)
             if cursor:
@@ -1197,7 +1257,7 @@ class DashClient:
 
                 pitch = ((item.get("camera") or {}).get("pitch") or {})
                 pitch_name = str(pitch.get("name") or "").strip()
-                if court_key and court_key != "all" and pitch_name.lower() != court_name.lower():
+                if court_key and court_key != "all" and pitch_name.casefold() not in allowed_pitch_names:
                     continue
 
                 file_name = str(item.get("fileName") or "").strip()
