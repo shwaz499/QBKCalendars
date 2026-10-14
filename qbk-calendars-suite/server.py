@@ -18,6 +18,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import httpx
+from replay_engagement import REPLAY_ACTIONS, aggregate_replays, replay_destination, tracking_group
 
 try:
     import tomllib
@@ -39,6 +40,7 @@ APP_DIR_NAMES = {
     "/teen-upcoming": "qbk-teen-upcoming-widget",
     "/league-page": "qbk-league-page",
     "/event-videos": "qbk-event-videos",
+    "/playoff-videos": "qbk-playoff-videos",
     "/replay-analytics": "qbk-replay-analytics",
     "/qbktona-round-robin": "qbktona-round-robin",
 }
@@ -2061,12 +2063,7 @@ LEAGUE_CLICK_ANALYTICS = _build_analytics_store("league", LEAGUE_CLICK_ANALYTICS
 
 
 REPLAY_ANALYTICS = ClickAnalyticsStore(TOURNAMENT_DATA_DIR / "replay-events.jsonl")
-REPLAY_TARGETS = {
-    "logo": "https://www.qbksports.com/",
-    "signup": "https://www.qbksports.com/volleyball-leagues",
-    "instagram": "https://www.instagram.com/qbksports/",
-}
-REPLAY_ACTIONS = {"replay_visit", "video_play", "download_click", "download_ready", "download_error", "logo_click", "signup_click", "instagram_click"}
+PLAYOFF_CAMPAIGN_DIR = PROJECT_DIR / "qbk-playoff-videos" / "campaigns"
 
 
 class CalendarHandler(SimpleHTTPRequestHandler):
@@ -2097,19 +2094,36 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             return self._handle_tournament_state_get()
         if parsed.path == "/api/replay-analytics":
             return self._handle_replay_analytics(parsed)
+        if parsed.path == "/api/playoff-videos":
+            query = {key: values[0] for key, values in urllib.parse.parse_qs(parsed.query).items()}
+            query["source"] = "league_thank_you_email"
+            try:
+                _, key = tracking_group(query)
+            except ValueError:
+                return self._send_json({"error": "Invalid playoff campaign"}, status=400, cache_control="no-store")
+            path = PLAYOFF_CAMPAIGN_DIR / (key.removeprefix("thank-you:").replace(":", "-") + ".json")
+            try:
+                payload = json.loads(path.read_text())
+            except FileNotFoundError:
+                return self._send_json({"error": "Playoff campaign not prepared"}, status=404, cache_control="no-store")
+            except (OSError, ValueError):
+                return self._send_json({"error": "Playoff archive unavailable"}, status=503, cache_control="no-store")
+            return self._send_json(payload, cache_control="no-store")
         if parsed.path == "/replay-link":
             query = urllib.parse.parse_qs(parsed.query)
             target = (query.get("target") or [""])[0]
-            if target not in REPLAY_TARGETS:
-                return self.send_error(400, "Invalid link")
             payload = {key: values[0] for key, values in query.items()}
-            payload["action"] = target + "_click"
+            try:
+                destination = replay_destination(payload)
+            except ValueError:
+                return self.send_error(400, "Invalid link")
+            payload["action"] = "replay_click" if target == "replays" else target + "_click"
             try:
                 self._record_replay(payload)
             except Exception as exc:
                 print("Replay link tracking unavailable:", type(exc).__name__, flush=True)
             self._cache_control = "no-store"
-            return self._redirect(REPLAY_TARGETS[target])
+            return self._redirect(destination)
         if parsed.path == "/api/events-week":
             return self._handle_events_week_api(parsed)
         if parsed.path == "/api/events":
@@ -2200,13 +2214,15 @@ class CalendarHandler(SimpleHTTPRequestHandler):
     def _record_replay(self, payload):
         if not isinstance(payload, dict):
             raise ValueError("Invalid tracking payload")
-        event_id = str(payload.get("eventId") or "")
+        calendar, group_id = tracking_group(payload)
         action = str(payload.get("action") or "")
-        if not event_id.isdigit() or len(event_id) > 15 or action not in REPLAY_ACTIONS:
+        if action not in REPLAY_ACTIONS:
             raise ValueError("Invalid event or action")
+        if str(payload.get("preview") or "") == "1":
+            return
         # No recipient identities, IP addresses, referrers or user agents are stored.
         REPLAY_ANALYTICS.record({
-            "calendar": "league_replay", "action": action, "category": event_id,
+            "calendar": calendar, "action": action, "category": group_id,
             "button_type": str(payload.get("clipId") or "")[:30],
             "button_label": str(payload.get("title") or "")[:200],
             "selected_date": str(payload.get("date") or "")[:50],
@@ -2218,22 +2234,7 @@ class CalendarHandler(SimpleHTTPRequestHandler):
         try:
             days = max(1, min(365, int((urllib.parse.parse_qs(parsed.query).get("days") or ["30"])[0])))
             events = REPLAY_ANALYTICS._read_events(days)
-            matches = {}
-            for event in events:
-                key = event["category"]
-                row = matches.setdefault(key, {"event_id": key, "title": "", "date": "", "court": "", "counts": {}, "sessions": set()})
-                for field, source in (("title", "button_label"), ("date", "selected_date"), ("court", "court")):
-                    if event.get(source):
-                        row[field] = event[source]
-                action = event["action"]
-                row["counts"][action] = row["counts"].get(action, 0) + 1
-                if event.get("view_mode"):
-                    row["sessions"].add(event["view_mode"])
-            rows = []
-            for row in matches.values():
-                row["sessions"] = len(row["sessions"])
-                rows.append(row)
-            return self._send_json({"days": days, "storage": "persistent_file" if str(TOURNAMENT_DATA_DIR) == "/var/data" else "local_file", "matches": sorted(rows, key=lambda r: int(r["event_id"]), reverse=True)}, cache_control="no-store")
+            return self._send_json({"days": days, "storage": "persistent_file" if str(TOURNAMENT_DATA_DIR) == "/var/data" else "local_file", "matches": aggregate_replays(events)}, cache_control="no-store")
         except Exception as exc:
             print("Replay analytics unavailable:", type(exc).__name__, flush=True)
             return self._send_json({"error": "Reporting unavailable"}, status=503, cache_control="no-store")

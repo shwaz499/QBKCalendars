@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Thanks for playing at QBK!</title>
+  <style>
+    @media only screen and (max-width:480px) {
+      .outer { padding:16px 8px !important; }
+      .section { padding-left:20px !important; padding-right:20px !important; }
+      .headline { font-size:30px !important; }
+      .champion-name { font-size:28px !important; }
+      .brand-label { font-size:10px !important; letter-spacing:1px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f5f2e9;font-family:Arial,Helvetica,sans-serif;color:#171714;">
+  <div style="display:none;font-size:1px;line-height:1px;color:#f5f2e9;max-height:0;max-width:0;overflow:hidden;mso-hide:all;">Congratulations to {{champion_name}}! Your playoff replays and next season.</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f5f2e9;">
+    <tr><td class="outer" align="center" style="padding:28px 12px;">
+      <table role="presentation" width="640" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:640px;background:#ffffff;border-radius:14px;">
+        <tr><td class="section" style="padding:8px 28px;border-bottom:4px solid #d4b762;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
+            <td width="90" align="left" valign="middle"><a href="{{logo_link}}" style="text-decoration:none;"><img src="{{logo_src}}" width="55" alt="QBK Sports" style="display:block;width:55px;height:auto;border:0;"></a></td>
+            <td class="brand-label" align="right" valign="middle" style="color:#756438;font-size:11px;font-weight:bold;letter-spacing:2px;">THANKS FOR PLAYING</td>
+          </tr></table>
+        </td></tr>
+        <tr><td class="section" style="padding:28px 28px 24px;">
+          <p style="margin:0 0 14px;color:#776e58;font-size:12px;line-height:1.6;">{{league_name}} · {{season_name}} · Playoffs {{playoff_date}}</p>
+          <h1 class="headline" style="margin:0 0 18px;font-size:34px;line-height:1.15;font-weight:bold;">Thanks for a great season!</h1>
+          <p style="margin:0 0 14px;font-size:16px;line-height:1.65;">A huge <strong>THANK YOU</strong> to every team for an incredible {{season_name}} season! We love watching you all battle it out on the sand every week.</p>
+          <p style="margin:0;font-size:16px;line-height:1.65;">Thank you for being part of the QBK community. These leagues wouldn't be the same without you.</p>
+        </td></tr>
+        <tr><td class="section" style="padding:24px 28px 18px;background:#fbf7e9;border-top:1px solid #e9dfc5;">
+          <p style="margin:0 0 9px;color:#756438;font-size:11px;line-height:1.5;font-weight:bold;letter-spacing:2px;">YOUR {{season_name}} CHAMPIONS</p>
+          <h2 class="champion-name" style="margin:0 0 10px;font-size:32px;line-height:1.2;">{{champion_name}}</h2>
+          <p style="margin:0;font-size:16px;line-height:1.65;">Congratulations to our champions!</p>
+        </td></tr>
+        <tr><td class="section" style="padding:0 28px 24px;background:#fbf7e9;">
+          <!-- CHAMPION_PHOTO_START -->
+          <img src="{{champion_photo_url}}" width="584" alt="{{champion_name}}, {{season_name}} {{league_name}} champions" style="display:block;width:100%;max-width:584px;height:auto;border:0;border-radius:10px;">
+          <!-- CHAMPION_PHOTO_END -->
+          <!-- OPTIONAL_CAPTION_START -->
+          <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#776e58;">{{champion_caption}}</p>
+          <!-- OPTIONAL_CAPTION_END -->
+        </td></tr>
+        <tr><td class="section" style="padding:26px 28px;border-top:1px solid #e9dfc5;">
+          <h2 style="margin:0 0 10px;font-size:22px;line-height:1.3;">Relive playoff night</h2>
+          <p style="margin:0 0 18px;font-size:16px;line-height:1.65;">All available Push It videos from last night's playoff games, across every court, are together on one page. Find your favorite moments, save your clips, and tag <a href="{{instagram_link}}" style="color:#514117;font-weight:bold;">@qbksports</a> when you post!</p>
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td bgcolor="#d4b762" style="border-radius:6px;mso-padding-alt:14px 20px;"><a href="{{playoff_replays_url}}" style="display:inline-block;padding:14px 20px;color:#171714;font-size:14px;line-height:1.4;font-weight:bold;text-decoration:none;border-radius:6px;">Watch playoff replays →</a></td></tr></table>
+        </td></tr>
+        <tr><td class="section" style="padding:26px 28px;background:#fbf7e9;border-top:1px solid #e9dfc5;">
+          <h2 style="margin:0 0 10px;font-size:22px;line-height:1.3;">Run it back next season</h2>
+          <p style="margin:0 0 14px;font-size:16px;line-height:1.65;">Keep the momentum going — grab your team and sign up for {{next_season_name}} ASAP! We'd love to see you back on the sand.</p>
+          <!-- OPTIONAL_DISCOUNT_START -->
+          <p style="margin:0 0 14px;font-size:16px;line-height:1.65;">Returning teams get <strong>{{returning_team_discount}} off</strong> their next league season.</p>
+          <!-- OPTIONAL_DISCOUNT_END -->
+          <!-- OPTIONAL_SEASON_DETAILS_START -->
+          <p style="margin:0 0 18px;font-size:16px;line-height:1.65;">{{next_season_details}}</p>
+          <!-- OPTIONAL_SEASON_DETAILS_END -->
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td bgcolor="#171714" style="border-radius:6px;mso-padding-alt:14px 20px;"><a href="{{signup_url}}" style="display:inline-block;padding:14px 20px;color:#ffffff;font-size:14px;line-height:1.4;font-weight:bold;text-decoration:none;border-radius:6px;">Sign up for next season →</a></td></tr></table>
+        </td></tr>
+        <tr><td class="section" style="padding:26px 28px;border-top:1px solid #e9dfc5;">
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.65;">Have feedback on the season? Just reply to this email — we'd love to hear it. We're always looking for ways to make our leagues better.</p>
+          <p style="margin:0;font-size:16px;line-height:1.6;">See you on the sand,<br><strong>QBK Sports</strong></p>
+          <p style="margin:12px 0 0;color:#776e58;font-size:12px;line-height:1.6;"><a href="mailto:info@qbksports.com" style="color:#514117;">info@qbksports.com</a> · <a href="{{instagram_link}}" style="color:#514117;">Instagram</a></p>
+        </td></tr>
+        <tr><td class="section" style="padding:18px 28px;color:#776e58;font-size:12px;line-height:1.6;border-top:1px solid #e9dfc5;">
+          You're receiving this season wrap-up because you played in {{season_name}} {{league_name}} at QBK Sports.<br>
+          41-20 39th Street, Queens, NY 11104<br>
+          <a href="mailto:info@qbksports.com?subject=Unsubscribe%20from%20League%20Emails&amp;body=Please%20unsubscribe%20me%20from%20League%20Emails." style="color:#514117;">Unsubscribe from league emails</a>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

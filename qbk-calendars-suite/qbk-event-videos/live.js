@@ -1,15 +1,17 @@
 const params = new URLSearchParams(window.location.search);
+const isPlayoffPage = window.location.pathname.startsWith("/playoff-videos");
 const eventId = params.get("eventId") || "";
 const requestedClipId = params.get("clipId") || "";
 const calendarTitle = (params.get("title") || params.get("eventTitle") || "").trim();
 const calendarCategory = (params.get("category") || "").trim();
-const fromReplayEmail = params.get("source") === "league_replay_email";
+const emailSource = params.get("source") || "";
+const fromReplayEmail = ["league_replay_email", "league_thank_you_email"].includes(emailSource) && params.get("preview") !== "1";
 const trackingSession = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const playedClips = new Set();
 function trackReplay(action, clipId = "") {
   if (!fromReplayEmail) return;
   fetch("/api/track-replay", { method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
-    body: JSON.stringify({ action, eventId, clipId: String(clipId), title: calendarTitle,
+    body: JSON.stringify({ action, eventId, source: emailSource, seasonId: params.get("seasonId") || "", leagueId: params.get("leagueId") || "", clipId: String(clipId), title: calendarTitle,
       date: params.get("date") || "", court: params.get("court") || "", session: trackingSession }) }).catch(() => {});
 }
 let currentClips = [];
@@ -41,7 +43,7 @@ function renderEvent(payload) {
     <div class="hero-meta-item"><span class="hero-meta-label">Court</span><strong>${escapeHtml(event.court || "Court")}</strong></div>`;
 
   const groups = Array.from(currentClips.reduce((map, clip) => {
-    const court = clip.court || event.court || "Court";
+    const court = isPlayoffPage ? (clip.match_title || clip.court || "Playoff games") : (clip.court || event.court || "Court");
     if (!map.has(court)) map.set(court, []);
     map.get(court).push(clip);
     return map;
@@ -146,11 +148,11 @@ document.addEventListener("keydown", (event) => {
 });
 
 async function loadEvent() {
-  if (!eventId) throw new Error("Missing eventId");
-  const query = new URLSearchParams({ eventId });
+  if (!isPlayoffPage && !eventId) throw new Error("Missing eventId");
+  const query = new URLSearchParams(isPlayoffPage ? {seasonId: params.get("seasonId") || "", leagueId: params.get("leagueId") || "", date: params.get("date") || ""} : { eventId });
   if (calendarTitle) query.set("title", calendarTitle);
   if (calendarCategory) query.set("category", calendarCategory);
-  const response = await fetch(`/api/event-videos?${query.toString()}`, { headers: { Accept: "application/json" } });
+  const response = await fetch(`/api/${isPlayoffPage ? "playoff-videos" : "event-videos"}?${query.toString()}`, { headers: { Accept: "application/json" } });
   if (!response.ok) throw new Error(`Event videos request failed (${response.status})`);
   renderEvent(await response.json());
   trackReplay("replay_visit", requestedClipId);
