@@ -262,6 +262,9 @@
       || (/\bteens?\b/.test(titleText) && /drop[\s-]*in/.test(titleText));
     const isTeenGlowParty = !is4sGlowParty
       && /glow[\s-]*in[\s-]*the[\s-]*dark[\s-]*party/.test(titleText);
+    const isKnownAdult2sDropIn = /\b(?:advanced|intermediate)\b/.test(titleText)
+      && /\b2s\b/.test(titleText)
+      && /match[\s-]*play|king[\s-]*of[\s-]*the[\s-]*court/.test(titleText);
     const isLeagueOrGame = categoryText.includes("league") || categoryText.includes("game");
     const isYouthClass = titleText.includes("junior classes")
       || titleText.includes("cubs")
@@ -271,7 +274,14 @@
       && !isTeenGlowParty
       && !isYouthClass
       && !event.adultProgram
-      && (is4sGlowParty || categoryText.includes("drop-in") || categoryText.includes("drop in"));
+      && (
+        is4sGlowParty
+        || titleText.includes("drop-in")
+        || titleText.includes("drop in")
+        || categoryText.includes("drop-in")
+        || categoryText.includes("drop in")
+        || isKnownAdult2sDropIn
+      );
     const isPrivateEventOrRental = titleText.includes("private event")
       || titleText.includes("private rental")
       || (!event.clickable && (categoryText.includes("rental") || categoryText.includes("block")));
