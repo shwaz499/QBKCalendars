@@ -1087,15 +1087,26 @@ class DashClient:
 
     @staticmethod
     def _program_category(category: str | None, league_name: str | None, description: str) -> str | None:
-        haystack = " ".join(
-            x for x in [category or "", league_name or "", description or ""] if x
-        ).lower()
-        if "drop-in" in haystack or "drop in" in haystack:
-            return "Drop-in"
-        if "class" in haystack:
+        category_text = str(category or "").lower()
+        title_text = str(league_name or "").lower()
+        # DaySmart descriptions can mention drop-in memberships for classes.
+        # Use the event title and event type first so membership language cannot
+        # move a class into the drop-in calendar.
+        is_class_title = bool(
+            re.search(r"\bclass(?:es)?\b", title_text)
+            or re.search(r"sunday[\s-]*skills", title_text)
+        )
+        if is_class_title or "class" in category_text:
             return "Class"
-        if "camp" in haystack:
+        if "camp" in title_text or "camp" in category_text:
             return "Camp"
+        if (
+            "drop-in" in title_text
+            or "drop in" in title_text
+            or "drop-in" in category_text
+            or "drop in" in category_text
+        ):
+            return "Drop-in"
         return category
 
     def _get_team_name(self, team_id: str | None) -> str | None:
