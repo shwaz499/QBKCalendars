@@ -12,6 +12,7 @@
       format: "4x4",
       title: "Monday Intermediate League",
       leagueStarts: "November 2, 2026",
+      startDate: "2026-11-02",
       teamPrice: "$1,390.00/team",
       freeAgentPrice: "$200/player",
       startTimes: "6:00 PM and later",
@@ -29,6 +30,7 @@
       format: "6x6",
       title: "Tuesday All-Abilities Rec League",
       leagueStarts: "October 27, 2026",
+      startDate: "2026-10-27",
       teamPrice: "$1,590/team",
       freeAgentPrice: "$160/player",
       startTimes: "6:00 PM and later",
@@ -46,6 +48,7 @@
       format: "4x4",
       title: "Wednesday Intermediate League",
       leagueStarts: "October 21, 2026",
+      startDate: "2026-10-21",
       teamPrice: "$1,390.00/team",
       freeAgentPrice: "$200/player",
       startTimes: "6:00 PM and later",
@@ -63,6 +66,7 @@
       format: "6x6",
       title: "Thursday All-Abilities Rec League",
       leagueStarts: "October 22, 2026",
+      startDate: "2026-10-22",
       teamPrice: "$1,590/team",
       freeAgentPrice: "$160/player",
       startTimes: "6:00 PM and later",
@@ -195,7 +199,21 @@
     `;
   }
 
-  gridEl.innerHTML = LEAGUES.map(buildCard).join("");
+  const dateParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const datePart = (type) => dateParts.find((part) => part.type === type).value;
+  const today = `${datePart("year")}-${datePart("month")}-${datePart("day")}`;
+  const upcomingLeagues = LEAGUES.filter((league) => league.startDate >= today);
+  gridEl.innerHTML = upcomingLeagues.length
+    ? upcomingLeagues.map(buildCard).join("")
+    : '<p class="league-empty">Registration for the next season will open soon.</p>';
+  if (!upcomingLeagues.length) {
+    document.querySelector(".league-kicker").textContent = "NEXT SEASON";
+  }
 
   const analyticsNodes = gridEl.querySelectorAll("[data-analytics-type]");
   analyticsNodes.forEach((node) => {
