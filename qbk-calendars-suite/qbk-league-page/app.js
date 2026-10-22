@@ -65,6 +65,7 @@
       day: "Thursday",
       format: "6x6",
       title: "Thursday All-Abilities Rec League",
+      registrationClosed: true,
       leagueStarts: "October 22, 2026",
       startDate: "2026-10-22",
       teamPrice: "$1,590/team",
@@ -207,7 +208,7 @@
   }).formatToParts(new Date());
   const datePart = (type) => dateParts.find((part) => part.type === type).value;
   const today = `${datePart("year")}-${datePart("month")}-${datePart("day")}`;
-  const upcomingLeagues = LEAGUES.filter((league) => league.startDate >= today);
+  const upcomingLeagues = LEAGUES.filter((league) => !league.registrationClosed && league.startDate >= today);
   gridEl.innerHTML = upcomingLeagues.length
     ? upcomingLeagues.map(buildCard).join("")
     : '<p class="league-empty">Registration for the next season will open soon.</p>';
