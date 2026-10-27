@@ -1,0 +1,748 @@
+{
+  "event": {
+    "title": "Fall 2026 Monday 4s Playoffs",
+    "category": "League",
+    "date": "Monday, October 26, 2026",
+    "time": "6:00 PM–11:00 PM",
+    "court": "All Courts"
+  },
+  "source_event_ids": [
+    "28418",
+    "28419",
+    "28420",
+    "28421",
+    "28422",
+    "28423",
+    "28424",
+    "28425",
+    "28426",
+    "28427",
+    "28428",
+    "28429",
+    "28430",
+    "28431"
+  ],
+  "prepared_at": "2026-10-27T03:13:46.613522+00:00",
+  "clips": [
+    {
+      "id": "7791941",
+      "clipCreationTime": "2026-10-26T22:00:01+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/f85436e72fa82eb21625af2baffbb12f.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/f85436e72fa82eb21625af2baffbb12f.jpg",
+      "court": "Left Court",
+      "time": "6:00 PM",
+      "event_id": "28418",
+      "match_title": "Playoff 2: Tequila Sunsets vs The Big C"
+    },
+    {
+      "id": "7792083",
+      "clipCreationTime": "2026-10-26T22:15:56+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/61d6be74179569396bc0b21c7f01dce9.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/61d6be74179569396bc0b21c7f01dce9.jpg",
+      "court": "Middle Court",
+      "time": "6:15 PM",
+      "event_id": "28419",
+      "match_title": "Playoff 1: Punto Final vs That's what she set"
+    },
+    {
+      "id": "7792086",
+      "clipCreationTime": "2026-10-26T22:16:16+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/1221c83602a2f0112daf3b1f41880515.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/1221c83602a2f0112daf3b1f41880515.jpg",
+      "court": "Right Court",
+      "time": "6:16 PM",
+      "event_id": "28420",
+      "match_title": "Playoff 3: Aaah Joerillaz vs Spikel B. Jordan"
+    },
+    {
+      "id": "7792093",
+      "clipCreationTime": "2026-10-26T22:17:10+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/aa7340b21cfc770c1c681278d8ca0aeb.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/aa7340b21cfc770c1c681278d8ca0aeb.jpg",
+      "court": "Right Court",
+      "time": "6:17 PM",
+      "event_id": "28420",
+      "match_title": "Playoff 3: Aaah Joerillaz vs Spikel B. Jordan"
+    },
+    {
+      "id": "7792099",
+      "clipCreationTime": "2026-10-26T22:17:34+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/83626268874dd8f44d673c8893bc058d.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/83626268874dd8f44d673c8893bc058d.jpg",
+      "court": "Right Court",
+      "time": "6:17 PM",
+      "event_id": "28420",
+      "match_title": "Playoff 3: Aaah Joerillaz vs Spikel B. Jordan"
+    },
+    {
+      "id": "7792129",
+      "clipCreationTime": "2026-10-26T22:21:36+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/50ad730de61c42914cc1f5a59a70be08.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/50ad730de61c42914cc1f5a59a70be08.jpg",
+      "court": "Middle Court",
+      "time": "6:21 PM",
+      "event_id": "28419",
+      "match_title": "Playoff 1: Punto Final vs That's what she set"
+    },
+    {
+      "id": "7792134",
+      "clipCreationTime": "2026-10-26T22:21:55+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/323109d0d1f76afb0a319d5bd676e261.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/323109d0d1f76afb0a319d5bd676e261.jpg",
+      "court": "Right Court",
+      "time": "6:21 PM",
+      "event_id": "28420",
+      "match_title": "Playoff 3: Aaah Joerillaz vs Spikel B. Jordan"
+    },
+    {
+      "id": "7792139",
+      "clipCreationTime": "2026-10-26T22:22:31+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/0d2d772a77e0f496ef683c5c2e77343f.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/0d2d772a77e0f496ef683c5c2e77343f.jpg",
+      "court": "Left Court",
+      "time": "6:22 PM",
+      "event_id": "28418",
+      "match_title": "Playoff 2: Tequila Sunsets vs The Big C"
+    },
+    {
+      "id": "7792142",
+      "clipCreationTime": "2026-10-26T22:22:46+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/151034c72ef2140ec935912458c9e727.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/151034c72ef2140ec935912458c9e727.jpg",
+      "court": "Right Court",
+      "time": "6:22 PM",
+      "event_id": "28420",
+      "match_title": "Playoff 3: Aaah Joerillaz vs Spikel B. Jordan"
+    },
+    {
+      "id": "7792161",
+      "clipCreationTime": "2026-10-26T22:25:20+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/3aaf46e4eda3ca47ac1d3d8ef4da132d.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/3aaf46e4eda3ca47ac1d3d8ef4da132d.jpg",
+      "court": "Left Court",
+      "time": "6:25 PM",
+      "event_id": "28418",
+      "match_title": "Playoff 2: Tequila Sunsets vs The Big C"
+    },
+    {
+      "id": "7792176",
+      "clipCreationTime": "2026-10-26T22:27:30+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/608fb19538c5fbb10850efbbb00800ab.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/608fb19538c5fbb10850efbbb00800ab.jpg",
+      "court": "Right Court",
+      "time": "6:27 PM",
+      "event_id": "28420",
+      "match_title": "Playoff 3: Aaah Joerillaz vs Spikel B. Jordan"
+    },
+    {
+      "id": "7792186",
+      "clipCreationTime": "2026-10-26T22:28:16+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/f691688fca753b6cd577274c5c59c70e.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/f691688fca753b6cd577274c5c59c70e.jpg",
+      "court": "Left Court",
+      "time": "6:28 PM",
+      "event_id": "28418",
+      "match_title": "Playoff 2: Tequila Sunsets vs The Big C"
+    },
+    {
+      "id": "7792250",
+      "clipCreationTime": "2026-10-26T22:34:33+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/3cb3462d7ef494bbb302d7ee50168fc4.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/3cb3462d7ef494bbb302d7ee50168fc4.jpg",
+      "court": "Right Court",
+      "time": "6:34 PM",
+      "event_id": "28420",
+      "match_title": "Playoff 3: Aaah Joerillaz vs Spikel B. Jordan"
+    },
+    {
+      "id": "7792257",
+      "clipCreationTime": "2026-10-26T22:35:24+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/b6ff22ef4b3053724cb2be955874ef71.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/b6ff22ef4b3053724cb2be955874ef71.jpg",
+      "court": "Right Court",
+      "time": "6:35 PM",
+      "event_id": "28420",
+      "match_title": "Playoff 3: Aaah Joerillaz vs Spikel B. Jordan"
+    },
+    {
+      "id": "7792266",
+      "clipCreationTime": "2026-10-26T22:36:40+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/11ab74d275e4d5ea96e88a3b423d75d2.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/11ab74d275e4d5ea96e88a3b423d75d2.jpg",
+      "court": "Right Court",
+      "time": "6:36 PM",
+      "event_id": "28420",
+      "match_title": "Playoff 3: Aaah Joerillaz vs Spikel B. Jordan"
+    },
+    {
+      "id": "7792293",
+      "clipCreationTime": "2026-10-26T22:39:18+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/73fca894208ad712221683642ebfae1f.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/73fca894208ad712221683642ebfae1f.jpg",
+      "court": "Right Court",
+      "time": "6:39 PM",
+      "event_id": "28420",
+      "match_title": "Playoff 3: Aaah Joerillaz vs Spikel B. Jordan"
+    },
+    {
+      "id": "7792310",
+      "clipCreationTime": "2026-10-26T22:40:54+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/d7e3b5074ea985a151d7125a92b3b3fc.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/d7e3b5074ea985a151d7125a92b3b3fc.jpg",
+      "court": "Left Court",
+      "time": "6:40 PM",
+      "event_id": "28418",
+      "match_title": "Playoff 2: Tequila Sunsets vs The Big C"
+    },
+    {
+      "id": "7792390",
+      "clipCreationTime": "2026-10-26T22:49:16+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/700a3b506e998e0ec81735cd2a1c0c00.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/700a3b506e998e0ec81735cd2a1c0c00.jpg",
+      "court": "Right Court",
+      "time": "6:49 PM",
+      "event_id": "28420",
+      "match_title": "Playoff 3: Aaah Joerillaz vs Spikel B. Jordan"
+    },
+    {
+      "id": "7792401",
+      "clipCreationTime": "2026-10-26T22:50:12+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/9dc9867ee0bd95984e7f0d160f4d1bce.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/9dc9867ee0bd95984e7f0d160f4d1bce.jpg",
+      "court": "Right Court",
+      "time": "6:50 PM",
+      "event_id": "28420",
+      "match_title": "Playoff 3: Aaah Joerillaz vs Spikel B. Jordan"
+    },
+    {
+      "id": "7792564",
+      "clipCreationTime": "2026-10-26T23:13:58+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/13c849672658788e5f9b80522cd4b82c.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/13c849672658788e5f9b80522cd4b82c.jpg",
+      "court": "Left Court",
+      "time": "7:13 PM",
+      "event_id": "28421",
+      "match_title": "Playoff 4: Empire Spikes Back vs Breaded Chicken"
+    },
+    {
+      "id": "7792603",
+      "clipCreationTime": "2026-10-26T23:22:04+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/ce32ece23edd1678b070c17bef3599cc.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/ce32ece23edd1678b070c17bef3599cc.jpg",
+      "court": "Right Court",
+      "time": "7:22 PM",
+      "event_id": "28423",
+      "match_title": "Quarter Final 3: Plummy vs Winner of P3"
+    },
+    {
+      "id": "7792610",
+      "clipCreationTime": "2026-10-26T23:23:14+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/f8f01ab9277d177a9097bea575b96027.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/f8f01ab9277d177a9097bea575b96027.jpg",
+      "court": "Right Court",
+      "time": "7:23 PM",
+      "event_id": "28423",
+      "match_title": "Quarter Final 3: Plummy vs Winner of P3"
+    },
+    {
+      "id": "7792618",
+      "clipCreationTime": "2026-10-26T23:24:22+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/ebf0b202afd1f21b54fc7d834262370b.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/ebf0b202afd1f21b54fc7d834262370b.jpg",
+      "court": "Left Court",
+      "time": "7:24 PM",
+      "event_id": "28421",
+      "match_title": "Playoff 4: Empire Spikes Back vs Breaded Chicken"
+    },
+    {
+      "id": "7792649",
+      "clipCreationTime": "2026-10-26T23:29:58+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/5d24dcfb3e6143899fc54fef416a5d9d.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/5d24dcfb3e6143899fc54fef416a5d9d.jpg",
+      "court": "Left Court",
+      "time": "7:29 PM",
+      "event_id": "28421",
+      "match_title": "Playoff 4: Empire Spikes Back vs Breaded Chicken"
+    },
+    {
+      "id": "7792696",
+      "clipCreationTime": "2026-10-26T23:36:27+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/f2e3d79e95ae16a3f97e420e0b0ae331.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/f2e3d79e95ae16a3f97e420e0b0ae331.jpg",
+      "court": "Left Court",
+      "time": "7:36 PM",
+      "event_id": "28421",
+      "match_title": "Playoff 4: Empire Spikes Back vs Breaded Chicken"
+    },
+    {
+      "id": "7792734",
+      "clipCreationTime": "2026-10-26T23:44:46+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/43426257afd0909309ec1e96f0298277.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/43426257afd0909309ec1e96f0298277.jpg",
+      "court": "Right Court",
+      "time": "7:44 PM",
+      "event_id": "28423",
+      "match_title": "Quarter Final 3: Plummy vs Winner of P3"
+    },
+    {
+      "id": "7792735",
+      "clipCreationTime": "2026-10-26T23:44:49+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/9af4dc2a51c847aafb9caacc12e0a8e4.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/9af4dc2a51c847aafb9caacc12e0a8e4.jpg",
+      "court": "Right Court",
+      "time": "7:44 PM",
+      "event_id": "28423",
+      "match_title": "Quarter Final 3: Plummy vs Winner of P3"
+    },
+    {
+      "id": "7792833",
+      "clipCreationTime": "2026-10-27T00:02:13+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/4de5e4000fb3b3d080802065a335fcf7.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/4de5e4000fb3b3d080802065a335fcf7.jpg",
+      "court": "Left Court",
+      "time": "8:02 PM",
+      "event_id": "28424",
+      "match_title": "Consolation 1: Peace Love Bucees vs One Hit Wonders"
+    },
+    {
+      "id": "7792841",
+      "clipCreationTime": "2026-10-27T00:02:51+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/ad397ce95affbc1744aab71fce9d072e.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/ad397ce95affbc1744aab71fce9d072e.jpg",
+      "court": "Left Court",
+      "time": "8:02 PM",
+      "event_id": "28424",
+      "match_title": "Consolation 1: Peace Love Bucees vs One Hit Wonders"
+    },
+    {
+      "id": "7792859",
+      "clipCreationTime": "2026-10-27T00:05:09+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/3d999cef12d9fb030a8f723017cd02f0.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/3d999cef12d9fb030a8f723017cd02f0.jpg",
+      "court": "Right Court",
+      "time": "8:05 PM",
+      "event_id": "28426",
+      "match_title": "Quarter Final 4: Savages vs Winner of P4"
+    },
+    {
+      "id": "7792863",
+      "clipCreationTime": "2026-10-27T00:05:27+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/af95d73974646fb057abec31db2455da.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/af95d73974646fb057abec31db2455da.jpg",
+      "court": "Right Court",
+      "time": "8:05 PM",
+      "event_id": "28426",
+      "match_title": "Quarter Final 4: Savages vs Winner of P4"
+    },
+    {
+      "id": "7792927",
+      "clipCreationTime": "2026-10-27T00:14:45+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/0815d359ae0ae33b213752186521a6bf.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/0815d359ae0ae33b213752186521a6bf.jpg",
+      "court": "Middle Court",
+      "time": "8:14 PM",
+      "event_id": "28425",
+      "match_title": "Quarter Final 2: The Leftovers vs Winner of P2"
+    },
+    {
+      "id": "7792928",
+      "clipCreationTime": "2026-10-27T00:14:50+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/1bf9e449e8a886189308d2ea71e8570d.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/1bf9e449e8a886189308d2ea71e8570d.jpg",
+      "court": "Left Court",
+      "time": "8:14 PM",
+      "event_id": "28424",
+      "match_title": "Consolation 1: Peace Love Bucees vs One Hit Wonders"
+    },
+    {
+      "id": "7792994",
+      "clipCreationTime": "2026-10-27T00:22:28+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/a14012dda7af214ede5aa3264c3c19c9.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/a14012dda7af214ede5aa3264c3c19c9.jpg",
+      "court": "Left Court",
+      "time": "8:22 PM",
+      "event_id": "28424",
+      "match_title": "Consolation 1: Peace Love Bucees vs One Hit Wonders"
+    },
+    {
+      "id": "7792992",
+      "clipCreationTime": "2026-10-27T00:22:34+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/2a519439d1073031de4d0849f1e2738b.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/2a519439d1073031de4d0849f1e2738b.jpg",
+      "court": "Middle Court",
+      "time": "8:22 PM",
+      "event_id": "28425",
+      "match_title": "Quarter Final 2: The Leftovers vs Winner of P2"
+    },
+    {
+      "id": "7793068",
+      "clipCreationTime": "2026-10-27T00:30:26+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/6fcb4fe9d51363cafcce279b8c0fafc9.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/6fcb4fe9d51363cafcce279b8c0fafc9.jpg",
+      "court": "Left Court",
+      "time": "8:30 PM",
+      "event_id": "28424",
+      "match_title": "Consolation 1: Peace Love Bucees vs One Hit Wonders"
+    },
+    {
+      "id": "7793078",
+      "clipCreationTime": "2026-10-27T00:31:35+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/42e0645a2c4f9442dc52231abe547cd1.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/42e0645a2c4f9442dc52231abe547cd1.jpg",
+      "court": "Right Court",
+      "time": "8:31 PM",
+      "event_id": "28426",
+      "match_title": "Quarter Final 4: Savages vs Winner of P4"
+    },
+    {
+      "id": "7793095",
+      "clipCreationTime": "2026-10-27T00:34:32+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/14e64c423419f8ca115631c703c80193.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/14e64c423419f8ca115631c703c80193.jpg",
+      "court": "Right Court",
+      "time": "8:34 PM",
+      "event_id": "28426",
+      "match_title": "Quarter Final 4: Savages vs Winner of P4"
+    },
+    {
+      "id": "7793099",
+      "clipCreationTime": "2026-10-27T00:35:04+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/70240e34084e1579af25bf2b5ca49dc4.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/70240e34084e1579af25bf2b5ca49dc4.jpg",
+      "court": "Left Court",
+      "time": "8:35 PM",
+      "event_id": "28424",
+      "match_title": "Consolation 1: Peace Love Bucees vs One Hit Wonders"
+    },
+    {
+      "id": "7793100",
+      "clipCreationTime": "2026-10-27T00:35:08+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/8fd0f54f3cff2106dc78d95892d8f5a3.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/8fd0f54f3cff2106dc78d95892d8f5a3.jpg",
+      "court": "Right Court",
+      "time": "8:35 PM",
+      "event_id": "28426",
+      "match_title": "Quarter Final 4: Savages vs Winner of P4"
+    },
+    {
+      "id": "7793103",
+      "clipCreationTime": "2026-10-27T00:35:24+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/9584004cda3d54b72fafbe4597ed27a4.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/9584004cda3d54b72fafbe4597ed27a4.jpg",
+      "court": "Left Court",
+      "time": "8:35 PM",
+      "event_id": "28424",
+      "match_title": "Consolation 1: Peace Love Bucees vs One Hit Wonders"
+    },
+    {
+      "id": "7793132",
+      "clipCreationTime": "2026-10-27T00:39:26+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/b3ff312f2f0e1df5b4b705e6d3f0ed49.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/b3ff312f2f0e1df5b4b705e6d3f0ed49.jpg",
+      "court": "Right Court",
+      "time": "8:39 PM",
+      "event_id": "28426",
+      "match_title": "Quarter Final 4: Savages vs Winner of P4"
+    },
+    {
+      "id": "7793171",
+      "clipCreationTime": "2026-10-27T00:45:40+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/05176a5258fa1dbe2c1a53fbe45554f7.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/05176a5258fa1dbe2c1a53fbe45554f7.jpg",
+      "court": "Left Court",
+      "time": "8:45 PM",
+      "event_id": "28424",
+      "match_title": "Consolation 1: Peace Love Bucees vs One Hit Wonders"
+    },
+    {
+      "id": "7793193",
+      "clipCreationTime": "2026-10-27T00:47:53+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/115682f50ead7a3b368e7dd697d3dc1e.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/115682f50ead7a3b368e7dd697d3dc1e.jpg",
+      "court": "Right Court",
+      "time": "8:47 PM",
+      "event_id": "28426",
+      "match_title": "Quarter Final 4: Savages vs Winner of P4"
+    },
+    {
+      "id": "7793199",
+      "clipCreationTime": "2026-10-27T00:48:08+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/d1ec2fe8efdddbfd4699671c2ce474d3.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/d1ec2fe8efdddbfd4699671c2ce474d3.jpg",
+      "court": "Left Court",
+      "time": "8:48 PM",
+      "event_id": "28424",
+      "match_title": "Consolation 1: Peace Love Bucees vs One Hit Wonders"
+    },
+    {
+      "id": "7793209",
+      "clipCreationTime": "2026-10-27T00:49:17+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/f2648e3095f4f958146b5f667707b1cc.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/f2648e3095f4f958146b5f667707b1cc.jpg",
+      "court": "Left Court",
+      "time": "8:49 PM",
+      "event_id": "28424",
+      "match_title": "Consolation 1: Peace Love Bucees vs One Hit Wonders"
+    },
+    {
+      "id": "7793217",
+      "clipCreationTime": "2026-10-27T00:50:41+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/e334b056d5367e6b5c18d99312059f20.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/e334b056d5367e6b5c18d99312059f20.jpg",
+      "court": "Left Court",
+      "time": "8:50 PM",
+      "event_id": "28424",
+      "match_title": "Consolation 1: Peace Love Bucees vs One Hit Wonders"
+    },
+    {
+      "id": "7793306",
+      "clipCreationTime": "2026-10-27T00:59:14+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/5d42864e4c3b61ce8d56358b3567f134.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/5d42864e4c3b61ce8d56358b3567f134.jpg",
+      "court": "Middle Court",
+      "time": "8:59 PM",
+      "event_id": "28425",
+      "match_title": "Quarter Final 2: The Leftovers vs Winner of P2"
+    },
+    {
+      "id": "7793340",
+      "clipCreationTime": "2026-10-27T01:04:52+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/1e53a7e22ac47cfe8e310c8e582bec62.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/1e53a7e22ac47cfe8e310c8e582bec62.jpg",
+      "court": "Right Court",
+      "time": "9:04 PM",
+      "event_id": "28429",
+      "match_title": "Semi-Final 2: Winner of QF3 vs Winner of QF4"
+    },
+    {
+      "id": "7793344",
+      "clipCreationTime": "2026-10-27T01:05:48+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/948e50145847f9556c29efe9590843d7.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/948e50145847f9556c29efe9590843d7.jpg",
+      "court": "Right Court",
+      "time": "9:05 PM",
+      "event_id": "28429",
+      "match_title": "Semi-Final 2: Winner of QF3 vs Winner of QF4"
+    },
+    {
+      "id": "7793353",
+      "clipCreationTime": "2026-10-27T01:06:47+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/a18cf558e33acecf8087fa0133736ad6.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/a18cf558e33acecf8087fa0133736ad6.jpg",
+      "court": "Middle Court",
+      "time": "9:06 PM",
+      "event_id": "28428",
+      "match_title": "Semi-Final 1: Winner of QF1 vs Winner of QF 2"
+    },
+    {
+      "id": "7793365",
+      "clipCreationTime": "2026-10-27T01:09:12+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/19832d76d06d68fb8959b436f610684d.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/19832d76d06d68fb8959b436f610684d.jpg",
+      "court": "Middle Court",
+      "time": "9:09 PM",
+      "event_id": "28428",
+      "match_title": "Semi-Final 1: Winner of QF1 vs Winner of QF 2"
+    },
+    {
+      "id": "7793369",
+      "clipCreationTime": "2026-10-27T01:09:51+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/f3ef2fc853752d6487ddd00b255e4583.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/f3ef2fc853752d6487ddd00b255e4583.jpg",
+      "court": "Right Court",
+      "time": "9:09 PM",
+      "event_id": "28429",
+      "match_title": "Semi-Final 2: Winner of QF3 vs Winner of QF4"
+    },
+    {
+      "id": "7793371",
+      "clipCreationTime": "2026-10-27T01:10:09+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/8f55e898dfbc0d038f4fb52977c9d3e6.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/8f55e898dfbc0d038f4fb52977c9d3e6.jpg",
+      "court": "Left Court",
+      "time": "9:10 PM",
+      "event_id": "28427",
+      "match_title": "Consolation 2: Astoria vs Shai-Hulud"
+    },
+    {
+      "id": "7793370",
+      "clipCreationTime": "2026-10-27T01:10:11+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/223c046216f83cc1a4788083f5f54f68.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/223c046216f83cc1a4788083f5f54f68.jpg",
+      "court": "Middle Court",
+      "time": "9:10 PM",
+      "event_id": "28428",
+      "match_title": "Semi-Final 1: Winner of QF1 vs Winner of QF 2"
+    },
+    {
+      "id": "7793395",
+      "clipCreationTime": "2026-10-27T01:12:50+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/bc8a462eb7ce22ab0f323f16bc3381ef.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/bc8a462eb7ce22ab0f323f16bc3381ef.jpg",
+      "court": "Right Court",
+      "time": "9:12 PM",
+      "event_id": "28429",
+      "match_title": "Semi-Final 2: Winner of QF3 vs Winner of QF4"
+    },
+    {
+      "id": "7793455",
+      "clipCreationTime": "2026-10-27T01:19:57+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/deb7d9f809d24214466969c4e5aabade.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/deb7d9f809d24214466969c4e5aabade.jpg",
+      "court": "Right Court",
+      "time": "9:19 PM",
+      "event_id": "28429",
+      "match_title": "Semi-Final 2: Winner of QF3 vs Winner of QF4"
+    },
+    {
+      "id": "7793461",
+      "clipCreationTime": "2026-10-27T01:21:37+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/0ecc2cb0e23e7313975d87897d2380bb.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/0ecc2cb0e23e7313975d87897d2380bb.jpg",
+      "court": "Right Court",
+      "time": "9:21 PM",
+      "event_id": "28429",
+      "match_title": "Semi-Final 2: Winner of QF3 vs Winner of QF4"
+    },
+    {
+      "id": "7793460",
+      "clipCreationTime": "2026-10-27T01:21:38+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/b42b4a6888806dfe36267a7947fe8908.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/b42b4a6888806dfe36267a7947fe8908.jpg",
+      "court": "Middle Court",
+      "time": "9:21 PM",
+      "event_id": "28428",
+      "match_title": "Semi-Final 1: Winner of QF1 vs Winner of QF 2"
+    },
+    {
+      "id": "7793515",
+      "clipCreationTime": "2026-10-27T01:29:47+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/eec547762edb5e22bc39cb94dfac1eda.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/eec547762edb5e22bc39cb94dfac1eda.jpg",
+      "court": "Middle Court",
+      "time": "9:29 PM",
+      "event_id": "28428",
+      "match_title": "Semi-Final 1: Winner of QF1 vs Winner of QF 2"
+    },
+    {
+      "id": "7793552",
+      "clipCreationTime": "2026-10-27T01:34:19+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/3482efbc12d4ee3905eedeca2b5892bb.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/3482efbc12d4ee3905eedeca2b5892bb.jpg",
+      "court": "Left Court",
+      "time": "9:34 PM",
+      "event_id": "28427",
+      "match_title": "Consolation 2: Astoria vs Shai-Hulud"
+    },
+    {
+      "id": "7793560",
+      "clipCreationTime": "2026-10-27T01:35:47+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/aa1e56839a22b6cc9ffacb44600af2ff.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/aa1e56839a22b6cc9ffacb44600af2ff.jpg",
+      "court": "Left Court",
+      "time": "9:35 PM",
+      "event_id": "28427",
+      "match_title": "Consolation 2: Astoria vs Shai-Hulud"
+    },
+    {
+      "id": "7793637",
+      "clipCreationTime": "2026-10-27T01:51:17+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/2d089677abdcb0bfb02ca95f2e167230.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/2d089677abdcb0bfb02ca95f2e167230.jpg",
+      "court": "Left Court",
+      "time": "9:51 PM",
+      "event_id": "28427",
+      "match_title": "Consolation 2: Astoria vs Shai-Hulud"
+    },
+    {
+      "id": "7793648",
+      "clipCreationTime": "2026-10-27T01:52:23+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/2b1217b0db66afb7e79653a5f1525f88.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/2b1217b0db66afb7e79653a5f1525f88.jpg",
+      "court": "Left Court",
+      "time": "9:52 PM",
+      "event_id": "28427",
+      "match_title": "Consolation 2: Astoria vs Shai-Hulud"
+    },
+    {
+      "id": "7793659",
+      "clipCreationTime": "2026-10-27T01:54:14+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/ebb65d5a3af61a1e013d706df04173c8.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/ebb65d5a3af61a1e013d706df04173c8.jpg",
+      "court": "Right Court",
+      "time": "9:54 PM",
+      "event_id": "28429",
+      "match_title": "Semi-Final 2: Winner of QF3 vs Winner of QF4"
+    },
+    {
+      "id": "7793673",
+      "clipCreationTime": "2026-10-27T01:58:13+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/5364df062672c13f9fca62b14871869c.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/5364df062672c13f9fca62b14871869c.jpg",
+      "court": "Left Court",
+      "time": "9:58 PM",
+      "event_id": "28427",
+      "match_title": "Consolation 2: Astoria vs Shai-Hulud"
+    },
+    {
+      "id": "7793676",
+      "clipCreationTime": "2026-10-27T01:58:42+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/d3c42e7bf612acb22beb7577ae6e4ae6.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/d3c42e7bf612acb22beb7577ae6e4ae6.jpg",
+      "court": "Left Court",
+      "time": "9:58 PM",
+      "event_id": "28427",
+      "match_title": "Consolation 2: Astoria vs Shai-Hulud"
+    },
+    {
+      "id": "7793703",
+      "clipCreationTime": "2026-10-27T02:05:39+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/ba021d9dd0f53c3954e56913e207389c.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/ba021d9dd0f53c3954e56913e207389c.jpg",
+      "court": "Middle Court",
+      "time": "10:05 PM",
+      "event_id": "28431",
+      "match_title": "Final: Winner of SF1 vs Winner of SF2"
+    },
+    {
+      "id": "7793716",
+      "clipCreationTime": "2026-10-27T02:06:58+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/bb4ada11617b6ce606fcdafdb3bcb190.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/bb4ada11617b6ce606fcdafdb3bcb190.jpg",
+      "court": "Left Court",
+      "time": "10:06 PM",
+      "event_id": "28430",
+      "match_title": "Consolation Final: Winner of C1 vs Winner of C2"
+    },
+    {
+      "id": "7793769",
+      "clipCreationTime": "2026-10-27T02:16:26+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/697d2360b86c70c8d11b9767c2835500.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/697d2360b86c70c8d11b9767c2835500.jpg",
+      "court": "Middle Court",
+      "time": "10:16 PM",
+      "event_id": "28431",
+      "match_title": "Final: Winner of SF1 vs Winner of SF2"
+    },
+    {
+      "id": "7793836",
+      "clipCreationTime": "2026-10-27T02:26:35+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/30dd5be3145b8567a61c64aeaf233ff1.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/30dd5be3145b8567a61c64aeaf233ff1.jpg",
+      "court": "Left Court",
+      "time": "10:26 PM",
+      "event_id": "28430",
+      "match_title": "Consolation Final: Winner of C1 vs Winner of C2"
+    },
+    {
+      "id": "7793848",
+      "clipCreationTime": "2026-10-27T02:27:34+00:00",
+      "url": "https://pushitreplays.com/assets/videos/clips_overlay/a749c8adeb1986a260fc129b0001832f.mp4",
+      "poster": "https://pushitreplays.com/assets/images/clips/a749c8adeb1986a260fc129b0001832f.jpg",
+      "court": "Left Court",
+      "time": "10:27 PM",
+      "event_id": "28430",
+      "match_title": "Consolation Final: Winner of C1 vs Winner of C2"
+    }
+  ]
+}
