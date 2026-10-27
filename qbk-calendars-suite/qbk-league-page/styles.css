@@ -444,6 +444,18 @@ p {
   transform: translateY(-2px);
 }
 
+.cta-disabled,
+.cta-disabled:hover {
+  color: #6b7280;
+  background: #e5e7eb;
+  border-color: #d1d5db;
+  box-shadow: none;
+  cursor: not-allowed;
+  font-family: inherit;
+  opacity: 1;
+  transform: none;
+}
+
 .cta-primary:hover {
   box-shadow: 0 10px 18px rgba(11, 73, 56, 0.24);
 }

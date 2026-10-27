@@ -29,6 +29,7 @@
       day: "Tuesday",
       format: "6x6",
       title: "Tuesday All-Abilities Rec League",
+      teamRegistrationClosed: true,
       leagueStarts: "October 27, 2026",
       startDate: "2026-10-27",
       teamPrice: "$1,590/team",
@@ -175,7 +176,10 @@
         </div>
 
         <div class="league-actions">
-          <a
+          ${league.teamRegistrationClosed ? `
+          <button class="cta cta-disabled" type="button" disabled aria-label="${league.day} team registration closed" title="Team registration is closed">
+            <span>Register a Team</span><span class="cta-arrow" aria-hidden="true">-&gt;</span>
+          </button>` : `<a
             class="cta cta-primary"
             href="${league.signUpUrl}"
             target="_blank"
@@ -184,7 +188,7 @@
             data-button-label="${league.title} — Team Sign Up"
             data-destination-url="${league.signUpUrl}"
             data-category="${league.title}"
-          ><span>Register a Team</span><span class="cta-arrow" aria-hidden="true">-&gt;</span></a>
+          ><span>Register a Team</span><span class="cta-arrow" aria-hidden="true">-&gt;</span></a>`}
           <a
             class="cta cta-secondary"
             href="${league.freeAgentUrl}"
