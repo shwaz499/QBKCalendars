@@ -18,6 +18,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import httpx
+from birthday_tracking import handle as handle_birthday_tracking
 from replay_engagement import REPLAY_ACTIONS, aggregate_replays, replay_destination, tracking_group
 
 try:
@@ -2099,8 +2100,15 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             or client_host in {"127.0.0.1", "::1"}
         )
 
+    def log_message(self, fmt, *args):
+        if self.path.startswith("/birthday-track/"):
+            return
+        super().log_message(fmt, *args)
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
+        if handle_birthday_tracking(self, parsed, TOURNAMENT_DATA_DIR):
+            return
         if parsed.path in TOURNAMENT_STATE_ROUTES:
             return self._handle_tournament_state_get()
         if parsed.path == "/api/replay-analytics":
