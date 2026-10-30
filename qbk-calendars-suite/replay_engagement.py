@@ -9,7 +9,7 @@ REPLAY_TARGETS = {
     "instagram": "https://www.instagram.com/qbksports/",
 }
 REPLAY_ACTIONS = {"replay_click", "replay_visit", "video_play", "download_click",
-                  "download_ready", "download_error", "logo_click", "signup_click", "instagram_click"}
+                  "download_ready", "download_error", "logo_click", "signup_click", "instagram_click", "campaign_sent"}
 
 
 def tracking_group(payload):
