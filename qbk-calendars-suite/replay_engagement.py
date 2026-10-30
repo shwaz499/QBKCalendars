@@ -33,6 +33,9 @@ def tracking_group(payload):
 
 def replay_destination(payload):
     target = str(payload.get("target") or "")
+    if target == "signup" and payload.get("source") == "league_thank_you_email" and payload.get("directMonday4s") == "1":
+        tracking_group(payload)
+        return "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/391?facility_ids=1"
     if target in REPLAY_TARGETS:
         return REPLAY_TARGETS[target]
     if target != "replays" or payload.get("source") != "league_thank_you_email":
