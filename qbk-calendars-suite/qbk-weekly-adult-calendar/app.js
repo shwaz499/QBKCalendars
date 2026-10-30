@@ -299,10 +299,6 @@
 
   function buildGridSkeleton() {
     const trackHeight = SLOT_COUNT * SLOT_HEIGHT;
-    const firstHead = els.weekGrid.querySelector(".week-head");
-    const headHeight = firstHead ? firstHead.getBoundingClientRect().height : 32;
-    els.weekGrid.style.setProperty("--head-height", `${headHeight}px`);
-
     els.timeTrack.innerHTML = "";
     els.timeTrack.style.height = `${trackHeight}px`;
     for (let i = 0; i < 7; i += 1) {

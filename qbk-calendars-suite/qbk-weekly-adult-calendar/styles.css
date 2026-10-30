@@ -417,9 +417,9 @@ h2 {
 
 .events-overlay {
   position: absolute;
-  left: var(--time-col-width);
-  right: 0;
-  top: var(--head-height, 32px);
+  grid-column: 2 / -1;
+  grid-row: 2;
+  inset: 0;
   z-index: 2;
   pointer-events: none;
   overflow: hidden;
