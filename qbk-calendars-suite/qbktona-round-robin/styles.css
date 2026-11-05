@@ -983,6 +983,26 @@ h2 {
   font-size: clamp(20px, 2vw, 32px);
 }
 
+#globalStandingsPanel .standings-table th,
+#globalStandingsPanel .standings-table td {
+  padding-top: clamp(12px, 1.62vh, 21.6px);
+  padding-bottom: clamp(12px, 1.62vh, 21.6px);
+}
+
+#globalStandingsPanel .standings-table td {
+  font-size: clamp(31.2px, 3.24vw, 55.2px);
+}
+
+#globalStandingsPanel.compact-standings .standings-table th,
+#globalStandingsPanel.compact-standings .standings-table td {
+  padding-top: clamp(6px, 0.72vh, 9.6px);
+  padding-bottom: clamp(6px, 0.72vh, 9.6px);
+}
+
+#globalStandingsPanel.compact-standings .standings-table td {
+  font-size: clamp(24px, 2.4vw, 38.4px);
+}
+
 .standings-table th:nth-child(2),
 .standings-table td:nth-child(2) {
   width: 42%;
