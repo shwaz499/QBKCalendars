@@ -218,6 +218,7 @@
     : '<p class="league-empty">Registration for the next season will open soon.</p>';
   if (!upcomingLeagues.length) {
     document.querySelector(".league-kicker").textContent = "NEXT SEASON";
+    document.querySelector(".season-copy h1").innerHTML = "<span>2027</span> Winter Leagues";
   }
 
   const analyticsNodes = gridEl.querySelectorAll("[data-analytics-type]");
