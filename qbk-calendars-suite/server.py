@@ -1161,6 +1161,7 @@ class DashClient:
             source_category = str(source_event.get("category") or "").strip().casefold()
             source_booking_url = str(source_event.get("booking_url") or "").strip()
             generic_titles = {"private event", "private rental", "rental"}
+            source_root = str(source_event.get("parent_event_id") or event_id)
             for candidate in day_events:
                 if candidate is source_event:
                     continue
@@ -1173,7 +1174,10 @@ class DashClient:
                 if candidate_start != start or candidate_end != end:
                     continue
                 candidate_booking_url = str(candidate.get("booking_url") or "").strip()
-                if source_booking_url:
+                candidate_root = str(candidate.get("parent_event_id") or candidate.get("id"))
+                if candidate_root == source_root:
+                    pass  # DaySmart explicitly links additional courts to their booking.
+                elif source_booking_url:
                     if candidate_booking_url != source_booking_url:
                         continue
                 elif source_title in generic_titles:
@@ -1542,6 +1546,7 @@ class DashClient:
                 parsed_events.append(
                     {
                         "id": str(row.get("id")),
+                        "parent_event_id": attrs.get("parent_event_id"),
                         "event_type_id": event_type_id,
                         "league_id": league_id,
                         "vteam_id": vteam_id,
@@ -1718,6 +1723,7 @@ class DashClient:
             events.append(
                 {
                     "id": str(item["id"]),
+                    "parent_event_id": item.get("parent_event_id"),
                     "title": title,
                     "category": program_category,
                     "location": location,

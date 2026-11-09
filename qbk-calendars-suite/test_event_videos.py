@@ -19,7 +19,7 @@ class EventVideoMultiCourtTests(unittest.TestCase):
             }
         })
         self.client._cached_lookup = Mock(side_effect=lambda lookup: {
-            "resources": {"left-resource": "Left Court"},
+            "resources": {"left-resource": "Left Court", "middle-resource": "Middle Court"},
             "resource_areas": {},
         }[lookup])
         self.client._fetch_pushit_clips = Mock(return_value=[])
@@ -92,6 +92,25 @@ class EventVideoMultiCourtTests(unittest.TestCase):
 
         self.assertEqual([item["id"] for item in clips], ["left", "middle"])
         self.assertEqual([item["court"] for item in clips], ["Left Court", "Middle Court"])
+
+    def test_private_rental_includes_linked_court_but_not_unrelated_rental(self):
+        events = self.client.get_events_for_date.return_value
+        for event in events:
+            event.update(title="Private Rental", category="Rental", booking_url=None)
+        events[1]["parent_event_id"] = "28442"
+        for event_id in ("28442", "28651"):
+            with self.subTest(event_id=event_id):
+                self.client._request_json.return_value["data"]["attributes"]["resource_id"] = (
+                    "middle-resource" if event_id == "28651" else "left-resource"
+                )
+                result = self.client.get_event_videos(event_id, category="Rental")
+                self.assertEqual(result["event"]["court_keys"], ["left", "middle"])
+
+    def test_unlinked_private_rentals_stay_separate(self):
+        for event in self.client.get_events_for_date.return_value:
+            event.update(title="Private Rental", category="Rental", booking_url=None)
+        result = self.client.get_event_videos("28442", category="Rental")
+        self.assertEqual(result["event"]["court_keys"], ["left"])
 
 
 if __name__ == "__main__":
