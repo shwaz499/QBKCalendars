@@ -1711,6 +1711,8 @@ class DashClient:
             location = resources.get(str(item["resource_id"]))
             sub_resource = resource_areas.get(str(item["resource_area_id"]))
             court_key, court_label = self._court_info(location, sub_resource)
+            if event_kind in {"private_event", "rental"} and court_key is None:
+                continue
             if court_label:
                 location = court_label
 
