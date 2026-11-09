@@ -1,9 +1,10 @@
 """Birthday click collection; only opaque IDs are hosted. Report requires per-campaign key."""
-import hashlib,hmac,json,re,threading
+import base64,hashlib,hmac,json,re,threading
 from datetime import datetime,timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 LOCK=threading.Lock()
+PIXEL=base64.b64decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
 MANIFESTS=Path(__file__).resolve().parent/'birthday-manifests'
 
 def manifest(campaign):
@@ -27,11 +28,34 @@ def handle(handler,parsed,data_dir):
    path=Path(data_dir)/'birthday-clicks.jsonl';rows=[]
    with LOCK:
     if path.exists():
-     for raw in path.open():
+     for raw in path.read_text().splitlines():
       try:e=json.loads(raw)
       except ValueError:continue
       if e.get('campaign')==parts[2]:rows.append(e)
-   handler._send_json({'events':rows,'storage':'persistent_file' if str(data_dir)=='/var/data' else 'local_file'},cache_control='no-store');return True
+   open_rows=[]
+   with LOCK:
+    open_path=Path(data_dir)/'birthday-opens.jsonl'
+    if open_path.exists():
+     for raw in open_path.read_text().splitlines():
+      try:e=json.loads(raw)
+      except ValueError:continue
+      if e.get('campaign')==parts[2]:open_rows.append(e)
+   handler._send_json({'events':rows,'open_events':open_rows,'storage':'persistent_file' if str(data_dir)=='/var/data' else 'local_file'},cache_control='no-store');return True
+  if len(parts)==4 and parts[1]=='o':
+   _,_,campaign,pixel=parts
+   if not pixel.endswith('.gif'):raise ValueError()
+   rid=pixel[:-4];m=manifest(campaign)
+   if rid not in m['recipients']:raise ValueError()
+   if handler.command=='GET':
+    ua=handler.headers.get('User-Agent','').lower()
+    bot=not ua or any(x in ua for x in ('bot','crawler','spider','scanner','proofpoint','barracuda','mimecast','safelinks'))
+    event={'campaign':campaign,'recipient':rid,'created':datetime.now(timezone.utc).isoformat(),'suspected_bot':int(bot),'image_proxy':int(any(x in ua for x in ('googleimageproxy','yahoo! slurp','outlook','microsoftpreview')))}
+    with LOCK:
+     path=Path(data_dir)/'birthday-opens.jsonl';path.parent.mkdir(parents=True,exist_ok=True)
+     with path.open('a') as f:f.write(json.dumps(event,separators=(',',':'))+'\n')
+   handler.send_response(200);handler.send_header('Content-Type','image/gif');handler.send_header('Content-Length',str(len(PIXEL)));handler.send_header('Cache-Control','no-store, max-age=0');handler.send_header('Pragma','no-cache');handler.send_header('Referrer-Policy','no-referrer');handler.end_headers()
+   if handler.command=='GET':handler.wfile.write(PIXEL)
+   return True
   if len(parts)!=5 or parts[1]!='c':raise ValueError()
   _,_,campaign,rid,lid=parts;m=manifest(campaign)
   if rid not in m['recipients']:raise ValueError()
