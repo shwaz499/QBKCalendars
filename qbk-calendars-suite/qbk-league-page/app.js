@@ -11,75 +11,73 @@
       day: "Monday",
       format: "4x4",
       title: "Monday Intermediate League",
-      leagueStarts: "November 2, 2026",
-      startDate: "2026-11-02",
+      leagueStarts: "January 4, 2027",
+      startDate: "2027-01-04",
       teamPrice: "$1,390.00/team",
       freeAgentPrice: "$200/player",
       startTimes: "6:00 PM and later",
       season: "8 weeks",
       schedule: "7 weeks regular play + 1 week playoffs",
-      playoffDate: "December 21, 2026",
+      playoffDate: "To be announced",
       playoffNote: "Playoff night.",
       notes: [],
-      discountText: "$100 off for returning teams",
-      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/391?facility_ids=1",
-      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/10198"
+      discountText: "",
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/412?facility_ids=1",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/10419"
     },
     {
       day: "Tuesday",
       format: "6x6",
       title: "Tuesday All-Abilities Rec League",
-      teamRegistrationClosed: true,
-      leagueStarts: "October 27, 2026",
-      startDate: "2026-10-27",
+      leagueStarts: "January 5, 2027",
+      startDate: "2027-01-05",
       teamPrice: "$1,590/team",
       freeAgentPrice: "$160/player",
       startTimes: "6:00 PM and later",
       season: "8 weeks",
       schedule: "7 weeks regular play + 1 week playoffs",
-      playoffDate: "December 15, 2026",
+      playoffDate: "To be announced",
       playoffNote: "Playoff night.",
       notes: [],
-      discountText: "$100 off for returning teams",
-      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/390?facility_ids=1",
-      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/10197"
+      discountText: "",
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/411?facility_ids=1",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/10418"
     },
     {
       day: "Wednesday",
       format: "4x4",
       title: "Wednesday Intermediate League",
-      leagueStarts: "October 21, 2026",
-      startDate: "2026-10-21",
+      leagueStarts: "January 6, 2027",
+      startDate: "2027-01-06",
       teamPrice: "$1,390.00/team",
       freeAgentPrice: "$200/player",
       startTimes: "6:00 PM and later",
       season: "8 weeks",
       schedule: "7 weeks regular play + 1 week playoffs",
-      playoffDate: "December 16, 2026",
+      playoffDate: "To be announced",
       playoffNote: "Playoff night.",
-      notes: ["No games November 25, 2026 (day before Thanksgiving)."],
-      discountText: "$100 off for returning teams",
-      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/393?facility_ids=1",
-      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/10200"
+      notes: [],
+      discountText: "",
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/414?facility_ids=1",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/10421"
     },
     {
       day: "Thursday",
       format: "6x6",
       title: "Thursday All-Abilities Rec League",
-      registrationClosed: true,
-      leagueStarts: "October 22, 2026",
-      startDate: "2026-10-22",
+      leagueStarts: "January 7, 2027",
+      startDate: "2027-01-07",
       teamPrice: "$1,590/team",
       freeAgentPrice: "$160/player",
       startTimes: "6:00 PM and later",
       season: "8 weeks",
       schedule: "7 weeks regular play + 1 week playoffs",
-      playoffDate: "December 17, 2026",
+      playoffDate: "To be announced",
       playoffNote: "Playoff night.",
-      notes: ["No games November 26, 2026 (Thanksgiving)."],
-      discountText: "$100 off for returning teams",
-      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/392?facility_ids=1",
-      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/10199"
+      notes: [],
+      discountText: "",
+      signUpUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/programs/level/413?facility_ids=1",
+      freeAgentUrl: "https://apps.daysmartrecreation.com/dash/x/#/online/qbksports/teams/10420"
     }
   ];
 
@@ -167,7 +165,7 @@
           <div class="registration-option">
             <div class="option-label">Bring a team</div>
             <div class="option-price">${league.teamPrice}</div>
-            <div class="discount-highlight">${league.discountText}</div>
+            ${league.discountText ? `<div class="discount-highlight">${league.discountText}</div>` : ""}
           </div>
           <div class="registration-option">
             <div class="option-label">Join as a free agent</div>
@@ -176,10 +174,7 @@
         </div>
 
         <div class="league-actions">
-          ${league.teamRegistrationClosed ? `
-          <button class="cta cta-disabled" type="button" disabled aria-label="${league.day} team registration closed" title="Team registration is closed">
-            <span>Register a Team</span><span class="cta-arrow" aria-hidden="true">-&gt;</span>
-          </button>` : `<a
+          <a
             class="cta cta-primary"
             href="${league.signUpUrl}"
             target="_blank"
@@ -188,7 +183,7 @@
             data-button-label="${league.title} — Team Sign Up"
             data-destination-url="${league.signUpUrl}"
             data-category="${league.title}"
-          ><span>Register a Team</span><span class="cta-arrow" aria-hidden="true">-&gt;</span></a>`}
+          ><span>Register a Team</span><span class="cta-arrow" aria-hidden="true">-&gt;</span></a>
           <a
             class="cta cta-secondary"
             href="${league.freeAgentUrl}"
@@ -218,7 +213,6 @@
     : '<p class="league-empty">Registration for the next season will open soon.</p>';
   if (!upcomingLeagues.length) {
     document.querySelector(".league-kicker").textContent = "NEXT SEASON";
-    document.querySelector(".season-copy h1").innerHTML = "<span>2027</span> Winter Leagues";
   }
 
   const analyticsNodes = gridEl.querySelectorAll("[data-analytics-type]");
