@@ -13,6 +13,12 @@
     <link rel="stylesheet" href="./styles.css?v=20260924-volley-royale-all-courts-1" />
   </head>
   <body>
+    <script>
+      // Set layout modes before the calendar's first paint.
+      const initialModes = new URLSearchParams(window.location.search);
+      if (initialModes.get("embed") === "1") document.body.classList.add("embed-mode");
+      if (initialModes.get("mobile") === "1") document.body.classList.add("force-mobile-mode");
+    </script>
     <main class="layout">
       <section class="hero panel">
         <p class="eyebrow">QBK Sports</p>
