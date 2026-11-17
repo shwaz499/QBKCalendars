@@ -91,3 +91,4 @@ root.querySelectorAll("#registration .league-item").forEach(row => {
  disconnectedCallback(){this.resizeObserver?.disconnect();}
 }
 if(!customElements.get('qbk-league-full-page'))customElements.define('qbk-league-full-page',QbkLeagueFullPage);
+if(!customElements.get('qbk-league-registration'))customElements.define('qbk-league-registration',class extends QbkLeagueFullPage{});
