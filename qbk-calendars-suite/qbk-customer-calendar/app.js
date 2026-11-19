@@ -17,7 +17,7 @@
   const RENT_URL = "https://www.catchcorner.com/qbksports";
   const CLIENT_EVENTS_CACHE_MS = 120000;
   const EMBED_HEIGHT_PADDING = 14;
-  const MOBILE_LAYOUT_QUERY = "(max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse)";
+  const MOBILE_LAYOUT_QUERY = "(max-width: 900px), (hover: none) and (pointer: coarse)";
   const SLOT_MINUTES = 30;
   const DEFAULT_SLOT_HEIGHT = 28;
   const DAY_START_MIN = 6 * 60;

@@ -1288,7 +1288,7 @@ h2 {
   color: #60430a;
 }
 
-@media (max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse) {
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
   .controls {
     gap: 0.55rem;
   }
@@ -1596,7 +1596,7 @@ body:not(.embed-mode) {
   border-radius: 8px;
 }
 
-@media (min-width: 901px) and (min-device-width: 901px) and (hover: hover) {
+@media (min-width: 901px) and (hover: hover) {
   body:not(.force-mobile-mode) .controls {
     grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
@@ -1655,14 +1655,14 @@ body:not(.embed-mode) {
   }
 }
 
-@media (min-width: 901px) and (max-width: 1010px) and (min-device-width: 901px) and (hover: hover) {
+@media (min-width: 901px) and (max-width: 1010px) and (hover: hover) {
   body:not(.force-mobile-mode) .controls .filter-chip {
     padding-inline: 0.28rem;
     font-size: 0.6875rem;
   }
 }
 
-@media (min-width: 940px) and (min-device-width: 940px) and (hover: hover) {
+@media (min-width: 940px) and (hover: hover) {
   body:not(.embed-mode):not(.force-mobile-mode) .day-grid-wrap {
     overflow: visible;
   }
@@ -1784,7 +1784,7 @@ body.force-mobile-mode .controls.panel {
   padding-block-end: 0.4rem;
 }
 
-@media (max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse) {
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
   body .controls.panel {
     padding-block-end: 0.4rem;
   }
@@ -1844,7 +1844,7 @@ body.force-mobile-mode .controls.panel {
   border: 0;
   box-shadow: inset 0 0 0 1px rgb(16 36 60 / 14%);
 }
-@media (min-width: 901px) and (min-device-width: 901px) and (hover: hover) {
+@media (min-width: 901px) and (hover: hover) {
   body:not(.force-mobile-mode) .controls #day-view-title { font-size: 2rem; }
   body:not(.force-mobile-mode) .day-grid .day-head {
     height: 2.3rem;
