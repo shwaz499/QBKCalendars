@@ -30,7 +30,7 @@
     "Saturday",
     "Sunday",
   ];
-  const FILTER_KEYS = ["drop2sKing", "drop2sMatch", "drop4s"];
+  const FILTER_KEYS = ["drop2sIntermediate", "drop2sAdvanced", "drop4s"];
   const filterState = Object.fromEntries(FILTER_KEYS.map((key) => [key, true]));
   const currentWeek = {
     rawEvents: [],
@@ -365,18 +365,11 @@
     } else if (is4sGlowParty) {
       title = "4s Glow In The Dark Party";
       filterCategory = "drop4s";
-    } else if (is2s && isAdvanced && isKingOfCourt) {
-      title = "Advanced 2s - King of the Court";
-      filterCategory = "drop2sKing";
-    } else if (is2s && isIntermediate && isKingOfCourt) {
-      title = "Intermediate 2s - King of the Court";
-      filterCategory = "drop2sKing";
-    } else if (is2s && isAdvanced && isMatchPlay) {
-      title = "Advanced 2s - Match Play";
-      filterCategory = "drop2sMatch";
-    } else if (is2s && isIntermediate && isMatchPlay) {
-      title = "Intermediate 2s - Match Play";
-      filterCategory = "drop2sMatch";
+    } else if (is2s && (isAdvanced || isIntermediate) && (isKingOfCourt || isMatchPlay)) {
+      const level = isAdvanced ? "Advanced" : "Intermediate";
+      const format = isKingOfCourt ? "King of the Court" : "Match Play";
+      title = `${level} 2s - ${format}`;
+      filterCategory = isAdvanced ? "drop2sAdvanced" : "drop2sIntermediate";
     } else {
       return null;
     }
@@ -678,7 +671,7 @@
 
       const time = document.createElement("span");
       time.className = "week-event-time";
-      time.textContent = formatTimeRange(event.start, event.end);
+      time.textContent = formatTimeRange(event.start, event.end).replace("\u00A0-\u00A0", " - ");
 
       card.appendChild(title);
       card.appendChild(time);

@@ -127,6 +127,14 @@
   min-width: 0;
 }
 
+.weekly-calendar.adult-classes:not(.weekly-compact) .filter-bar {
+  container: weekly-filters / inline-size;
+}
+
+.weekly-calendar:is(.adult-classes, .adult-dropins):not(.weekly-compact) .filter-menu {
+  flex-wrap: nowrap;
+}
+
 .weekly-calendar:not(.weekly-compact) .date-nav {
   grid-area: 2 / 2;
 }
@@ -169,6 +177,24 @@
 .weekly-calendar .clear-filters-btn {
   padding: 0.36rem 0.55rem;
   font-size: 0.76rem;
+}
+
+@container weekly-filters (max-width: 610px) {
+  .weekly-calendar .filter-menu {
+    gap: 0.24rem;
+  }
+
+  .weekly-calendar .filter-chip,
+  .weekly-calendar .clear-filters-btn {
+    padding-inline: 0.38rem;
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  .weekly-calendar .filter-chip::before {
+    width: 0.58rem;
+    margin-inline-end: 0.1rem;
+  }
 }
 
 .weekly-calendar:not(.weekly-compact) .mobile-filter-toggle {
@@ -242,6 +268,14 @@
 .weekly-calendar .week-event {
   display: flex;
   flex-direction: column;
+}
+
+/* Keep long labels readable in the tightest lanes after the font has stepped down. */
+.weekly-calendar .week-event-title-fit-micro :is(.week-event-title-level, .week-event-title-type),
+.weekly-calendar .week-event-time-fit-micro {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .weekly-calendar .week-event:hover {

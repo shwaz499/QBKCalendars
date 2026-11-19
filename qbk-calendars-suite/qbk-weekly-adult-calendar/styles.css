@@ -504,6 +504,8 @@ h2 {
 .week-event-stack-coaches .week-event-coach {
   display: block;
   white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
   line-height: 1.04;
   overflow: visible;
   text-overflow: clip;

@@ -854,6 +854,11 @@
       forceClickable = false;
     }
 
+    if (title === "Free Trial Class") {
+      bookingUrl = "https://www.qbksports.com/freetrialclass";
+      forceClickable = true;
+    }
+
     const clickable = (forceClickable || raw.clickable !== false) && bookingUrl && bookingUrl !== "#";
     const capacity = toIntOrNull(raw.register_capacity ?? raw.registerCapacity);
 

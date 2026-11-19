@@ -315,7 +315,7 @@
     const lower = sourceTitle.toLowerCase();
     const hasAdult = lower.includes("adult");
     const isSundaySkills = /sunday[\s-]*skills/.test(lower);
-    const isFreeTrialClass = /free[\s-]*trial[\s-]*class/.test(lower);
+    const isFreeTrialClass = /(free[\s-]*trial[\s-]*class|trial\s+at\s+qbk\s+queens)/.test(lower);
     const isAdultClass = hasAdult && lower.includes("class");
     const isAdultCampOrClinic = hasAdult && (lower.includes("camp") || lower.includes("clinic"));
     const isKnownAdultProgram = ADULT_CLINIC_TERMS.some((term) => lower.includes(term));
@@ -375,7 +375,7 @@
       : getDayIndex(start, weekStartISO);
     if (dayIndex < 0 || dayIndex > 6) return null;
 
-    const bookingUrl = raw.booking_url || raw.bookingUrl;
+    const bookingUrl = isFreeTrialClass ? "https://www.qbksports.com/freetrialclass" : raw.booking_url || raw.bookingUrl;
     if (!bookingUrl || bookingUrl === "#") return null;
 
     return {
@@ -552,6 +552,9 @@
       }
       if (coachOverflow && timeIdx < timeTiers.length - 1) {
         timeIdx += 1;
+        changed = true;
+      } else if (coachOverflow) {
+        card.classList.add("week-event-stack-coaches");
         changed = true;
       }
       if (capacityOverflow && timeIdx < timeTiers.length - 1) {
@@ -735,7 +738,7 @@
 
       const time = document.createElement("span");
       time.className = "week-event-time";
-      time.textContent = formatTimeRange(event.start, event.end);
+      time.textContent = formatTimeRange(event.start, event.end).replace("\u00A0-\u00A0", " - ");
 
       card.appendChild(title);
       card.appendChild(time);
