@@ -80,6 +80,7 @@
   let lastSelectedDate = "";
   let lastIsMobile = null;
   let mobileFiltersOpen = false;
+  let titleFitFrame = 0;
   let hourlyVideoRefreshTimer = null;
   const clientEventsCache = new Map();
   const clientEventsInflight = new Map();
@@ -162,7 +163,30 @@
       const visible = node.classList.contains("closed-private-event") || !!filterState[key];
       node.style.display = visible ? "" : "none";
     });
+    scheduleMobileTitleFit();
     reportEmbedHeight();
+  }
+
+  function scheduleMobileTitleFit() {
+    if (titleFitFrame || !isMobileLayout()) return;
+    titleFitFrame = requestAnimationFrame(() => {
+      titleFitFrame = 0;
+      if (!isMobileLayout()) return;
+      for (const card of els.eventsOverlay.children) {
+        if (!card.clientHeight || card.classList.contains("closed-private-event")) continue;
+        const title = card.querySelector(".day-event-title");
+        title.style.removeProperty("font-size");
+        const fits = () => card.scrollHeight <= card.clientHeight && title.scrollWidth <= title.clientWidth;
+        if (fits()) continue;
+
+        // Preserve the time on short cards, tightening only titles that run out of room.
+        let size = parseFloat(getComputedStyle(title).fontSize);
+        while (size > 7.5 && !fits()) {
+          size = Math.max(7.5, size - 0.35);
+          title.style.fontSize = `${size}px`;
+        }
+      }
+    });
   }
 
   function updateFilterChipState() {
@@ -240,6 +264,16 @@
 
   function isMobileLayout() {
     return forceMobileMode || window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+  }
+
+  function syncDateControl() {
+    const mobile = isMobileLayout();
+    document.body.classList.toggle("compact-calendar", mobile);
+    const dateField = els.date.closest(".calendar-date");
+    const nav = els.prevDay?.parentElement;
+    if (!dateField || !nav) return;
+    if (mobile) els.prevDay.before(dateField);
+    else nav.before(dateField);
   }
 
   function getEventCourts(event, courtOnly = false) {
@@ -433,6 +467,7 @@
       .map((source) => [source.id, source])).values())
       .sort((a, b) => new Date(a.start) - new Date(b.start));
     if (!replayEvents.length) return;
+    card.classList.add("has-event-video");
 
     const button = document.createElement("button");
     button.type = "button";
@@ -1524,6 +1559,7 @@
 
   function init() {
     setupFilterControls();
+    syncDateControl();
     syncMobileFilterDropdown();
     els.date.value = getTodayISO();
     els.date.addEventListener("change", function () { loadAndRender(); });
@@ -1609,9 +1645,13 @@
     lastIsMobile = isMobileLayout();
     window.addEventListener("resize", () => {
       const currentIsMobile = isMobileLayout();
-      if (currentIsMobile === lastIsMobile) return;
+      if (currentIsMobile === lastIsMobile) {
+        scheduleMobileTitleFit();
+        return;
+      }
       lastIsMobile = currentIsMobile;
       mobileFiltersOpen = false;
+      syncDateControl();
       syncMobileFilterDropdown();
       if (lastSelectedDate) {
         renderDayView(lastDayEvents, lastSelectedDate);
@@ -1619,7 +1659,10 @@
       reportEmbedHeight();
     });
     if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(reportEmbedHeight).catch(() => {});
+      document.fonts.ready.then(() => {
+        scheduleMobileTitleFit();
+        reportEmbedHeight();
+      }).catch(() => {});
     }
     scheduleHourlyVideoRefresh();
     loadAndRender();
