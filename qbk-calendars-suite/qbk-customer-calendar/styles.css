@@ -53,6 +53,17 @@ body.embed-mode .layout {
   gap: 0.6rem;
 }
 
+@media (min-width: 901px) {
+  body:not(.compact-calendar):not(.embed-mode) .layout {
+    width: min(1470px, 94vw);
+  }
+
+  body.embed-mode:not(.compact-calendar) .layout {
+    width: min(100%, 1470px);
+    margin-inline: auto;
+  }
+}
+
 body.embed-mode .hero {
   display: none;
 }
