@@ -44,7 +44,6 @@
     nextWeek: document.getElementById("next-week"),
     todayWeek: document.getElementById("today-week"),
     clearFilters: document.getElementById("clear-filters"),
-    mobileFilterToggle: document.getElementById("mobile-filter-toggle"),
     filterMenu: document.getElementById("filter-menu"),
     weekGrid: document.getElementById("week-grid"),
     timeTrack: document.getElementById("time-track"),
@@ -53,9 +52,7 @@
     eventsOverlay: document.getElementById("events-overlay"),
     mobileWeekColumns: document.getElementById("mobile-week-columns"),
   };
-  const filterBarEl = document.querySelector(".filter-bar");
   let lastIsMobile = null;
-  let mobileFiltersOpen = false;
 
   function updateFilterChipState() {
     if (!els.filterMenu) return;
@@ -148,13 +145,6 @@
     return y + (slotProgress * (SLOT_HEIGHTS[slotIndex] || SLOT_HEIGHT));
   }
 
-  function syncMobileFilterDropdown() {
-    if (!filterBarEl || !els.mobileFilterToggle) return;
-    filterBarEl.classList.toggle("mobile-filters-open", mobileFiltersOpen);
-    els.mobileFilterToggle.setAttribute("aria-expanded", mobileFiltersOpen ? "true" : "false");
-    els.mobileFilterToggle.textContent = mobileFiltersOpen ? "Filters ▴" : "Filters ▾";
-  }
-
   function toISODate(dateObj) {
     const yyyy = dateObj.getFullYear();
     const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -228,24 +218,6 @@
       return `${s.clock}-${e.clock}${e.suffix}`;
     }
     return `${s.clock}${s.suffix}-${e.clock}${e.suffix}`;
-  }
-
-  function formatWeekTitle(weekStartISO) {
-    const start = new Date(`${weekStartISO}T00:00:00`);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 6);
-
-    const startText = start.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-    const endText = end.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-    return `Adult Drop-Ins Week View (${startText} - ${endText})`;
   }
 
   function toIntOrNull(value) {
@@ -590,7 +562,7 @@
       running += width;
     }
 
-    els.weekGrid.style.gridTemplateColumns = `92px ${weights.map((w) => `${w}fr`).join(" ")}`;
+    els.weekGrid.style.gridTemplateColumns = `var(--time-col-width) ${weights.map((w) => `minmax(0, ${w}fr)`).join(" ")}`;
     return { widthsPct, leftsPct };
   }
 
@@ -782,6 +754,7 @@
   function loadAndRender() {
     const selectedDate = els.date.value || getTodayISO();
     const mondayISO = getMondayISO(selectedDate);
+    window.qbkWeeklyCalendar.showWeek(mondayISO);
     return fetchWeekEvents(mondayISO)
       .then((payload) => {
         renderEvents(payload.events, payload.week_start);
@@ -795,7 +768,6 @@
   function init() {
     applyTimeScaleMode();
     setupFilterControls();
-    syncMobileFilterDropdown();
     els.date.value = getTodayISO();
     els.date.addEventListener("change", function () { loadAndRender(); });
     els.prevWeek.addEventListener("click", function () { shiftWeekBy(-1); });
@@ -804,25 +776,17 @@
       els.date.value = getTodayISO();
       loadAndRender();
     });
-    if (els.mobileFilterToggle) {
-      els.mobileFilterToggle.addEventListener("click", function () {
-        mobileFiltersOpen = !mobileFiltersOpen;
-        syncMobileFilterDropdown();
-      });
-    }
     lastIsMobile = isMobileLayout();
     window.addEventListener("resize", function () {
       const currentIsMobile = isMobileLayout();
       const timeScaleChanged = applyTimeScaleMode();
       if (currentIsMobile !== lastIsMobile || timeScaleChanged) {
         lastIsMobile = currentIsMobile;
-        syncMobileFilterDropdown();
         if (currentWeek.weekStartISO) {
           renderEvents(currentWeek.rawEvents, currentWeek.weekStartISO);
           return;
         }
       }
-      syncMobileFilterDropdown();
       fitAllVisibleCards();
     });
     loadAndRender();

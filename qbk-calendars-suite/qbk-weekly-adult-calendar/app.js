@@ -59,10 +59,8 @@
     nextWeek: document.getElementById("next-week"),
     todayWeek: document.getElementById("today-week"),
     clearFilters: document.getElementById("clear-filters"),
-    mobileFilterToggle: document.getElementById("mobile-filter-toggle"),
     filterMenu: document.getElementById("filter-menu"),
     weekGrid: document.getElementById("week-grid"),
-    weekViewTitle: document.getElementById("week-view-title"),
     timeTrack: document.getElementById("time-track"),
     dayTracks: Array.from({ length: 7 }, (_, idx) => document.getElementById(`day-track-${idx}`)),
     dayHeads: Array.from({ length: 7 }, (_, idx) => document.getElementById(`day-head-${idx}`)),
@@ -70,10 +68,7 @@
     mobileWeekView: document.getElementById("mobile-week-view"),
     mobileWeekColumns: document.getElementById("mobile-week-columns"),
   };
-  const filterBarEl = document.querySelector(".filter-bar");
   let resizeTimer = null;
-  let lastIsMobile = null;
-  let mobileFiltersOpen = false;
 
   function computePageHeight() {
     const body = document.body;
@@ -154,13 +149,6 @@
     return forceMobileMode || window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
   }
 
-  function syncMobileFilterDropdown() {
-    if (!filterBarEl || !els.mobileFilterToggle) return;
-    filterBarEl.classList.toggle("mobile-filters-open", mobileFiltersOpen);
-    els.mobileFilterToggle.setAttribute("aria-expanded", mobileFiltersOpen ? "true" : "false");
-    els.mobileFilterToggle.textContent = mobileFiltersOpen ? "Filters ▴" : "Filters ▾";
-  }
-
   function getTodayISO() {
     const now = new Date();
     const yyyy = now.getFullYear();
@@ -197,6 +185,7 @@
     const minutes = totalMinutes % 60;
     const suffix = hour24 >= 12 ? "PM" : "AM";
     const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    if (minutes === 0) return `${hour12} ${suffix}`;
     return `${hour12}:${String(minutes).padStart(2, "0")} ${suffix}`;
   }
 
@@ -241,24 +230,6 @@
       return `${s.clock}-${e.clock}${e.suffix}`;
     }
     return `${s.clock}${s.suffix}-${e.clock}${e.suffix}`;
-  }
-
-  function formatWeekTitle(weekStartISO) {
-    const start = new Date(`${weekStartISO}T00:00:00`);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 6);
-
-    const startText = start.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-    const endText = end.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-    return `Adult Classes Week View (${startText} - ${endText})`;
   }
 
   function toIntOrNull(value) {
@@ -635,9 +606,7 @@
       running += width;
     }
 
-    const timeColPx = isMobileLayout() ? 44 : 92;
-    els.weekGrid.style.setProperty("--time-col-width", `${timeColPx}px`);
-    els.weekGrid.style.gridTemplateColumns = `${timeColPx}px ${weights.map((w) => `${w}fr`).join(" ")}`;
+    els.weekGrid.style.gridTemplateColumns = `var(--time-col-width) ${weights.map((w) => `minmax(0, ${w}fr)`).join(" ")}`;
     return { widthsPct, leftsPct };
   }
 
@@ -723,9 +692,6 @@
     currentWeek.weekStartISO = weekStartISO;
     buildGridSkeleton();
     setDayHeaders(weekStartISO);
-    if (els.weekViewTitle) {
-      els.weekViewTitle.textContent = formatWeekTitle(weekStartISO);
-    }
 
     const events = getFilteredEvents(rawEvents, weekStartISO);
     assignDayLanes(events);
@@ -844,6 +810,7 @@
   function loadAndRender() {
     const selectedDate = els.date.value || getTodayISO();
     const mondayISO = getMondayISO(selectedDate);
+    window.qbkWeeklyCalendar.showWeek(mondayISO);
     return fetchWeekEvents(mondayISO)
       .then((payload) => {
         renderEvents(payload.events, payload.week_start);
@@ -856,7 +823,6 @@
 
   function init() {
     setupFilterControls();
-    syncMobileFilterDropdown();
     els.date.value = getTodayISO();
     els.date.addEventListener("change", function () { loadAndRender(); });
     els.prevWeek.addEventListener("click", function () { shiftWeekBy(-1); });
@@ -865,21 +831,9 @@
       els.date.value = getTodayISO();
       loadAndRender();
     });
-    if (els.mobileFilterToggle) {
-      els.mobileFilterToggle.addEventListener("click", function () {
-        mobileFiltersOpen = !mobileFiltersOpen;
-        syncMobileFilterDropdown();
-      });
-    }
-    lastIsMobile = isMobileLayout();
     window.addEventListener("resize", function () {
-      const currentIsMobile = isMobileLayout();
-      if (currentIsMobile !== lastIsMobile) {
-        lastIsMobile = currentIsMobile;
-      }
-      syncMobileFilterDropdown();
       fitAllVisibleCards();
-      if (currentIsMobile && currentWeek.weekStartISO) {
+      if (isMobileLayout() && currentWeek.weekStartISO) {
         renderEvents(currentWeek.rawEvents, currentWeek.weekStartISO);
       }
       schedulePostEmbedHeight();
