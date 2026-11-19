@@ -12,7 +12,7 @@
 
   const LIVE_FEED_BASE = "/api/events";
   const EVENT_VIDEO_AVAILABILITY_BASE = "/api/event-video-availability";
-  const EVENT_VIDEOS_URL = "https://qbk-calendars-suite.onrender.com/event-videos/";
+  const EVENT_VIDEOS_URL = "/event-videos/";
   const TRACK_CLICK_URL = "/api/track-click";
   const RENT_URL = "https://www.catchcorner.com/qbksports";
   const CLIENT_EVENTS_CACHE_MS = 120000;
@@ -49,6 +49,7 @@
     "adultClasses",
     "availableRentals",
     "leagues",
+    "volleyRoyale",
     "privateEventsRentals",
     "youthClasses",
     "adultDropIns",
@@ -66,9 +67,6 @@
     dayGrid: document.getElementById("day-grid"),
     dayViewTitle: document.getElementById("day-view-title"),
     timeTrack: document.getElementById("time-track"),
-    courtLeft: document.getElementById("court-left"),
-    courtMiddle: document.getElementById("court-middle"),
-    courtRight: document.getElementById("court-right"),
     vacancyOverlay: document.getElementById("vacancy-overlay"),
     eventsOverlay: document.getElementById("events-overlay"),
     mobileDayView: document.getElementById("mobile-day-view"),
@@ -161,7 +159,7 @@
     const items = document.querySelectorAll("[data-filter-category]");
     items.forEach((node) => {
       const key = node.dataset.filterCategory;
-      const visible = !!filterState[key];
+      const visible = node.classList.contains("closed-private-event") || !!filterState[key];
       node.style.display = visible ? "" : "none";
     });
     reportEmbedHeight();
@@ -177,6 +175,14 @@
       chip.classList.toggle("is-inactive", !selected);
       chip.setAttribute("aria-pressed", selected ? "true" : "false");
     });
+    updateFilterToggleLabel();
+  }
+
+  function updateFilterToggleLabel() {
+    if (!els.mobileFilterToggle) return;
+    const count = FILTER_KEYS.filter((key) => filterState[key]).length;
+    const arrow = els.mobileFilterToggle.getAttribute("aria-expanded") === "true" ? "▴" : "▾";
+    els.mobileFilterToggle.textContent = `Filters (${count}) ${arrow}`;
   }
 
   function clearAllFilters() {
@@ -223,26 +229,24 @@
 
   function syncMobileFilterDropdown() {
     if (!filterBarEl || !els.mobileFilterToggle) return;
-    const mobile = isMobileLayout();
-    if (!mobile) {
-      filterBarEl.classList.add("mobile-filters-open");
-      els.mobileFilterToggle.setAttribute("aria-expanded", "true");
-      els.mobileFilterToggle.textContent = "Filters ▴";
-      return;
+    const open = isMobileLayout() && mobileFiltersOpen;
+    if (open) {
+      filterBarEl.style.setProperty("--filter-menu-offset", `${els.mobileFilterToggle.offsetLeft}px`);
     }
-    filterBarEl.classList.toggle("mobile-filters-open", mobileFiltersOpen);
-    els.mobileFilterToggle.setAttribute("aria-expanded", mobileFiltersOpen ? "true" : "false");
-    els.mobileFilterToggle.textContent = mobileFiltersOpen ? "Filters ▴" : "Filters ▾";
+    filterBarEl.classList.toggle("mobile-filters-open", open);
+    els.mobileFilterToggle.setAttribute("aria-expanded", String(open));
+    updateFilterToggleLabel();
   }
 
   function isMobileLayout() {
     return forceMobileMode || window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
   }
 
-  function getEventCourts(event) {
+  function getEventCourts(event, courtOnly = false) {
+    if (event.calendarCourtKeys?.length) return event.calendarCourtKeys;
     return event.courtKey
       ? (event.courtKey === "all" ? COURTS.map((court) => court.key) : [event.courtKey])
-      : courtsForLocation(event.subResource || event.location);
+      : courtsForLocation(event.subResource || event.location, courtOnly);
   }
 
   function isVolleyRoyaleEvent(event) {
@@ -287,7 +291,9 @@
       || (!event.clickable && (categoryText.includes("rental") || categoryText.includes("block")));
 
     let filterCategory = "privateEventsRentals";
-    if (isTeenDropIn || isTeenGlowParty) {
+    if (isVolleyRoyale) {
+      filterCategory = "volleyRoyale";
+    } else if (isTeenDropIn || isTeenGlowParty) {
       filterCategory = "teenDropIns";
     } else if (isYouthClass) {
       filterCategory = "youthClasses";
@@ -330,7 +336,8 @@
     const titleText = String(event.title || "").toLowerCase();
     if (titleText.includes("free trial class") || titleText.includes("trial at qbk queens")) return false;
     return classification.filterCategory === "adultClasses"
-      || classification.filterCategory === "adultDropIns";
+      || classification.filterCategory === "adultDropIns"
+      || classification.filterCategory === "volleyRoyale";
   }
 
   function appendEventMeta(card, event, classification, classPrefix) {
@@ -361,9 +368,9 @@
   }
 
   function canShowEventVideo(event, classification) {
-    if (!event.videoAvailable) return false;
+    if (!event.videoAvailable || isClosedPrivateEvent(event)) return false;
     if (["youthClasses", "teenDropIns"].includes(classification.filterCategory)) return false;
-    return ["adultClasses", "adultDropIns", "leagues", "privateEventsRentals"]
+    return ["adultClasses", "adultDropIns", "leagues", "volleyRoyale", "privateEventsRentals"]
       .includes(classification.filterCategory);
   }
 
@@ -388,8 +395,44 @@
     return `${EVENT_VIDEOS_URL}?${params.toString()}`;
   }
 
-  function appendEventVideoButton(card, event, classification) {
-    if (!canShowEventVideo(event, classification)) return;
+  function showEventVideoOptions(events) {
+    const dialog = document.createElement("dialog");
+    dialog.className = "event-video-options";
+    dialog.setAttribute("aria-label", "Private event replays");
+
+    const heading = document.createElement("h3");
+    heading.textContent = "Private event replays";
+    dialog.appendChild(heading);
+
+    for (const event of events) {
+      const link = document.createElement("a");
+      const court = COURTS.find(({ key }) => key === event.courtKey)?.label
+        || (event.courtKey === "all" ? "All Courts" : "");
+      link.href = getEventVideoUrl(event);
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = [formatTimeRange(event.start, event.end, { compact: true }), court]
+        .filter(Boolean).join(" / ");
+      dialog.appendChild(link);
+    }
+
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "nav-btn";
+    close.textContent = "Close";
+    close.addEventListener("click", () => dialog.close());
+    dialog.appendChild(close);
+    dialog.addEventListener("close", () => dialog.remove(), { once: true });
+    document.body.appendChild(dialog);
+    dialog.showModal();
+  }
+
+  function appendEventVideoButton(card, event, classification, sourceEvents = [event]) {
+    const replayEvents = Array.from(new Map(sourceEvents
+      .filter((source) => canShowEventVideo(source, classification))
+      .map((source) => [source.id, source])).values())
+      .sort((a, b) => new Date(a.start) - new Date(b.start));
+    if (!replayEvents.length) return;
 
     const button = document.createElement("button");
     button.type = "button";
@@ -403,7 +446,11 @@
     button.addEventListener("click", (click) => {
       click.preventDefault();
       click.stopPropagation();
-      window.open(getEventVideoUrl(event), "_blank", "noopener,noreferrer");
+      if (replayEvents.length === 1) {
+        window.open(getEventVideoUrl(replayEvents[0]), "_blank", "noopener,noreferrer");
+      } else {
+        showEventVideoOptions(replayEvents);
+      }
     });
     card.appendChild(button);
   }
@@ -418,9 +465,86 @@
     });
   }
 
-  function buildGroupedEvents(events) {
+  function isPrivateCourtEvent(event) {
+    return !event.clickable && !isClosedPrivateEvent(event)
+      && (event.title === "Private Event" || event.category === "Private Event");
+  }
+
+  function mergePrivateCourtEvents(events) {
+    const blocksByCourt = new Map(COURTS.map(({ key }) => [key, []]));
+    const windows = events.map((event) => ({
+      event,
+      start: Date.parse(event.start),
+      end: Date.parse(event.end),
+    })).filter(({ start, end }) => Number.isFinite(start) && Number.isFinite(end) && end > start)
+      .sort((a, b) => a.start - b.start);
+
+    for (const { event, start, end } of windows) {
+      for (const court of getEventCourts(event, true)) {
+        const blocks = blocksByCourt.get(court);
+        if (!blocks) continue;
+        const last = blocks.at(-1);
+        if (last && start <= last.end) {
+          last.end = Math.max(last.end, end);
+          last.sourceEvents.push(event);
+        } else {
+          blocks.push({ start, end, sourceEvents: [event] });
+        }
+      }
+    }
+
+    // Only identical windows on neighboring courts can share one rectangle.
+    const merged = [];
+    const lastByWindow = new Map();
+    COURTS.forEach(({ key }, index) => {
+      for (const { start, end, sourceEvents } of blocksByCourt.get(key)) {
+        const windowKey = `${start}/${end}`;
+        const last = lastByWindow.get(windowKey);
+        if (last?.courts.has(COURTS[index - 1]?.key)) {
+          last.courts.add(key);
+          last.sourceEvents = [...new Set([...last.sourceEvents, ...sourceEvents])];
+          continue;
+        }
+        const block = {
+          event: {
+            ...sourceEvents[0],
+            title: "Private Event",
+            category: "Private Event",
+            start: new Date(start).toISOString(),
+            end: new Date(end).toISOString(),
+          },
+          courts: new Set([key]),
+          sourceEvents,
+        };
+        merged.push(block);
+        lastByWindow.set(windowKey, block);
+      }
+    });
+    return merged;
+  }
+
+  function isFullDayClosure(groupedEvents, selectedDate) {
+    if (!groupedEvents.length || !groupedEvents.every(({ event }) =>
+      isPrivateCourtEvent(event) || isClosedPrivateEvent(event))) return false;
+
+    const morning = new Date(`${selectedDate}T00:00:00`);
+    morning.setMinutes(DAY_START_MIN);
+    const lateEvening = new Date(`${selectedDate}T00:00:00`);
+    // A final half hour before midnight does not leave a bookable rental.
+    lateEvening.setMinutes(RENT_END_MIN - SLOT_MINUTES);
+    return COURTS.every(({ key }) => groupedEvents.some(({ event, courts }) =>
+      courts.has(key) && Date.parse(event.start) <= morning.getTime()
+      && Date.parse(event.end) >= lateEvening.getTime()));
+  }
+
+  function buildGroupedEvents(events, selectedDate) {
     const grouped = new Map();
+    const privateEvents = [];
     for (const event of events) {
+      if (isPrivateCourtEvent(event)) {
+        privateEvents.push(event);
+        continue;
+      }
       const eventCourts = getEventCourts(event);
       const key = [event.title, event.start, event.end, event.bookingUrl || "", event.clickable ? "1" : "0"].join("|");
       const existing = grouped.get(key);
@@ -430,42 +554,11 @@
         grouped.set(key, { event, courts: new Set(eventCourts) });
       }
     }
-    const groupedEvents = Array.from(grouped.values())
+    const groupedEvents = [...grouped.values(), ...mergePrivateCourtEvents(privateEvents)]
       .sort((a, b) => new Date(a.event.start) - new Date(b.event.start));
-
-    for (const groupedEvent of groupedEvents) {
-      if (!isVolleyRoyaleEvent(groupedEvent.event) || groupedEvent.courts.size === COURTS.length) continue;
-
-      const start = new Date(groupedEvent.event.start);
-      const end = new Date(groupedEvent.event.end);
-      const startMs = start.getTime();
-      const endMs = end.getTime();
-      if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) continue;
-
-      const dayStart = new Date(start);
-      dayStart.setHours(0, 0, 0, 0);
-      const startMinute = (startMs - dayStart.getTime()) / 60000;
-      const endMinute = (endMs - dayStart.getTime()) / 60000;
-      const lastsAtLeastOneRentalHour = endMs - startMs >= SLOT_MINUTES * 2 * 60000;
-      if (startMinute < RENT_START_MIN || endMinute > RENT_END_MIN || !lastsAtLeastOneRentalHour) continue;
-
-      const otherCourtsHaveOnlyRentals = COURTS
-        .filter((court) => !groupedEvent.courts.has(court.key))
-        .every((court) => groupedEvents.every((otherEvent) => {
-          if (otherEvent === groupedEvent || !otherEvent.courts.has(court.key)) return true;
-          const otherStart = new Date(otherEvent.event.start).getTime();
-          const otherEnd = new Date(otherEvent.event.end).getTime();
-          return !Number.isFinite(otherStart)
-            || !Number.isFinite(otherEnd)
-            || startMs >= otherEnd
-            || otherStart >= endMs;
-        }));
-
-      if (otherCourtsHaveOnlyRentals) {
-        groupedEvent.courts = new Set(COURTS.map((court) => court.key));
-      }
+    if (isFullDayClosure(groupedEvents, selectedDate)) {
+      return [{ event: closedDayEvent(selectedDate), courts: new Set(COURTS.map(({ key }) => key)) }];
     }
-
     return groupedEvents;
   }
 
@@ -564,8 +657,7 @@
     return Math.round(n);
   }
 
-  function getCapacityText(raw) {
-    const capacity = toIntOrNull(raw.register_capacity ?? raw.registerCapacity);
+  function getCapacityText(raw, capacity) {
     let registered = toIntOrNull(raw.registered_count ?? raw.registeredCount);
     const remaining = toIntOrNull(
       raw.remaining_registration_slots ?? raw.remainingRegistrationSlots,
@@ -728,6 +820,7 @@
     }
 
     const clickable = (forceClickable || raw.clickable !== false) && bookingUrl && bookingUrl !== "#";
+    const capacity = toIntOrNull(raw.register_capacity ?? raw.registerCapacity);
 
     return {
       id: String(raw.id || raw.event_id || `${title}-${start}`),
@@ -736,13 +829,16 @@
       location: raw.location ? String(raw.location) : null,
       subResource: raw.sub_resource ? String(raw.sub_resource) : null,
       courtKey: raw.court_key ? String(raw.court_key) : null,
+      calendarCourtKeys: Array.isArray(raw.calendar_court_keys)
+        ? COURTS.map(({ key }) => key).filter((key) => raw.calendar_court_keys.includes(key))
+        : [],
       start,
       end,
       bookingUrl,
       clickable,
       adultProgram,
       coachText: String(raw.coach_text || raw.coachText || "").trim(),
-      capacityText: getCapacityText(raw),
+      capacityText: getCapacityText(raw, capacity),
     };
   }
 
@@ -806,18 +902,7 @@
 
   function getDayEvents(events, selectedDate) {
     if (CLOSED_PRIVATE_EVENT_DATES.has(selectedDate)) {
-      return [normalizeEvent({
-        id: `closed-private-event-${selectedDate}`,
-        title: "Closed For Private Event",
-        category: "Private Event",
-        location: "All Courts",
-        sub_resource: "All Courts",
-        court_key: "all",
-        start_time: `${selectedDate}T06:00:00`,
-        end_time: `${shiftISODate(selectedDate, 1)}T01:00:00`,
-        booking_url: null,
-        clickable: false,
-      })].filter(Boolean);
+      return [closedDayEvent(selectedDate)];
     }
 
     const startOfDay = new Date(`${selectedDate}T00:00:00`);
@@ -835,8 +920,21 @@
     return resolveLeagueMatchTitles(dayEvents);
   }
 
+  function closedDayEvent(selectedDate) {
+    return normalizeEvent({
+      id: `closed-private-event-${selectedDate}`,
+      title: "Closed",
+      category: "Private Event",
+      court_key: "all",
+      start_time: `${selectedDate}T06:00:00`,
+      end_time: `${shiftISODate(selectedDate, 1)}T01:00:00`,
+      clickable: false,
+    });
+  }
+
   function isClosedPrivateEvent(event) {
-    return String(event.id || "").startsWith("closed-private-event-");
+    return (!event.clickable && event.title === "Closed")
+      || String(event.id || "").startsWith("closed-private-event-");
   }
 
   function hourOrderFromDate(rawDate) {
@@ -884,20 +982,7 @@
     const hour24 = hourOrder % 24;
     const suffix = hour24 >= 12 ? "PM" : "AM";
     const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-    return `${hour12}:00 ${suffix}`;
-  }
-
-  function formatSlotLabel(hourValue, compact = false) {
-    const baseHour = Math.floor(hourValue);
-    const minutes = Math.round((hourValue - baseHour) * 60);
-    const hour24 = baseHour % 24;
-    const suffix = hour24 >= 12 ? "PM" : "AM";
-    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-    if (compact && minutes === 0) {
-      return `${hour12} ${suffix}`;
-    }
-    const mm = minutes === 30 ? "30" : "00";
-    return `${hour12}:${mm} ${suffix}`;
+    return `${hour12} ${suffix}`;
   }
 
   function getSlotHeightPx() {
@@ -910,24 +995,20 @@
     return DEFAULT_SLOT_HEIGHT;
   }
 
-  function courtsForLocation(location) {
+  function courtsForLocation(location, courtOnly) {
     const text = String(location || "").toLowerCase();
-    if (!text) return ["left"];
     if (text.includes("all court")) return COURTS.map((court) => court.key);
-    if (text.includes("left")) return ["left"];
-    if (text.includes("middle")) return ["middle"];
-    if (text.includes("right")) return ["right"];
-    return ["left"];
+    const namedCourt = COURTS.find(({ key }) => text.includes(courtOnly ? `${key} court` : key));
+    return namedCourt ? [namedCourt.key] : (courtOnly ? [] : ["left"]);
   }
 
   function renderDayViewMobile(events, selectedDate) {
-    els.dayViewTitle.textContent = `Court Day View for ${formatShortDate(selectedDate)}`;
     if (!els.mobileEventsList) return;
 
     updateMobileCourtTabs();
     els.mobileEventsList.innerHTML = "";
 
-    const groupedEvents = buildGroupedEvents(events);
+    const groupedEvents = buildGroupedEvents(events, selectedDate);
     const courtIndex = COURTS.findIndex((court) => court.key === mobileCourtKey);
     const weekend = isWeekendDate(selectedDate);
     const occupied = Array.from({ length: SLOT_COUNT }, () => false);
@@ -943,7 +1024,7 @@
       const startOrderRaw = hourOrderFromDate(startDate);
       const endOrderRaw = hourOrderFromDate(endDate);
       const startOrder = Math.max(DAY_START_MIN / 60, Math.min(DAY_END_MIN / 60, startOrderRaw));
-      const minEndOrder = startOrder + (SLOT_MINUTES / 60);
+      const minEndOrder = groupedEvent.sourceEvents ? startOrder : startOrder + (SLOT_MINUTES / 60);
       const endOrder = Math.max(minEndOrder, Math.min(DAY_END_MIN / 60, endOrderRaw));
       if (endOrder <= DAY_START_MIN / 60 || startOrder >= DAY_END_MIN / 60) continue;
 
@@ -965,6 +1046,7 @@
         type: "event",
         event,
         startOrder,
+        sourceEvents: groupedEvent.sourceEvents,
       });
     }
 
@@ -1025,7 +1107,7 @@
 
         const title = document.createElement("span");
         title.className = "mobile-item-title";
-        title.textContent = "Court Rental Available";
+        title.textContent = "Book court";
         const time = document.createElement("span");
         time.className = "mobile-item-time";
         time.textContent = formatTimeRange(item.startISO, item.endISO, { compact: true });
@@ -1065,7 +1147,7 @@
         card.appendChild(time);
       }
       appendEventMeta(card, event, classification, "mobile-item");
-      appendEventVideoButton(card, event, classification);
+      appendEventVideoButton(card, event, classification, item.sourceEvents);
       els.mobileEventsList.appendChild(card);
     }
 
@@ -1085,11 +1167,11 @@
     lastDayEvents = events;
     lastSelectedDate = selectedDate;
 
+    const groupedEvents = buildGroupedEvents(events, selectedDate);
     if (els.rentalLegend) {
-      els.rentalLegend.hidden = CLOSED_PRIVATE_EVENT_DATES.has(selectedDate);
+      els.rentalLegend.hidden = groupedEvents.length === 1 && isFullDayClosure(groupedEvents, selectedDate);
     }
 
-    els.dayViewTitle.textContent = `Court Day View for ${formatShortDate(selectedDate)}`;
     const slotHeight = getSlotHeightPx();
     const useCompactTimes = isMobileLayout();
     const trackHeight = SLOT_COUNT * slotHeight;
@@ -1098,18 +1180,8 @@
     const firstHead = els.dayGrid.querySelector(".day-head");
     const headHeight = firstHead ? firstHead.getBoundingClientRect().height : 32;
     els.dayGrid.style.setProperty("--head-height", `${headHeight}px`);
-    const courtEls = {
-      left: els.courtLeft,
-      middle: els.courtMiddle,
-      right: els.courtRight,
-    };
-
     els.timeTrack.innerHTML = "";
     els.timeTrack.style.height = `${trackHeight}px`;
-    for (const court of COURTS) {
-      courtEls[court.key].innerHTML = "";
-      courtEls[court.key].style.height = `${trackHeight}px`;
-    }
     els.eventsOverlay.innerHTML = "";
     els.eventsOverlay.style.height = `${trackHeight}px`;
     els.vacancyOverlay.innerHTML = "";
@@ -1122,28 +1194,11 @@
 
       const label = document.createElement("span");
       label.className = "time-label";
-      label.textContent = i % 2 === 0 ? formatSlotLabel(order, useCompactTimes) : "";
+      label.textContent = i % 2 === 0 ? formatHourLabel(order) : "";
       slot.appendChild(label);
       els.timeTrack.appendChild(slot);
-
-      for (const court of COURTS) {
-        const courtSlot = document.createElement("div");
-        courtSlot.className = "court-slot";
-        courtEls[court.key].appendChild(courtSlot);
-      }
     }
 
-    // Safety trim: never allow more than the configured visible slot count.
-    while (els.timeTrack.children.length > SLOT_COUNT) {
-      els.timeTrack.removeChild(els.timeTrack.lastElementChild);
-    }
-    for (const court of COURTS) {
-      while (courtEls[court.key].children.length > SLOT_COUNT) {
-        courtEls[court.key].removeChild(courtEls[court.key].lastElementChild);
-      }
-    }
-
-    const groupedEvents = buildGroupedEvents(events);
     const weekend = isWeekendDate(selectedDate);
     const occupied = COURTS.map(() => Array.from({ length: SLOT_COUNT }, () => false));
     const renderedLeagueBlocks = [];
@@ -1154,14 +1209,14 @@
       const startOrderRaw = hourOrderFromDate(startDate);
       const endOrderRaw = hourOrderFromDate(endDate);
       const startOrder = Math.max(DAY_START_MIN / 60, Math.min(DAY_END_MIN / 60, startOrderRaw));
-      const minEndOrder = startOrder + (SLOT_MINUTES / 60);
+      const minEndOrder = groupedEvent.sourceEvents ? startOrder : startOrder + (SLOT_MINUTES / 60);
       const endOrder = Math.max(minEndOrder, Math.min(DAY_END_MIN / 60, endOrderRaw));
       if (endOrder <= DAY_START_MIN / 60 || startOrder >= DAY_END_MIN / 60) continue;
 
       const startOffset = ((startOrder * 60) - DAY_START_MIN) / SLOT_MINUTES;
       const endOffset = ((endOrder * 60) - DAY_START_MIN) / SLOT_MINUTES;
       const top = startOffset * slotHeight;
-      const height = Math.max(22, (endOffset - startOffset) * slotHeight - 4);
+      const height = Math.max(groupedEvent.sourceEvents ? 1 : 22, (endOffset - startOffset) * slotHeight - 4);
 
       const courtIndexes = Array.from(groupedEvent.courts)
         .map((courtKey) => COURTS.findIndex((court) => court.key === courtKey))
@@ -1197,6 +1252,7 @@
 
       const card = document.createElement(event.clickable ? "a" : "div");
       card.className = "day-event";
+      card.classList.toggle("day-event-short", height <= 54);
       const classification = applyClassification(card, event);
       const closedPrivateEvent = isClosedPrivateEvent(event);
       card.classList.toggle("closed-private-event", closedPrivateEvent);
@@ -1234,7 +1290,7 @@
         card.appendChild(time);
       }
       appendEventMeta(card, event, classification, "day-event");
-      appendEventVideoButton(card, event, classification);
+      appendEventVideoButton(card, event, classification, groupedEvent.sourceEvents);
       els.eventsOverlay.appendChild(card);
     }
 
@@ -1287,7 +1343,7 @@
           rent.style.width = `calc(${widthPct}% - 10px)`;
           rent.style.top = `${top + 1}px`;
           rent.style.height = `${height}px`;
-          rent.textContent = "Court Rental Available";
+          rent.textContent = "Book court";
           rent.dataset.filterCategory = "availableRentals";
           setAnalyticsData(rent, {
             analyticsType: "rental",
@@ -1390,6 +1446,7 @@
   function loadAndRender() {
     const selectedDate = els.date.value;
     if (!selectedDate) return Promise.resolve();
+    els.dayViewTitle.textContent = formatShortDate(selectedDate);
 
     return fetchEventsFrom(getLiveFeedUrl(selectedDate))
       .then((raw) => {
@@ -1490,14 +1547,30 @@
       });
     }
     if (els.mobileFilterToggle) {
-      els.mobileFilterToggle.addEventListener("click", function () {
+      els.mobileFilterToggle.addEventListener("click", (event) => {
         mobileFiltersOpen = !mobileFiltersOpen;
         syncMobileFilterDropdown();
+        if (mobileFiltersOpen && event.detail === 0) {
+          els.filterMenu?.querySelector(".filter-chip")?.focus({ preventScroll: true });
+        }
         trackClick({
           button_type: "filter_menu",
           button_label: mobileFiltersOpen ? "Open Filters" : "Close Filters",
           action: mobileFiltersOpen ? "open_filters" : "close_filters",
         });
+      });
+      document.addEventListener("click", (event) => {
+        if (!mobileFiltersOpen || !isMobileLayout()
+          || els.mobileFilterToggle.contains(event.target) || filterBarEl?.contains(event.target)) return;
+        mobileFiltersOpen = false;
+        syncMobileFilterDropdown();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape" || !mobileFiltersOpen || !isMobileLayout()) return;
+        event.preventDefault();
+        mobileFiltersOpen = false;
+        syncMobileFilterDropdown();
+        els.mobileFilterToggle.focus({ preventScroll: true });
       });
     }
     if (els.mobileCourtTabs) {
@@ -1538,9 +1611,7 @@
       const currentIsMobile = isMobileLayout();
       if (currentIsMobile === lastIsMobile) return;
       lastIsMobile = currentIsMobile;
-      if (!currentIsMobile) {
-        mobileFiltersOpen = true;
-      }
+      mobileFiltersOpen = false;
       syncMobileFilterDropdown();
       if (lastSelectedDate) {
         renderDayView(lastDayEvents, lastSelectedDate);

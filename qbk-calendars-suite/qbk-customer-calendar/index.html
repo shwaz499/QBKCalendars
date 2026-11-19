@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260924-volley-royale-all-courts-1" />
+    <link rel="stylesheet" href="./styles.css?v=daily-flat-card-edges-1" />
   </head>
   <body>
     <script>
@@ -20,19 +20,9 @@
       if (initialModes.get("mobile") === "1") document.body.classList.add("force-mobile-mode");
     </script>
     <main class="layout">
-      <section class="hero panel">
-        <p class="eyebrow">QBK Sports</p>
-        <h1>Daily Events Calendar</h1>
-        <p class="subtitle">
-          Browse all events for a selected day and jump directly to online booking.
-        </p>
-      </section>
-
       <section class="controls panel">
-        <label class="field">
-          Select Date
-          <input id="event-date" type="date" />
-        </label>
+        <h1 id="day-view-title">Daily Calendar</h1>
+        <input id="event-date" type="date" aria-label="Select date" />
         <div class="date-nav">
           <button id="prev-day" class="nav-btn" type="button" aria-label="Previous day">&larr;</button>
           <button id="next-day" class="nav-btn" type="button" aria-label="Next day">&rarr;</button>
@@ -57,7 +47,8 @@
             <button type="button" class="filter-chip filter-youth-classes is-active" data-filter-key="youthClasses">Youth Classes</button>
             <button type="button" class="filter-chip filter-teen-dropins is-active" data-filter-key="teenDropIns">Teen Drop Ins</button>
             <button type="button" class="filter-chip filter-leagues is-active" data-filter-key="leagues">Leagues</button>
-            <button type="button" class="filter-chip filter-private-events is-active" data-filter-key="privateEventsRentals">Private Events & Rentals</button>
+            <button type="button" class="filter-chip filter-volley-royale is-active" data-filter-key="volleyRoyale">Volley Royale</button>
+            <button type="button" class="filter-chip filter-private-events is-active" data-filter-key="privateEventsRentals">Private Events</button>
             <button type="button" class="filter-chip filter-available-rentals is-active" data-filter-key="availableRentals">Available Rentals</button>
             <div class="filter-menu-actions">
               <button id="clear-filters" class="nav-btn clear-filters-btn" type="button">Clear All</button>
@@ -65,11 +56,7 @@
           </div>
         </div>
       </section>
-
-      <section class="panel">
-        <div class="results-header">
-          <h2 id="day-view-title">Court Day View</h2>
-        </div>
+      <section class="calendar-schedule" aria-labelledby="day-view-title">
         <div class="day-grid-wrap">
           <div class="day-grid" id="day-grid">
             <div class="day-head time-head">Time</div>
@@ -94,7 +81,6 @@
           <div class="mobile-events-list" id="mobile-events-list"></div>
         </div>
         <div class="rental-legend" aria-label="Rental time color key">
-          <span class="rental-legend-title">Rental Key</span>
           <span class="rental-legend-item">
             <span class="rental-legend-swatch rental-legend-swatch--offpeak" aria-hidden="true"></span>
             Off-Peak
@@ -107,6 +93,6 @@
       </section>
     </main>
 
-    <script src="./app.js?v=20260924-volley-royale-all-courts-1"></script>
+    <script src="./app.js?v=daily-mobile-filter-dropdown-1"></script>
   </body>
 </html>

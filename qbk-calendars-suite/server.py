@@ -1144,7 +1144,7 @@ class DashClient:
         court_key, court_name = self._court_info(resource_name, resource_area_name)
         court_name = court_name or "Court"
 
-        court_keys = {court_key} if court_key in PUSHIT_PITCH_IDS else set()
+        court_keys = self._calendar_courts({"court_key": court_key})
         try:
             day_events = self.get_events_for_date(
                 start.astimezone(LOCAL_TZ).date(),
@@ -1157,6 +1157,11 @@ class DashClient:
             None,
         )
         if source_event:
+            if (
+                self._event_time_as_utc(source_event.get("start_time")) == start
+                and self._event_time_as_utc(source_event.get("end_time")) == end
+            ):
+                court_keys.update(self._calendar_courts(source_event))
             source_title = str(source_event.get("title") or "").strip().casefold()
             source_category = str(source_event.get("category") or "").strip().casefold()
             source_booking_url = str(source_event.get("booking_url") or "").strip()
@@ -1243,12 +1248,13 @@ class DashClient:
         ]
         clips: list[dict] = []
         cursor = None
-        allowed_pitch_names = {court_name.casefold()}
-        allowed_pitch_names.update(
+        allowed_pitch_names = {
             f"{key.title()} Court".casefold()
             for key in (court_keys or set())
             if key in PUSHIT_PITCH_IDS
-        )
+        }
+        if court_key and court_key != "all":
+            allowed_pitch_names.add(court_name.casefold())
         for _ in range(PUSHIT_MAX_PAGES):
             params = list(params_base)
             if cursor:
@@ -1275,7 +1281,7 @@ class DashClient:
 
                 pitch = ((item.get("camera") or {}).get("pitch") or {})
                 pitch_name = str(pitch.get("name") or "").strip()
-                if court_key and court_key != "all" and pitch_name.casefold() not in allowed_pitch_names:
+                if allowed_pitch_names and pitch_name.casefold() not in allowed_pitch_names:
                     continue
 
                 file_name = str(item.get("fileName") or "").strip()
@@ -1407,48 +1413,6 @@ class DashClient:
                 "registration_status": None,
             }
         ]
-
-    @staticmethod
-    def _merge_overlapping_birthday_private_events(events: list[dict]) -> list[dict]:
-        birthday_events = []
-        other_events = []
-        for event in events:
-            private_event_reason = event.pop("_private_event_reason", None)
-            if private_event_reason == "birthday":
-                if event.get("court_key") in {"left", "middle", "right", "all"}:
-                    birthday_events.append(event)
-                continue
-            else:
-                other_events.append(event)
-
-        birthday_events.sort(key=lambda event: event["start_time"])
-        merged: list[dict] = []
-        for event in birthday_events:
-            if not merged or event["start_time"] >= merged[-1]["end_time"]:
-                merged.append(dict(event))
-                continue
-
-            current = merged[-1]
-            if event["end_time"] > current["end_time"]:
-                current["end_time"] = event["end_time"]
-
-            court_keys = {
-                str(value)
-                for value in (current.get("court_key"), event.get("court_key"))
-                if value in {"left", "middle", "right"}
-            }
-            if len(court_keys) == 1:
-                court_key = next(iter(court_keys))
-                court_label = f"{court_key.title()} Court"
-                current["court_key"] = court_key
-                current["location"] = court_label
-                current["sub_resource"] = f"{court_label} (sub)"
-            else:
-                current["court_key"] = "all"
-                current["location"] = "All Courts"
-                current["sub_resource"] = "All Courts"
-
-        return sorted(other_events + merged, key=lambda event: event["start_time"])
 
     def _compute_events_for_date(self, selected_date: date) -> tuple[list[dict], int | None]:
         if selected_date.isoformat() in PRIVATE_EVENT_CLOSED_DATES:
@@ -1715,12 +1679,12 @@ class DashClient:
                 continue
             if court_label:
                 location = court_label
-
-            private_event_reason = None
-            if event_kind == "private_event" and "birthday" in " ".join(
-                x for x in [category or "", league_name or "", description or ""] if x
-            ).lower():
-                private_event_reason = "birthday"
+            if (
+                event_kind == "private_event"
+                and court_key == "all"
+                and re.match(r"^closed(?:\s*$|\s*[-:\u2013\u2014])", description.strip(), re.IGNORECASE)
+            ):
+                title = "Closed"
 
             events.append(
                 {
@@ -1739,11 +1703,10 @@ class DashClient:
                     "registered_count": registered_count,
                     "remaining_registration_slots": remaining_registration_slots,
                     "registration_status": registration_status,
-                    "_private_event_reason": private_event_reason,
                 }
             )
 
-        events = self._merge_overlapping_birthday_private_events(events)
+        events.sort(key=lambda event: event["start_time"])
         return events, 1 if events else None
 
     def get_events_for_date(self, selected_date: date, *, schedule_prefetch: bool = True) -> list[dict]:
@@ -1769,6 +1732,7 @@ class DashClient:
 
         try:
             events, _ = self._compute_events_for_date(selected_date)
+            self._assign_calendar_courts(events)
             try:
                 coach_events = self._load_sling_coach_events()
                 events = self._attach_class_coaches(events, coach_events)
@@ -1793,6 +1757,79 @@ class DashClient:
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=LOCAL_TIMEZONE)
         return parsed.astimezone(timezone.utc)
+
+    @staticmethod
+    def _calendar_courts(event: dict) -> set[str]:
+        if event.get("court_key") == "all":
+            return set(PUSHIT_PITCH_IDS)
+        return ({event.get("court_key")} | set(event.get("calendar_court_keys") or ())) & set(PUSHIT_PITCH_IDS)
+
+    @classmethod
+    def _assign_calendar_courts(cls, events: list[dict]) -> None:
+        court_order = list(PUSHIT_PITCH_IDS)
+        groups: dict[tuple, list[dict]] = {}
+        for event in events:
+            start = cls._event_time_as_utc(event.get("start_time"))
+            end = cls._event_time_as_utc(event.get("end_time"))
+            if start is None or end is None or start >= end:
+                continue
+            key = (start, end, event.get("title"), event.get("booking_url"), event.get("clickable"))
+            groups.setdefault(key, []).append(event)
+
+        windows = [
+            (start, end, bookings, set().union(*(cls._calendar_courts(event) for event in bookings)))
+            for (start, end, _, _, _), bookings in groups.items()
+        ]
+        windows.sort(key=lambda window: window[0])
+
+        def court_is_free(key: str, window: tuple) -> bool:
+            start, end, _, _ = window
+            return all(
+                other is window or key not in (other[3] or {"left"}) or start >= other[1] or other[0] >= end
+                for other in windows
+            )
+
+        # Give capacity-driven sessions priority over Volley Royale's spare-court expansion.
+        for window in windows:
+            _, _, bookings, courts = window
+            event = bookings[0]
+            if len(courts) != 1 or not event.get("clickable"):
+                continue
+            title = event.get("title") or ""
+            capacity = event.get("register_capacity")
+            if not (
+                (capacity == 16 and re.search(r"\bmatch[\s-]*play\b", title, re.IGNORECASE))
+                or (capacity == 40 and re.search(r"\b4s[\s-]+drop[\s-]*in\b", title, re.IGNORECASE))
+            ):
+                continue
+            booked_index = court_order.index(next(iter(courts)))
+            for neighbor_index in (booked_index - 1, booked_index + 1):
+                if 0 <= neighbor_index < len(court_order):
+                    neighbor = court_order[neighbor_index]
+                    if court_is_free(neighbor, window):
+                        courts.add(neighbor)
+                        break
+
+        for window in windows:
+            start, end, bookings, courts = window
+            event = bookings[0]
+            title = " ".join((event.get("title") or "", event.get("category") or "")).casefold()
+            if "volley royale" not in title or not courts or len(courts) == len(court_order):
+                continue
+            midnight = start.astimezone(LOCAL_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+            opens = midnight.replace(hour=9)
+            closes = midnight + timedelta(days=1)
+            if start < opens or end > closes or end - start < timedelta(hours=1):
+                continue
+            free_courts = [key for key in court_order if key not in courts]
+            if all(court_is_free(key, window) for key in free_courts):
+                courts.update(free_courts)
+
+        for _, _, bookings, courts in windows:
+            if len(courts) > 1 and bookings[0].get("clickable") and bookings[0].get("booking_url"):
+                assigned = [key for key in court_order if key in courts]
+                for event in bookings:
+                    event["calendar_court_keys"] = assigned
 
     def _fetch_pushit_clips_for_date(self, selected_date: date) -> list[dict]:
         local_start = datetime.combine(selected_date, dtime.min).replace(tzinfo=LOCAL_TIMEZONE)
@@ -1860,12 +1897,10 @@ class DashClient:
 
         available: set[str] = set()
         for event in events:
-            court_key = str(event.get("court_key") or "").lower()
-            if court_key == "all":
-                pitch_ids = set(PUSHIT_PITCH_IDS.values())
-            elif court_key in PUSHIT_PITCH_IDS:
-                pitch_ids = {PUSHIT_PITCH_IDS[court_key]}
-            else:
+            if event.get("title") == "Closed":
+                continue
+            pitch_ids = {PUSHIT_PITCH_IDS[key] for key in self._calendar_courts(event)}
+            if not pitch_ids:
                 continue
             start = self._event_time_as_utc(event.get("start_time"))
             end = self._event_time_as_utc(event.get("end_time"))
