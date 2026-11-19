@@ -11,7 +11,6 @@
 
   const LIVE_FEED_BASE = "/api/events";
   const WEEK_FEED_BASE = "/api/events-week";
-  const MOBILE_LAYOUT_QUERY = "(max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse)";
   const SLOT_MINUTES = 30;
   const SLOT_HEIGHT = 28;
   const DAY_START_MIN = 8 * 60;
@@ -146,7 +145,7 @@
   }
 
   function isMobileLayout() {
-    return forceMobileMode || window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+    return window.qbkWeeklyCalendar.isCompact();
   }
 
   function getTodayISO() {

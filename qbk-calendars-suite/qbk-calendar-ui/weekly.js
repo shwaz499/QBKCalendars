@@ -1,5 +1,5 @@
 (() => {
-  const query = window.matchMedia("(max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse)");
+  const query = window.matchMedia("(max-width: 900px), (hover: none) and (pointer: coarse)");
   const date = document.querySelector(".calendar-date");
   const nav = document.querySelector(".date-nav");
   const prev = document.getElementById("prev-week");
@@ -8,6 +8,7 @@
   const range = document.getElementById("week-view-title");
   const rangeFormat = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
   const params = new URLSearchParams(location.search);
+  const forceMobile = document.body.dataset.forceMobile === "1" || params.get("mobile") === "1";
   let compact = null;
   let open = false;
 
@@ -25,9 +26,12 @@
     syncFilterLabel();
   }
 
+  function isCompact() {
+    return forceMobile || query.matches;
+  }
+
   function syncLayout() {
-    const next = document.body.dataset.forceMobile === "1"
-      || document.body.classList.contains("force-mobile-mode") || query.matches;
+    const next = isCompact();
     if (compact === next) return;
     compact = next;
     document.body.classList.toggle("weekly-compact", compact);
@@ -39,6 +43,7 @@
   }
 
   window.qbkWeeklyCalendar = {
+    isCompact,
     showWeek(mondayISO) {
       const monday = new Date(`${mondayISO}T00:00:00`);
       const sunday = new Date(monday);
@@ -51,7 +56,7 @@
   if (params.get("embed") === "1" || document.body.dataset.embed === "1") {
     document.body.classList.add("embed-mode");
   }
-  if (params.get("mobile") === "1") {
+  if (forceMobile) {
     document.body.classList.add("force-mobile-mode");
   }
   prev.before(date);

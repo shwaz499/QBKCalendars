@@ -595,7 +595,7 @@ h2 {
   line-height: 1;
 }
 
-@media (max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse) {
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
   .hero .subtitle {
     font-size: 0.92rem;
   }

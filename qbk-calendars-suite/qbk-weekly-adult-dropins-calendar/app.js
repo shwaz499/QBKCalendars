@@ -13,7 +13,6 @@
   }
 
   const LIVE_FEED_BASE = "/api/events";
-  const MOBILE_LAYOUT_QUERY = "(max-width: 900px), (max-device-width: 900px), (hover: none) and (pointer: coarse)";
   const DAY_START_MIN = 6 * 60;
   let hourlyCompactMode = false;
   let SLOT_MINUTES = 30;
@@ -107,7 +106,7 @@
   }
 
   function isMobileLayout() {
-    return forceMobileMode || window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+    return window.qbkWeeklyCalendar.isCompact();
   }
 
   function applyTimeScaleMode() {
