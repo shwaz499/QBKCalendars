@@ -534,9 +534,7 @@
 
       const titleOverflow = isWidthOverflowing(title);
       const timeOverflow = isWidthOverflowing(time);
-      const coachOverflow = coach && !card.classList.contains("week-event-stack-coaches")
-        ? isWidthOverflowing(coach)
-        : false;
+      const coachOverflow = coach && isWidthOverflowing(coach);
       const capacityOverflow = capacity ? isWidthOverflowing(capacity) : false;
       const cardOverflow = isHeightOverflowing(card);
       if (!titleOverflow && !timeOverflow && !coachOverflow && !capacityOverflow && !cardOverflow) break;
@@ -546,18 +544,10 @@
         titleIdx += 1;
         changed = true;
       }
-      if (timeOverflow && timeIdx < timeTiers.length - 1) {
-        timeIdx += 1;
-        changed = true;
-      }
-      if (coachOverflow && timeIdx < timeTiers.length - 1) {
-        timeIdx += 1;
-        changed = true;
-      } else if (coachOverflow) {
+      if (coachOverflow && capacity && !card.classList.contains("week-event-stack-coaches")) {
         card.classList.add("week-event-stack-coaches");
         changed = true;
-      }
-      if (capacityOverflow && timeIdx < timeTiers.length - 1) {
+      } else if ((timeOverflow || coachOverflow || capacityOverflow) && timeIdx < timeTiers.length - 1) {
         timeIdx += 1;
         changed = true;
       }
@@ -748,6 +738,7 @@
         if (event.coachText) {
           const coach = document.createElement("span");
           coach.className = "week-event-coach";
+          coach.classList.toggle("week-event-coach-single", !event.coachText.includes(","));
           coach.textContent = event.coachText;
           meta.appendChild(coach);
         }

@@ -55,11 +55,11 @@ body.embed-mode .layout {
 
 @media (min-width: 901px) {
   body:not(.compact-calendar):not(.embed-mode) .layout {
-    width: min(1470px, 94vw);
+    width: min(1102.5px, 94vw);
   }
 
   body.embed-mode:not(.compact-calendar) .layout {
-    width: min(100%, 1470px);
+    width: min(100%, 1102.5px);
     margin-inline: auto;
   }
 }

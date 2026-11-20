@@ -244,8 +244,10 @@
   function getDisplayTitleParts(title) {
     const shortened = String(title || "")
       .replace(/\bAdvanced\b/g, "Adv.")
-      .replace(/\bIntermediate\b/g, "Int.");
-    const match = shortened.match(/^(Adv\.|Int\.)\s+(2s)\s+-\s+(Match Play|King of the Court)$/);
+      .replace(/\bIntermediate\b/g, "Int.")
+      .replace(/\s+-\s+Match Play$/, "")
+      .replace(/^4s Drop In$/, "4s");
+    const match = shortened.match(/^(Adv\.|Int\.)\s+(2s)\s+-\s+(King of the Court)$/);
     if (!match) {
       return {
         level: "",

@@ -487,7 +487,6 @@ h2 {
   font-size: 0.68rem;
   font-weight: 700;
   line-height: 1.12;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: clip;
   overflow-wrap: normal;
@@ -496,19 +495,25 @@ h2 {
   min-width: 0;
 }
 
+.adult-classes .week-event-coach {
+  white-space: nowrap;
+}
+
 .week-event-stack-coaches .week-event-bottom {
   display: block;
   margin-top: auto;
 }
 
-.week-event-stack-coaches .week-event-coach {
+.adult-classes .week-event-stack-coaches .week-event-coach {
   display: block;
   white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: normal;
+  overflow-wrap: normal;
   line-height: 1.04;
-  overflow: visible;
-  text-overflow: clip;
+  text-overflow: ellipsis;
+}
+
+.adult-classes .week-event-stack-coaches .week-event-coach-single {
+  white-space: nowrap;
 }
 
 .week-event-stack-coaches .week-event-coach::first-line {
