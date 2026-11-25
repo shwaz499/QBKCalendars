@@ -1228,6 +1228,11 @@ class DashClient:
             "clips": clips,
         }
 
+    @staticmethod
+    def _pushit_time_cursor(end: datetime) -> str:
+        # Push It walks timestamps in descending order, excluding the cursor itself.
+        return end.astimezone(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
     def _fetch_pushit_clips(
         self,
         start: datetime,
@@ -1248,7 +1253,7 @@ class DashClient:
             ("additionalFields", "field"),
         ]
         clips: list[dict] = []
-        cursor = None
+        cursor = self._pushit_time_cursor(end + timedelta(milliseconds=1))
         allowed_pitch_names = {
             f"{key.title()} Court".casefold()
             for key in (court_keys or set())
@@ -1836,7 +1841,7 @@ class DashClient:
         local_start = datetime.combine(selected_date, dtime.min).replace(tzinfo=LOCAL_TIMEZONE)
         day_start = local_start.astimezone(timezone.utc)
         day_end = (local_start + timedelta(days=1)).astimezone(timezone.utc)
-        cursor = None
+        cursor = self._pushit_time_cursor(day_end)
         matching_day_clips: list[dict] = []
 
         for _ in range(12):
@@ -1870,9 +1875,14 @@ class DashClient:
                     matching_day_clips.append(item)
             if oldest_clip is not None and oldest_clip < day_start:
                 break
-            cursor = payload.get("nextCursor")
-            if not cursor or not payload.get("hasMore"):
+            if not payload.get("hasMore"):
                 break
+            next_cursor = payload.get("nextCursor")
+            if not next_cursor or next_cursor == cursor:
+                raise RuntimeError("Push It did not advance replay pagination.")
+            cursor = next_cursor
+        else:
+            raise RuntimeError("Push It replay pagination did not reach the start of the day.")
 
         return matching_day_clips
 
@@ -1889,12 +1899,8 @@ class DashClient:
         ) + timedelta(hours=1)
         cache_expires_at = next_hour.timestamp()
 
-        try:
-            events = self.get_events_for_date(selected_date, schedule_prefetch=False)
-            clips = self._fetch_pushit_clips_for_date(selected_date)
-        except Exception:
-            self._event_video_cache[selected_key] = (cache_expires_at, set())
-            return []
+        events = self.get_events_for_date(selected_date, schedule_prefetch=False)
+        clips = self._fetch_pushit_clips_for_date(selected_date)
 
         available: set[str] = set()
         for event in events:
@@ -2446,7 +2452,10 @@ class CalendarHandler(SimpleHTTPRequestHandler):
             selected = datetime.strptime(raw_date, "%Y-%m-%d").date()
         except ValueError:
             return self._send_json({"error": "Invalid calendar date."}, status=400)
-        return self._send_json({"event_ids": CLIENT.get_event_video_availability(selected)})
+        try:
+            return self._send_json({"event_ids": CLIENT.get_event_video_availability(selected)})
+        except (httpx.HTTPError, RuntimeError, ValueError):
+            return self._send_json({"error": "Could not check event replays."}, status=502, cache_control="no-store")
 
     def _handle_teen_upcoming_api(self, parsed: urllib.parse.ParseResult):
         query = urllib.parse.parse_qs(parsed.query)

@@ -162,7 +162,28 @@ async function loadEvent() {
   }
 }
 
-loadEvent().catch((error) => {
-  console.error(error);
-  renderEvent({ event: { title: calendarTitle || "Event Video", category: calendarCategory, date: "", time: "", court: "Court" }, clips: [] });
-});
+const loadStatus = document.getElementById("replay-load-status");
+const retryReplays = document.getElementById("retry-replays");
+
+async function loadReplays() {
+  if (loadStatus) {
+    document.getElementById("page-title").textContent = displayTitleFor({});
+    loadStatus.textContent = "Loading replays…";
+    retryReplays.hidden = true;
+  }
+  try {
+    await loadEvent();
+    if (loadStatus) loadStatus.hidden = true;
+  } catch (error) {
+    console.error(error);
+    if (loadStatus) {
+      loadStatus.textContent = "Couldn’t load replays. Try again.";
+      retryReplays.hidden = false;
+    } else {
+      renderEvent({ event: { title: calendarTitle || "Event Video", category: calendarCategory, date: "", time: "", court: "Court" }, clips: [] });
+    }
+  }
+}
+
+retryReplays?.addEventListener("click", loadReplays);
+void loadReplays();

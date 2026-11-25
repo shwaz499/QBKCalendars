@@ -81,7 +81,7 @@ class EventVideoMultiCourtTests(unittest.TestCase):
         start = datetime(2026, 10, 10, 0, tzinfo=timezone.utc)
         end = datetime(2026, 10, 10, 2, tzinfo=timezone.utc)
 
-        with patch.object(server.httpx, "get", return_value=response):
+        with patch.object(server.httpx, "get", return_value=response) as get:
             clips = self.client._fetch_pushit_clips(
                 start,
                 end,
@@ -90,8 +90,25 @@ class EventVideoMultiCourtTests(unittest.TestCase):
                 court_keys={"left", "middle"},
             )
 
+        self.assertEqual(dict(get.call_args.kwargs["params"])["cursor"], "2026-10-10T02:00:00.001Z")
         self.assertEqual([item["id"] for item in clips], ["left", "middle"])
         self.assertEqual([item["court"] for item in clips], ["Left Court", "Middle Court"])
+
+    def test_historical_availability_starts_at_the_local_day_end(self):
+        response = Mock()
+        response.json.return_value = {
+            "items": [
+                {"id": "day-clip", "clipCreationTime": "2026-11-01T23:00:00Z"},
+                {"id": "previous-day", "clipCreationTime": "2026-11-01T03:59:59Z"},
+            ],
+            "hasMore": True,
+        }
+        with patch.object(server.httpx, "get", return_value=response) as get:
+            clips = self.client._fetch_pushit_clips_for_date(date(2026, 11, 1))
+
+        get.assert_called_once()
+        self.assertEqual(dict(get.call_args.kwargs["params"])["cursor"], "2026-11-02T05:00:00.000Z")
+        self.assertEqual([clip["id"] for clip in clips], ["day-clip"])
 
     def test_private_rental_includes_linked_court_but_not_unrelated_rental(self):
         events = self.client.get_events_for_date.return_value
