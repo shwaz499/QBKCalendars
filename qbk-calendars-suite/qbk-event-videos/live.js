@@ -147,14 +147,42 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "ArrowRight") openModal(activeClipIndex + 1);
 });
 
-async function loadEvent() {
-  if (!isPlayoffPage && !eventId) throw new Error("Missing eventId");
-  const query = new URLSearchParams(isPlayoffPage ? {seasonId: params.get("seasonId") || "", leagueId: params.get("leagueId") || "", date: params.get("date") || ""} : { eventId });
+async function fetchReplays(endpoint, query) {
   if (calendarTitle) query.set("title", calendarTitle);
   if (calendarCategory) query.set("category", calendarCategory);
-  const response = await fetch(`/api/${isPlayoffPage ? "playoff-videos" : "event-videos"}?${query.toString()}`, { headers: { Accept: "application/json" } });
+  const response = await fetch(`/api/${endpoint}?${query}`, { headers: { Accept: "application/json" } });
   if (!response.ok) throw new Error(`Event videos request failed (${response.status})`);
-  renderEvent(await response.json());
+  return response.json();
+}
+
+async function loadEvent() {
+  let payload;
+  if (isPlayoffPage) {
+    const query = new URLSearchParams({
+      seasonId: params.get("seasonId") || "", leagueId: params.get("leagueId") || "", date: params.get("date") || "",
+    });
+    payload = await fetchReplays("playoff-videos", query);
+  } else {
+    if (!eventId) throw new Error("Missing eventId");
+    const ids = [...new Set([eventId, ...params.getAll("relatedEventId")])];
+    const pages = await Promise.all(ids.map(id => fetchReplays("event-videos", new URLSearchParams({eventId: id}))));
+    [payload] = pages;
+    if (pages.length > 1) {
+      const courts = new Set(pages.flatMap(page => page.event.court_keys || []));
+      const times = [...new Set(pages.map(page => page.event.time).filter(Boolean))];
+      const clips = new Map(pages.flatMap(page => page.clips.map(clip => [String(clip.id), clip])));
+      payload = {
+        event: {
+          ...payload.event,
+          time: times.join(", "),
+          court: courts.size ? ["left", "middle", "right"].filter(court => courts.has(court))
+            .map(court => `${court[0].toUpperCase()}${court.slice(1)} Court`).join(", ") : payload.event.court,
+        },
+        clips: [...clips.values()].sort((a, b) => Date.parse(a.clipCreationTime) - Date.parse(b.clipCreationTime)),
+      };
+    }
+  }
+  renderEvent(payload);
   trackReplay("replay_visit", requestedClipId);
   if (requestedClipId) {
     const index = currentClips.findIndex((clip) => String(clip.id) === requestedClipId);
